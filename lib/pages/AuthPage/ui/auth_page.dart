@@ -9,11 +9,15 @@ class AuthPage extends StatelessWidget {
     required this.onLogin,
     required this.phoneController,
     required this.passwordController,
+    required this.isPhoneValid,
+    required this.onPhoneChanged,
   });
 
   final VoidCallback onLogin;
   final TextEditingController phoneController;
   final TextEditingController passwordController;
+  final bool isPhoneValid;
+  final void Function(String) onPhoneChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -54,58 +58,12 @@ class AuthPage extends StatelessWidget {
               spacing: 28.h,
               children: [
                 buildMainTitle(context),
-                buildTabBar(),
                 buildLoginForm(context),
                 buildButtonSubmit(),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Flexible buildTabBar() {
-    return Flexible(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: Container(
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                "Đăng nhập",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Color(0xFFEAECEF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                "Đăng ký",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -121,7 +79,7 @@ class AuthPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: (){
+        onPressed: () {
           debugPrint("Đăng nhập");
           onLogin();
         },
@@ -140,9 +98,9 @@ class AuthPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// EMAIL
+
           Text(
-            "Tên đăng nhập hoặc (sđt)",
+            "Số điện thoại",
             style: Theme.of(
               context,
             ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -150,16 +108,22 @@ class AuthPage extends StatelessWidget {
           const SizedBox(height: 6),
           TextField(
             controller: phoneController,
+            onChanged: onPhoneChanged,
             decoration: InputDecoration(
               hintText: "Nhập sđt của bạn",
+              errorText: isPhoneValid ? null : "Số điện thoại không hợp lệ",
               prefixIcon: const Icon(Icons.phone),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: isPhoneValid ? AppColors.primaryBlue : Colors.red,
+                  width: 2,
+                ),
               ),
+
             ),
           ),
 

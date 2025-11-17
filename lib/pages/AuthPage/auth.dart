@@ -14,27 +14,60 @@ class Auth extends StatefulWidget {
 class _AuthState extends State<Auth> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool isPhoneValid = true;
 
-  void handleLogin() async {
-    if (phoneController.text.isNotEmpty && passwordController.text.isNotEmpty) {
-      await AuthService.login();
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập email và password')),
+  void onPhoneChanged(String value) {
+    setState(() {
+      isPhoneValid = isValidPhone(value);
+    });
+  }
+
+  bool isValidPhone(String phone) {
+    final regex = RegExp(r'^[0-9]{6,15}$');
+    return regex.hasMatch(phone);
+  }
+
+
+  void handleSubmit() async {
+    final phone = phoneController.text.trim();
+    final pass = passwordController.text.trim();
+
+    if (phone.isEmpty || pass.isEmpty) {
+      showSnack("Vui lòng nhập đủ thông tin");
+      return;
+    }
+
+    final result = await AuthService.loginOrRegister(phone, pass);
+
+    switch (result) {
+      case "login_ok":
+        showSnack("Đăng nhập thành công");
+        break;
+      case "registered":
+        showSnack("Số điện thoại chưa có, đã tạo tài khoản mới!");
+        break;
+      case "wrong_password":
+        showSnack("Sai mật khẩu!");
+        return;
+    }
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
     }
+  }
+
+  void showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return AuthPage(
-      onLogin: handleLogin,
+      onPhoneChanged: onPhoneChanged,
+      onLogin: handleSubmit,
+      isPhoneValid: isPhoneValid,
       phoneController: phoneController,
       passwordController: passwordController,
     );
