@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_transition_builder.dart';
 
 abstract class ThemeConfig {
   static ThemeData defaultLight = variant(
@@ -15,6 +16,12 @@ abstract class ThemeConfig {
   }) {
     return ThemeData(
       fontFamily: 'Montserrat',
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CustomTransitionBuilder(),
+          TargetPlatform.iOS: CustomTransitionBuilder(),
+        },
+      ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: primaryColor,
         selectionHandleColor: primaryColor,
