@@ -19,7 +19,6 @@ abstract class ThemeConfig {
         cursorColor: primaryColor,
         selectionHandleColor: primaryColor,
       ),
-      scaffoldBackgroundColor: AppColors.white,
       brightness: darkMode ? Brightness.dark : Brightness.light,
     );
   }

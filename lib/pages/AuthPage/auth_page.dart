@@ -1,10 +1,215 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../ting_box.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return AppScaffold(
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 8.w,
+          children: [
+            Icon(
+              CupertinoIcons.chart_bar_alt_fill,
+              size: 32,
+              color: AppColors.primaryBlue,
+            ),
+            Text(
+              "Sổ Chi Phí",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 20.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+      backgroundColor: AppColors.white,
+      body: SizedBox.expand(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: 28.h,
+              children: [
+                buildMainTitle(context),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "Đăng nhập",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFEAECEF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "Đăng ký",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                buildLoginForm(context),
+
+                buildButtonSubmit(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildButtonSubmit() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () {},
+        child: const Text(
+          "Đăng nhập",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget buildLoginForm(BuildContext context) {
+    return Expanded(
+      flex: 3,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// EMAIL
+          Text(
+            "Tên đăng nhập hoặc (sđt)",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            decoration: InputDecoration(
+              hintText: "Nhập sđt của bạn",
+              prefixIcon: const Icon(Icons.phone),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
+              ),
+            ),
+          ),
+
+          SizedBox(height: 28.h),
+
+          Text(
+            "Mật khẩu",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            obscureText: true,
+            decoration: InputDecoration(
+              hintText: "Nhập mật khẩu",
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: const Icon(Icons.visibility_off_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              "Quên mật khẩu?",
+              style: TextStyle(
+                color: Colors.blue.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildMainTitle(BuildContext context) {
+    return Flexible(
+      child: Column(
+        spacing: 8.h,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Chào mừng trở lại",
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 32.sp,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            "Đăng nhập để tiếp tục quản lý chi phí của bạn.",
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }

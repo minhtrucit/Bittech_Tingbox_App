@@ -1,5 +1,5 @@
 name: notification_flutter_client
-description: "A new Flutter project."
+description: "BitTech Ting Box Flutter Client"
 
 publish_to: 'none' 
 
@@ -15,6 +15,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  flutter_screenutil: ^5.9.3
 
 dev_dependencies:
   flutter_test:
@@ -37,14 +38,14 @@ flutter:
   fonts:
     - family: montserrat
       fonts:
-        - asset: fonts/Montserrat-Regular.ttf
-        - asset: fonts/Montserrat-SemiBold.ttf
+        - asset: assets/fonts/Montserrat-Regular.ttf
+        - asset: assets/fonts/Montserrat-SemiBold.ttf
           weight: 600
-        - asset: fonts/Montserrat-Bold.ttf
+        - asset: assets/fonts/Montserrat-Bold.ttf
           weight: 700
-        - asset: fonts/Montserrat-ExtraBold.ttf
+        - asset: assets/fonts/Montserrat-ExtraBold.ttf
           weight: 800
-        - asset: fonts/Montserrat-Italic.ttf
+        - asset: assets/fonts/Montserrat-Italic.ttf
           style: italic
 
 
