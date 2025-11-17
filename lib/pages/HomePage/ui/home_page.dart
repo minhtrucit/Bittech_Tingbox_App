@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:notification_flutter_client/common/components/app_scaffold.dart';
 
+import '../../../common/components/app_scaffold.dart';
 import '../../../services/auth_services.dart';
 import '../../AuthPage/auth.dart';
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:notification_flutter_client/common/theme.dart';
-import 'package:notification_flutter_client/pages/AuthPage/auth.dart';
-import 'package:notification_flutter_client/pages/HomePage/ui/home_page.dart';
-import 'package:notification_flutter_client/services/auth_services.dart';
+import 'package:ting_box/pages/AuthPage/auth.dart';
+import 'package:ting_box/pages/HomePage/ui/home_page.dart';
+import 'package:ting_box/services/auth_services.dart';
+
+import 'common/theme.dart';
+
 
 void main() {
   runApp(const MyApp());

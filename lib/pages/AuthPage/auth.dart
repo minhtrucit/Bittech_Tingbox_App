@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:notification_flutter_client/pages/AuthPage/ui/auth_page.dart';
+import 'package:ting_box/pages/AuthPage/ui/auth_page.dart';
 
 import '../../services/auth_services.dart';
 import '../HomePage/ui/home_page.dart';
