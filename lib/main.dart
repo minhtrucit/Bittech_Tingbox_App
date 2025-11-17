@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:notification_flutter_client/common/theme.dart';
-import 'package:notification_flutter_client/pages/AuthPage/auth_page.dart';
+import 'package:notification_flutter_client/pages/AuthPage/auth.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'BitTech Ting Box',
           theme: ThemeConfig.defaultLight,
-          home: const AuthPage(),
+          home: const Auth(),
           debugShowCheckedModeBanner: false,
         );
       },

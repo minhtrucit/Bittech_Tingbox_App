@@ -1,10 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../ting_box.dart';
+import '../../../ting_box.dart';
 
 class AuthPage extends StatelessWidget {
-  const AuthPage({super.key});
+  const AuthPage({
+    super.key,
+    required this.onLogin,
+    required this.phoneController,
+    required this.passwordController,
+  });
+
+  final VoidCallback onLogin;
+  final TextEditingController phoneController;
+  final TextEditingController passwordController;
 
   @override
   Widget build(BuildContext context) {
@@ -45,56 +54,58 @@ class AuthPage extends StatelessWidget {
               spacing: 28.h,
               children: [
                 buildMainTitle(context),
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "Đăng nhập",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Color(0xFFEAECEF),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "Đăng ký",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
+                buildTabBar(),
                 buildLoginForm(context),
-
                 buildButtonSubmit(),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Flexible buildTabBar() {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(
+            child: Container(
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                "Đăng nhập",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Color(0xFFEAECEF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                "Đăng ký",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -110,7 +121,10 @@ class AuthPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {},
+        onPressed: (){
+          debugPrint("Đăng nhập");
+          onLogin();
+        },
         child: const Text(
           "Đăng nhập",
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -135,6 +149,7 @@ class AuthPage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           TextField(
+            controller: phoneController,
             decoration: InputDecoration(
               hintText: "Nhập sđt của bạn",
               prefixIcon: const Icon(Icons.phone),
@@ -159,6 +174,7 @@ class AuthPage extends StatelessWidget {
           const SizedBox(height: 6),
           TextField(
             obscureText: true,
+            controller: passwordController,
             decoration: InputDecoration(
               hintText: "Nhập mật khẩu",
               prefixIcon: const Icon(Icons.lock_outline),
