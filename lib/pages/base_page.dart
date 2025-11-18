@@ -26,7 +26,10 @@ class _BasePageState extends State<BasePage> {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: _pages[_selectedIndex],
-      bottomNavigationBar: null,
+      bottomNavigationBar: AppNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) => setState(() => _selectedIndex = index),
+      ),
     );
   }
 }
