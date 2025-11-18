@@ -8,5 +8,6 @@ export 'common/app_colors.dart';
 export 'pages/HomePage/ui/home_page.dart';
 export 'pages/AuthPage/auth.dart';
 export 'pages/AuthPage/ui/auth_page.dart';
+export 'pages/SalesPage/scanner_product_page.dart';
 export 'pages/base_page.dart';
 export 'ting_box.dart';
