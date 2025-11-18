@@ -3,6 +3,20 @@ import 'package:camera/camera.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../common/app_colors.dart';
+import '../../services/product_api_services.dart';
+
+class Product{
+  final String name;
+  final double price;
+  // final String imageUrl;
+
+  Product({
+    required this.name,
+    required this.price,
+    // required this.imageUrl,
+  });
+}
+
 
 class ScanProductScreen extends StatefulWidget {
   const ScanProductScreen({super.key});
@@ -38,14 +52,23 @@ class _ScanProductScreenState extends State<ScanProductScreen> {
     }
   }
 
-  Future<void> _takePicture() async {
-    if (!_controller!.value.isInitialized) return;
+  final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
+  List<Product> scannedProducts = [];
+  Future<void> _takePictureAndSend() async {
+    final XFile file = await _controller!.takePicture();
+    print('Ảnh path: ${file.path}');
 
-    final picture = await _controller!.takePicture();
-    debugPrint("Ảnh đã chụp: ${picture.path}");
-
-    // TODO: Gửi ảnh lên backend → trả về JSON sản phẩm
-    // TODO: Add vào CartProvider
+    final product = await apiService.sendImage(file.path);
+    if (product != null) {
+      print('Product match: ${product['name']} - ${product['price']}đ');
+      setState(() {
+        scannedProducts.add(Product(
+          name: product['name'],
+          price: product['price'].toDouble(),
+          // imageUrl: product['image_path'],
+        ));
+      });
+    }
   }
 
   @override
@@ -72,49 +95,26 @@ class _ScanProductScreenState extends State<ScanProductScreen> {
             right: 0,
             child: _buildProductBottomSheet(
               context: context,
-              productItems: [
-                buildProductCartItem(
-                  name: "Sản phẩm mẫu 1",
-                  imageUrl: "https://picsum.photos/id/237/200/300",
-                  price: 50000,
+              productItems: scannedProducts.map((product) {
+                return buildProductCartItem(
+                  name: product.name,
+                  imageUrl: '',
+                  price: product.price,
                   quantity: 1,
                   onIncrease: () {},
                   onDecrease: () {},
-                  onDelete: () {},
-                ),
-                buildProductCartItem(
-                  name: "Sản phẩm mẫu 2",
-                  imageUrl: "https://picsum.photos/id/230/200/300",
-                  price: 75000,
-                  quantity: 2,
-                  onIncrease: () {},
-                  onDecrease: () {},
-                  onDelete: () {},
-                ),
-                buildProductCartItem(
-                  name: "Sản phẩm mẫu 2",
-                  imageUrl: "https://picsum.photos/id/230/200/300",
-                  price: 75000,
-                  quantity: 2,
-                  onIncrease: () {},
-                  onDecrease: () {},
-                  onDelete: () {},
-                ),
-                buildProductCartItem(
-                  name: "Sản phẩm mẫu 2",
-                  imageUrl: "https://picsum.photos/id/230/200/300",
-                  price: 75000,
-                  quantity: 2,
-                  onIncrease: () {},
-                  onDecrease: () {},
-                  onDelete: () {},
-                ),
-              ],
+                  onDelete: () {
+                    setState(() {
+                      scannedProducts.remove(product);
+                    });
+                  },
+                );
+              }).toList(),
               onButtonTap: () {},
             ),
           ),
 
-          _buildTakePhotoButton(onTap: _takePicture),
+          _buildTakePhotoButton(onTap: _takePictureAndSend),
         ],
       ),
     );
@@ -253,7 +253,7 @@ Widget buildProductCartItem({
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              imageUrl,
+              'https://picsum.photos/200/300',
               width: 50,
               height: 50,
               fit: BoxFit.cover,
