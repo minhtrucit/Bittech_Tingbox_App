@@ -16,9 +16,10 @@ class _BasePageState extends State<BasePage> {
   final List<Widget> _pages = const [
     HomePage(),
     HomePage(),
-    HomePage(),
+    ScanProductScreen(),
     HomePage(),
   ];
+
 
   @override
   Widget build(BuildContext context) {
