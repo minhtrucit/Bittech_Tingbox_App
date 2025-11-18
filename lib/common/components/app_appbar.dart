@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_colors.dart';
+
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppAppBar({
     super.key,
@@ -27,14 +29,16 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       elevation: elevation ?? 0,
-      backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
-      leading: leading != null
-          ? GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onLeadingClick,
-        child: leading,
-      )
-          : null,
+      backgroundColor: backgroundColor ?? AppColors.white,
+
+      leading:
+          leading != null
+              ? GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onLeadingClick,
+                child: leading,
+              )
+              : null,
       title: title,
       actions: actions,
       centerTitle: centerTitle ?? true,
