@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../common/components/app_scaffold.dart';
 import '../../../services/auth_services.dart';
+import '../../../ting_box.dart';
 import '../../AuthPage/auth.dart';
 
 class HomePage extends StatelessWidget {
@@ -20,6 +21,9 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
+      appBar: AppAppBar(
+        title: TitleAppbarText(title: 'Quản lý doanh thu'),
+      ),
       body: Center(
         child: ElevatedButton(
           onPressed: () => handleLogout(context),
