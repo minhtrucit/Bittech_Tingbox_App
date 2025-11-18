@@ -37,13 +37,7 @@ class AuthPage extends StatelessWidget {
               size: 32,
               color: AppColors.primaryBlue,
             ),
-            Text(
-              "Sổ Chi Phí",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 20.sp,
-              ),
-            ),
+            TitleAppbarText(title: 'Sổ chi phí'),
           ],
         ),
       ),
@@ -98,7 +92,6 @@ class AuthPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Text(
             "Số điện thoại",
             style: Theme.of(
@@ -123,7 +116,6 @@ class AuthPage extends StatelessWidget {
                   width: 2,
                 ),
               ),
-
             ),
           ),
 

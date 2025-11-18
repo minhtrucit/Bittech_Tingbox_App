@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/AuthPage/auth.dart';
-import 'package:ting_box/pages/HomePage/ui/home_page.dart';
 import 'package:ting_box/pages/base_page.dart';
 import 'package:ting_box/services/auth_services.dart';
 

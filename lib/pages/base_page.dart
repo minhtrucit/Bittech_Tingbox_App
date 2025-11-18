@@ -23,6 +23,7 @@ class _BasePageState extends State<BasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.white,
       body: _pages[_selectedIndex],
       bottomNavigationBar: AppNavigationBar(
         currentIndex: _selectedIndex,

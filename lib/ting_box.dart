@@ -1,5 +1,7 @@
 export 'common/components/app_scaffold.dart';
 export 'common/components/app_navigation_bar.dart';
+export 'common/components/app_appbar.dart';
+export 'common/components/title_appbar_text.dart';
 export 'common/theme.dart';
 export 'common/app_assets.dart';
 export 'common/app_colors.dart';

@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../app_colors.dart';
+
 class AppNavigationBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
@@ -14,6 +16,7 @@ class AppNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
+      backgroundColor: AppColors.white,
       type: BottomNavigationBarType.fixed,
       currentIndex: currentIndex,
       selectedItemColor: Colors.blue,
