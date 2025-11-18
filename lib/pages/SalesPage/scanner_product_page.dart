@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../common/app_colors.dart';
+import '../../common/components/app_text_button.dart';
 import '../../services/product_api_services.dart';
 
 class Product{
@@ -18,14 +19,14 @@ class Product{
 }
 
 
-class ScanProductScreen extends StatefulWidget {
-  const ScanProductScreen({super.key});
+class ScanProductPage extends StatefulWidget {
+  const ScanProductPage({super.key});
 
   @override
-  State<ScanProductScreen> createState() => _ScanProductScreenState();
+  State<ScanProductPage> createState() => _ScanProductPageState();
 }
 
-class _ScanProductScreenState extends State<ScanProductScreen> {
+class _ScanProductPageState extends State<ScanProductPage> {
   CameraController? _controller;
   bool _isCameraReady = false;
 
@@ -199,7 +200,7 @@ Widget _buildProductBottomSheet({
           padding: const EdgeInsets.all(16.0),
           child: SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: AppTextButton(
               style: ButtonStyle(
                 shape: WidgetStatePropertyAll(
                   RoundedRectangleBorder(
@@ -215,7 +216,7 @@ Widget _buildProductBottomSheet({
                 ),
               ),
               onPressed: onButtonTap,
-              child: Text(
+              label: Text(
                 "Xác nhận",
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
