@@ -8,12 +8,14 @@ import '../../services/product_api_services.dart';
 import '../../ting_box.dart';
 
 class Product {
+  final String product_id;
   final String name;
   final double price;
   // final String imageUrl;
   final int quantity;
 
   Product({
+    required this.product_id,
     required this.name,
     required this.price,
     this.quantity = 1,
@@ -104,6 +106,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
           scannedProducts.insert(
             0,
             Product(
+              product_id: existing.product_id,
               name: existing.name,
               price: existing.price,
               quantity: existing.quantity + 1,
@@ -113,6 +116,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
           scannedProducts.insert(
             0,
             Product(
+              product_id: product['product_id'],
               name: product['name'],
               price: product['price'].toDouble(),
               quantity: 1,
@@ -124,7 +128,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   double _calculateTotalPrice() {
-    return scannedProducts.fold(0.0, (sum, product) => sum + product.price);
+    return scannedProducts.fold(0.0, (sum, product) => sum + product.price * product.quantity);
   }
 
   Widget _buildDialogConfirmWidget() {
@@ -144,7 +148,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
           ),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(context, true),
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
           child: Text(
             "Thoát",
             style: Theme.of(
@@ -154,6 +161,21 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
       ],
     );
+  }
+
+  void handleUpdateQuantity({required int index, required bool isIncrease}) {
+    setState(() {
+      final product = scannedProducts[index];
+      scannedProducts[index] = Product(
+        product_id: product.product_id,
+        name: product.name,
+        price: product.price,
+        quantity:
+            isIncrease
+                ? product.quantity + 1
+                : (product.quantity > 1 ? product.quantity - 1 : 1),
+      );
+    });
   }
 
   @override
@@ -224,8 +246,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         imageUrl: '',
                         price: product.price,
                         quantity: product.quantity,
-                        onIncrease: () {},
-                        onDecrease: () {},
+                        onIncrease: () {
+                          handleUpdateQuantity(
+                            index: scannedProducts.indexOf(product),
+                            isIncrease: true,
+                          );
+                        },
+                        onDecrease: () {
+                          handleUpdateQuantity(
+                            index: scannedProducts.indexOf(product),
+
+                            isIncrease: false,
+                          );
+                        },
                         onDelete: () {
                           setState(() {
                             scannedProducts.remove(product);
