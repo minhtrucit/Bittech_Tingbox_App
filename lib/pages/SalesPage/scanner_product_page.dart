@@ -122,59 +122,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
       hasSafeArea: false,
       appBar: AppAppBar(
         backgroundColor: Colors.transparent,
-        leading: Padding(
-          padding: EdgeInsets.only(left: 16.w),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: Container(
-              width: 30.w,
-              height: 30.w,
-              decoration: const BoxDecoration(
-                color: AppColors.white10,
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(8),
-              child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            ),
-          ),
-        ),
+        leading: buildBackButton(context),
         actions: [
           if (_lenDirection == CameraLensDirection.back)
-            GestureDetector(
-              onTap: _toggleFlash,
-              child: Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.white10,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(8),
-                child:
-                    _isFlashOn
-                        ? Icon(Icons.flash_on_outlined, color: Colors.white)
-                        : Icon(Icons.flash_off_outlined, color: Colors.white),
-              ),
-            ),
+            buildFlashButton(),
           SizedBox(width: 8.w,),
-          Padding(
-            padding:  EdgeInsets.only(right: 16.w),
-            child: GestureDetector(
-              onTap: _changeLenDirection,
-              child: Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.white10,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(8),
-                child: Icon(Icons.change_circle_outlined, color: Colors.white),
-              ),
-            ),
-          ),
+          buildChangeLenButton(),
         ],
       ),
       body: Stack(
@@ -211,6 +164,62 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ],
       ),
     );
+  }
+
+  Padding buildChangeLenButton() {
+    return Padding(
+          padding: EdgeInsets.only(right: 16.w),
+          child: GestureDetector(
+            onTap: _changeLenDirection,
+            child: SizedBox(
+              width: 42.w,
+              height: 42.w,
+              child:DecoratedBox(
+              decoration: const BoxDecoration(
+                color: AppColors.white10,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.change_circle_outlined, color: Colors.white),
+            ),),
+          ),
+        );
+  }
+
+  GestureDetector buildFlashButton() {
+    return GestureDetector(
+            onTap: _toggleFlash,
+            child: Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: const BoxDecoration(
+                color: AppColors.white10,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(8),
+              child:
+                  _isFlashOn
+                      ? Icon(Icons.flash_on_outlined, color: Colors.white)
+                      : Icon(Icons.flash_off_outlined, color: Colors.white),
+            ),
+          );
+  }
+
+  Padding buildBackButton(BuildContext context) {
+    return Padding(
+        padding: EdgeInsets.only(left: 18.w),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: AppColors.white10,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          ),
+        ),
+      );
   }
 }
 
