@@ -229,6 +229,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   Widget build(BuildContext context) {
     if (!_isCameraReady) {
       return const AppScaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: AppColors.white,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primaryBlue),
@@ -260,6 +261,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
       },
       child: AppScaffold(
         hasSafeArea: false,
+        resizeToAvoidBottomInset: false,
         appBar: AppAppBar(
           backgroundColor: Colors.transparent,
           leading: buildBackButton(context),
@@ -452,17 +454,31 @@ Widget _buildProductBottomSheet({
             itemBuilder: (context, index) => productItems[index],
           ),
         ),
-        Padding(
-          padding: EdgeInsets.only(right: 8.w),
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              'Tổng tiền: ${formatMoney(totalPrice())}đ',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(width: 0.4.w, color: Colors.grey.shade300))
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tổng cộng: ',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                  ),
+                ),Text(
+                  '${formatMoney(totalPrice())}đ',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -487,7 +503,7 @@ Widget _buildProductBottomSheet({
               ),
               onPressed: onConfirmButtonTap,
               label: Text(
-                "Xác nhận",
+                "Hoàn tất",
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
