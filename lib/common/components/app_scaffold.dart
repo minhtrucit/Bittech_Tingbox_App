@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -85,6 +86,10 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.dark
+    ));
     return hasSafeArea
         ? Container(
           color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,

@@ -127,6 +127,35 @@ class _ScanProductPageState extends State<ScanProductPage> {
     return scannedProducts.fold(0.0, (sum, product) => sum + product.price);
   }
 
+  Widget _buildDialogConfirmWidget() {
+    return AlertDialog(
+      title: const Text("Xác nhận thoát"),
+      content: const Text(
+        "Bạn có sản phẩm trong danh sách.\nBạn có chắc chắn muốn thoát không?",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(
+            "Hủy",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.primaryBlue),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(
+            "Thoát",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -144,51 +173,74 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
       );
     }
+    debugPrint(
+      'Building ScanProductPage with ${scannedProducts.length} products',
+    );
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, e) async {
+        if (didPop) return;
 
-    return AppScaffold(
-      hasSafeArea: false,
-      appBar: AppAppBar(
-        backgroundColor: Colors.transparent,
-        leading: buildBackButton(context),
-        actions: [
-          if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
-          SizedBox(width: 8.w),
-          buildChangeLenButton(),
-        ],
-      ),
-      body: Stack(
-        children: [
-          SizedBox.expand(child: CameraPreview(_camera!)),
+        if (scannedProducts.isNotEmpty) {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return _buildDialogConfirmWidget();
+            },
+          );
 
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _buildProductBottomSheet(
-              context: context,
-              productItems:
-                  scannedProducts.map((product) {
-                    return buildProductCartItem(
-                      name: product.name,
-                      imageUrl: '',
-                      price: product.price,
-                      quantity: product.quantity,
-                      onIncrease: () {},
-                      onDecrease: () {},
-                      onDelete: () {
-                        setState(() {
-                          scannedProducts.remove(product);
-                        });
-                      },
-                    );
-                  }).toList(),
-              onButtonTap: () {},
-              totalPrice: _calculateTotalPrice,
+          if (shouldExit == true && context.mounted) {
+            Navigator.pop(context);
+          }
+        } else {
+          Navigator.pop(context);
+        }
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        appBar: AppAppBar(
+          backgroundColor: Colors.transparent,
+          leading: buildBackButton(context),
+          actions: [
+            if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
+            SizedBox(width: 8.w),
+            buildChangeLenButton(),
+          ],
+        ),
+        body: Stack(
+          children: [
+            SizedBox.expand(child: CameraPreview(_camera!)),
+
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildProductBottomSheet(
+                context: context,
+                productItems:
+                    scannedProducts.map((product) {
+                      return buildProductCartItem(
+                        name: product.name,
+                        imageUrl: '',
+                        price: product.price,
+                        quantity: product.quantity,
+                        onIncrease: () {},
+                        onDecrease: () {},
+                        onDelete: () {
+                          setState(() {
+                            scannedProducts.remove(product);
+                          });
+                        },
+                      );
+                    }).toList(),
+                onButtonTap: () {},
+                totalPrice: _calculateTotalPrice,
+              ),
             ),
-          ),
 
-          _buildTakePhotoButton(onTap: _takePictureAndSend),
-        ],
+            _buildTakePhotoButton(onTap: _takePictureAndSend),
+          ],
+        ),
       ),
     );
   }
@@ -237,7 +289,16 @@ class _ScanProductPageState extends State<ScanProductPage> {
       padding: EdgeInsets.only(left: 18.w),
       child: GestureDetector(
         onTap: () {
-          Navigator.pop(context);
+          if (scannedProducts.isNotEmpty) {
+            showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return _buildDialogConfirmWidget();
+              },
+            );
+          } else {
+            Navigator.pop(context);
+          }
         },
         child: DecoratedBox(
           decoration: const BoxDecoration(
