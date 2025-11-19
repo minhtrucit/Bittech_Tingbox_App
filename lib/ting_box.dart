@@ -13,4 +13,5 @@ export 'pages/SalesPage/scanner_product_page.dart';
 export 'pages/SalesPage/sale_page.dart';
 export 'pages/base_page.dart';
 export 'utils/camera_utils.dart';
+export 'extension/number_extension.dart';
 export 'ting_box.dart';

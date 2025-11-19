@@ -39,20 +39,20 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   Future<void> _initCamera() async {
     final description = await CameraUtils.getCamera(_lenDirection);
-      _camera = CameraController(
-        description,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
+    _camera = CameraController(
+      description,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
 
-      await _camera!.initialize().catchError((Object e) {
-        if (e is CameraException) {
-          debugPrint('Camera exception: ${e.description}');
-        }
-      });
-      await CameraUtils.lockCaptureOrientation(_camera!);
-      unawaited(_camera?.setFlashMode(FlashMode.off));
-      setState(() => _isCameraReady = true);
+    await _camera!.initialize().catchError((Object e) {
+      if (e is CameraException) {
+        debugPrint('Camera exception: ${e.description}');
+      }
+    });
+    await CameraUtils.lockCaptureOrientation(_camera!);
+    unawaited(_camera?.setFlashMode(FlashMode.off));
+    setState(() => _isCameraReady = true);
   }
 
   void _toggleFlash() {
@@ -100,6 +100,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
     }
   }
 
+  double _calculateTotalPrice() {
+    return scannedProducts.fold(0.0, (sum, product) => sum + product.price);
+  }
+
+
+
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -124,9 +130,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
         backgroundColor: Colors.transparent,
         leading: buildBackButton(context),
         actions: [
-          if (_lenDirection == CameraLensDirection.back)
-            buildFlashButton(),
-          SizedBox(width: 8.w,),
+          if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
+          SizedBox(width: 8.w),
           buildChangeLenButton(),
         ],
       ),
@@ -157,6 +162,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                     );
                   }).toList(),
               onButtonTap: () {},
+              totalPrice: _calculateTotalPrice,
             ),
           ),
 
@@ -168,58 +174,59 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   Padding buildChangeLenButton() {
     return Padding(
-          padding: EdgeInsets.only(right: 16.w),
-          child: GestureDetector(
-            onTap: _changeLenDirection,
-            child: SizedBox(
-              width: 42.w,
-              height: 42.w,
-              child:DecoratedBox(
-              decoration: const BoxDecoration(
-                color: AppColors.white10,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.change_circle_outlined, color: Colors.white),
-            ),),
-          ),
-        );
-  }
-
-  GestureDetector buildFlashButton() {
-    return GestureDetector(
-            onTap: _toggleFlash,
-            child: Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: const BoxDecoration(
-                color: AppColors.white10,
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(8),
-              child:
-                  _isFlashOn
-                      ? Icon(Icons.flash_on_outlined, color: Colors.white)
-                      : Icon(Icons.flash_off_outlined, color: Colors.white),
-            ),
-          );
-  }
-
-  Padding buildBackButton(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(left: 18.w),
-        child: GestureDetector(
-          onTap: () {
-            Navigator.pop(context);
-          },
+      padding: EdgeInsets.only(right: 16.w),
+      child: GestureDetector(
+        onTap: _changeLenDirection,
+        child: SizedBox(
+          width: 42.w,
+          height: 42.w,
           child: DecoratedBox(
             decoration: const BoxDecoration(
               color: AppColors.white10,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            child: Icon(Icons.change_circle_outlined, color: Colors.white),
           ),
         ),
-      );
+      ),
+    );
+  }
+
+  GestureDetector buildFlashButton() {
+    return GestureDetector(
+      onTap: _toggleFlash,
+      child: Container(
+        width: 40.w,
+        height: 40.w,
+        decoration: const BoxDecoration(
+          color: AppColors.white10,
+          shape: BoxShape.circle,
+        ),
+        padding: const EdgeInsets.all(8),
+        child:
+            _isFlashOn
+                ? Icon(Icons.flash_on_outlined, color: Colors.white)
+                : Icon(Icons.flash_off_outlined, color: Colors.white),
+      ),
+    );
+  }
+
+  Padding buildBackButton(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 18.w),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.pop(context);
+        },
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: AppColors.white10,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        ),
+      ),
+    );
   }
 }
 
@@ -232,8 +239,8 @@ Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 72,
-          height: 72,
+          width: 65,
+          height: 65,
           decoration: BoxDecoration(
             color: Colors.red,
             shape: BoxShape.circle,
@@ -249,6 +256,7 @@ Widget _buildProductBottomSheet({
   required BuildContext context,
   required List<Widget> productItems,
   required VoidCallback onButtonTap,
+  required double Function() totalPrice,
 }) {
   return Container(
     height: 350.h,
@@ -265,10 +273,10 @@ Widget _buildProductBottomSheet({
           height: 5,
           decoration: BoxDecoration(
             color: Colors.grey[400],
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         ListTile(
           title: Text(
             "Sản phẩm đã quét (${productItems.length})",
@@ -288,7 +296,7 @@ Widget _buildProductBottomSheet({
           child: Align(
             alignment: Alignment.bottomRight,
             child: Text(
-              'Tổng tiền: 12,0000đ',
+              'Tổng tiền: ${formatMoney(totalPrice())}đ',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -342,7 +350,7 @@ Widget buildProductCartItem({
   required VoidCallback onDelete,
 }) {
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    padding: const EdgeInsets.symmetric( vertical: 10),
     child: DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -379,7 +387,7 @@ Widget buildProductCartItem({
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${price.toStringAsFixed(0)}đ",
+                  "${formatMoney(price)}đ",
                   style: const TextStyle(fontSize: 13, color: Colors.black54),
                 ),
               ],
@@ -403,7 +411,6 @@ Widget buildProductCartItem({
 
           // Quantity text
           Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
 
           // Increase
           IconButton(
@@ -420,12 +427,17 @@ Widget buildProductCartItem({
             ),
           ),
 
+
+          SizedBox(width: 8.w,),
           // Delete
-          IconButton(
-            iconSize: 22,
-            padding: EdgeInsets.zero,
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete, color: Colors.red),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              iconSize: 22,
+              padding: EdgeInsets.zero,
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete, color: Colors.red),
+            ),
           ),
         ],
       ),
