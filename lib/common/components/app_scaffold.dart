@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -85,32 +86,73 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    return  Scaffold(
-      appBar: appBar,
-      body: SafeArea(child: body),
-      floatingActionButton: floatingActionButton,
-      floatingActionButtonLocation: floatingActionButtonLocation,
-      floatingActionButtonAnimator: floatingActionButtonAnimator,
-      persistentFooterButtons: persistentFooterButtons,
-      persistentFooterAlignment: persistentFooterAlignment,
-      drawer: drawer,
-      onDrawerChanged: onDrawerChanged,
-      endDrawer: endDrawer,
-      onEndDrawerChanged: onEndDrawerChanged,
-      bottomNavigationBar: bottomNavigationBar,
-      bottomSheet: bottomSheet,
-      backgroundColor: backgroundColor,
-      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
-      primary: primary,
-      drawerDragStartBehavior: drawerDragStartBehavior,
-      extendBody: extendBody,
-      extendBodyBehindAppBar: extendBodyBehindAppBar,
-      drawerScrimColor: drawerScrimColor,
-      drawerEdgeDragWidth: drawerEdgeDragWidth,
-      drawerEnableOpenDragGesture: drawerEnableOpenDragGesture,
-      endDrawerEnableOpenDragGesture: endDrawerEnableOpenDragGesture,
-      restorationId: restorationId,
-    );
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.dark
+    ));
+    return hasSafeArea
+        ? Container(
+          color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+          child: SafeArea(
+            left: left,
+            top: top,
+            right: right,
+            bottom: bottom,
+            minimum: minimum,
+            maintainBottomViewPadding: maintainBottomViewPadding,
+            child: Scaffold(
+              appBar: appBar,
+              body: body,
+              floatingActionButton: floatingActionButton,
+              floatingActionButtonLocation: floatingActionButtonLocation,
+              floatingActionButtonAnimator: floatingActionButtonAnimator,
+              persistentFooterButtons: persistentFooterButtons,
+              persistentFooterAlignment: persistentFooterAlignment,
+              drawer: drawer,
+              onDrawerChanged: onDrawerChanged,
+              endDrawer: endDrawer,
+              onEndDrawerChanged: onEndDrawerChanged,
+              bottomNavigationBar: bottomNavigationBar,
+              bottomSheet: bottomSheet,
+              backgroundColor: backgroundColor,
+              resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+              primary: primary,
+              drawerDragStartBehavior: drawerDragStartBehavior,
+              extendBody: extendBody,
+              extendBodyBehindAppBar: extendBodyBehindAppBar,
+              drawerScrimColor: drawerScrimColor,
+              drawerEdgeDragWidth: drawerEdgeDragWidth,
+              drawerEnableOpenDragGesture: drawerEnableOpenDragGesture,
+              endDrawerEnableOpenDragGesture: endDrawerEnableOpenDragGesture,
+              restorationId: restorationId,
+            ),
+          ),
+        )
+        : Scaffold(
+          appBar: appBar,
+          body: body,
+          floatingActionButton: floatingActionButton,
+          floatingActionButtonLocation: floatingActionButtonLocation,
+          floatingActionButtonAnimator: floatingActionButtonAnimator,
+          persistentFooterButtons: persistentFooterButtons,
+          persistentFooterAlignment: persistentFooterAlignment,
+          drawer: drawer,
+          onDrawerChanged: onDrawerChanged,
+          endDrawer: endDrawer,
+          onEndDrawerChanged: onEndDrawerChanged,
+          bottomNavigationBar: bottomNavigationBar,
+          bottomSheet: bottomSheet,
+          backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+          resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+          primary: primary,
+          drawerDragStartBehavior: drawerDragStartBehavior,
+          extendBody: extendBody,
+          extendBodyBehindAppBar: extendBodyBehindAppBar,
+          drawerScrimColor: drawerScrimColor,
+          drawerEdgeDragWidth: drawerEdgeDragWidth,
+          drawerEnableOpenDragGesture: drawerEnableOpenDragGesture,
+          endDrawerEnableOpenDragGesture: endDrawerEnableOpenDragGesture,
+          restorationId: restorationId,
+        );
   }
 }

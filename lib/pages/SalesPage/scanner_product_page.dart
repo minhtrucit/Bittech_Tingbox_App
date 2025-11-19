@@ -1,34 +1,40 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../common/app_colors.dart';
 import '../../services/product_api_services.dart';
+import '../../ting_box.dart';
 
-class Product{
+class Product {
+  final String product_id;
   final String name;
   final double price;
   // final String imageUrl;
+  final int quantity;
 
   Product({
+    required this.product_id,
     required this.name,
     required this.price,
+    this.quantity = 1,
     // required this.imageUrl,
   });
 }
 
-
-class ScanProductScreen extends StatefulWidget {
-  const ScanProductScreen({super.key});
+class ScanProductPage extends StatefulWidget {
+  const ScanProductPage({super.key});
 
   @override
-  State<ScanProductScreen> createState() => _ScanProductScreenState();
+  State<ScanProductPage> createState() => _ScanProductPageState();
 }
 
-class _ScanProductScreenState extends State<ScanProductScreen> {
-  CameraController? _controller;
+class _ScanProductPageState extends State<ScanProductPage> {
+  CameraController? _camera;
   bool _isCameraReady = false;
-
+  CameraLensDirection _lenDirection = CameraLensDirection.back;
+  bool _isFlashOn = false;
   @override
   void initState() {
     super.initState();
@@ -36,86 +42,304 @@ class _ScanProductScreenState extends State<ScanProductScreen> {
   }
 
   Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
+    final description = await CameraUtils.getCamera(_lenDirection);
+    _camera = CameraController(
+      description,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
 
-      _controller = CameraController(
-        cameras.first,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
+    await _camera!.initialize().catchError((Object e) {
+      if (e is CameraException) {
+        debugPrint('Camera exception: ${e.description}');
+      }
+    });
+    await CameraUtils.lockCaptureOrientation(_camera!);
+    unawaited(_camera?.setFlashMode(FlashMode.off));
+    setState(() => _isCameraReady = true);
+  }
 
-      await _controller!.initialize();
-      setState(() => _isCameraReady = true);
-    } catch (e) {
-      debugPrint("Camera error: $e");
+  void _toggleFlash() {
+    if (_isFlashOn) {
+      _camera?.setFlashMode(FlashMode.off);
+    } else {
+      _camera?.setFlashMode(FlashMode.torch);
     }
+    setState(() {
+      _isFlashOn = !_isFlashOn;
+    });
+  }
+
+  void _changeLenDirection() {
+    if (_lenDirection == CameraLensDirection.back) {
+      _lenDirection = CameraLensDirection.front;
+      _camera?.setFlashMode(FlashMode.off);
+      setState(() {
+        _isFlashOn = false;
+      });
+    } else {
+      _lenDirection = CameraLensDirection.back;
+    }
+    _initCamera();
   }
 
   final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
-    final XFile file = await _controller!.takePicture();
+    final XFile file = await _camera!.takePicture();
     print('Ảnh path: ${file.path}');
 
     final product = await apiService.sendImage(file.path);
     if (product != null) {
       print('Product match: ${product['name']} - ${product['price']}đ');
+
       setState(() {
-        scannedProducts.add(Product(
-          name: product['name'],
-          price: product['price'].toDouble(),
-          // imageUrl: product['image_path'],
-        ));
+        final name = product['name'];
+
+        final index = scannedProducts.indexWhere((p) => p.name == name);
+
+        if (index != -1) {
+          final existing = scannedProducts[index];
+
+          scannedProducts.removeAt(index);
+
+          scannedProducts.insert(
+            0,
+            Product(
+              product_id: existing.product_id,
+              name: existing.name,
+              price: existing.price,
+              quantity: existing.quantity + 1,
+            ),
+          );
+        } else {
+          scannedProducts.insert(
+            0,
+            Product(
+              product_id: product['product_id'],
+              name: product['name'],
+              price: product['price'].toDouble(),
+              quantity: 1,
+            ),
+          );
+        }
       });
     }
+  }
+
+  double _calculateTotalPrice() {
+    return scannedProducts.fold(0.0, (sum, product) => sum + product.price * product.quantity);
+  }
+
+  Widget _buildDialogConfirmWidget() {
+    return AlertDialog(
+      title: const Text("Xác nhận thoát"),
+      content: const Text(
+        "Bạn có sản phẩm trong danh sách.\nBạn có chắc chắn muốn thoát không?",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(
+            "Hủy",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.primaryBlue),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
+          child: Text(
+            "Thoát",
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void handleUpdateQuantity({required int index, required bool isIncrease}) {
+    setState(() {
+      final product = scannedProducts[index];
+      scannedProducts[index] = Product(
+        product_id: product.product_id,
+        name: product.name,
+        price: product.price,
+        quantity:
+            isIncrease
+                ? product.quantity + 1
+                : (product.quantity > 1 ? product.quantity - 1 : 1),
+      );
+    });
   }
 
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
-    _controller?.dispose();
+    _camera?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (!_isCameraReady) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const AppScaffold(
+        backgroundColor: AppColors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryBlue),
+        ),
+      );
     }
+    debugPrint(
+      'Building ScanProductPage with ${scannedProducts.length} products',
+    );
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, e) async {
+        if (didPop) return;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          SizedBox.expand(child: CameraPreview(_controller!)),
+        if (scannedProducts.isNotEmpty) {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return _buildDialogConfirmWidget();
+            },
+          );
 
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _buildProductBottomSheet(
-              context: context,
-              productItems: scannedProducts.map((product) {
-                return buildProductCartItem(
-                  name: product.name,
-                  imageUrl: '',
-                  price: product.price,
-                  quantity: 1,
-                  onIncrease: () {},
-                  onDecrease: () {},
-                  onDelete: () {
-                    setState(() {
-                      scannedProducts.remove(product);
-                    });
-                  },
-                );
-              }).toList(),
-              onButtonTap: () {},
+          if (shouldExit == true && context.mounted) {
+            Navigator.pop(context);
+          }
+        } else {
+          Navigator.pop(context);
+        }
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        appBar: AppAppBar(
+          backgroundColor: Colors.transparent,
+          leading: buildBackButton(context),
+          actions: [
+            if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
+            SizedBox(width: 8.w),
+            buildChangeLenButton(),
+          ],
+        ),
+        body: Stack(
+          children: [
+            SizedBox.expand(child: CameraPreview(_camera!)),
+
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildProductBottomSheet(
+                context: context,
+                productItems:
+                    scannedProducts.map((product) {
+                      return buildProductCartItem(
+                        name: product.name,
+                        imageUrl: '',
+                        price: product.price,
+                        quantity: product.quantity,
+                        onIncrease: () {
+                          handleUpdateQuantity(
+                            index: scannedProducts.indexOf(product),
+                            isIncrease: true,
+                          );
+                        },
+                        onDecrease: () {
+                          handleUpdateQuantity(
+                            index: scannedProducts.indexOf(product),
+
+                            isIncrease: false,
+                          );
+                        },
+                        onDelete: () {
+                          setState(() {
+                            scannedProducts.remove(product);
+                          });
+                        },
+                      );
+                    }).toList(),
+                onButtonTap: () {},
+                totalPrice: _calculateTotalPrice,
+              ),
             ),
-          ),
 
-          _buildTakePhotoButton(onTap: _takePictureAndSend),
-        ],
+            _buildTakePhotoButton(onTap: _takePictureAndSend),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Padding buildChangeLenButton() {
+    return Padding(
+      padding: EdgeInsets.only(right: 16.w),
+      child: GestureDetector(
+        onTap: _changeLenDirection,
+        child: SizedBox(
+          width: 42.w,
+          height: 42.w,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: AppColors.white10,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.change_circle_outlined, color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+
+  GestureDetector buildFlashButton() {
+    return GestureDetector(
+      onTap: _toggleFlash,
+      child: Container(
+        width: 40.w,
+        height: 40.w,
+        decoration: const BoxDecoration(
+          color: AppColors.white10,
+          shape: BoxShape.circle,
+        ),
+        padding: const EdgeInsets.all(8),
+        child:
+            _isFlashOn
+                ? Icon(Icons.flash_on_outlined, color: Colors.white)
+                : Icon(Icons.flash_off_outlined, color: Colors.white),
+      ),
+    );
+  }
+
+  Padding buildBackButton(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 18.w),
+      child: GestureDetector(
+        onTap: () {
+          if (scannedProducts.isNotEmpty) {
+            showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return _buildDialogConfirmWidget();
+              },
+            );
+          } else {
+            Navigator.pop(context);
+          }
+        },
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: AppColors.white10,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        ),
       ),
     );
   }
@@ -130,8 +354,8 @@ Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 72,
-          height: 72,
+          width: 65,
+          height: 65,
           decoration: BoxDecoration(
             color: Colors.red,
             shape: BoxShape.circle,
@@ -147,6 +371,7 @@ Widget _buildProductBottomSheet({
   required BuildContext context,
   required List<Widget> productItems,
   required VoidCallback onButtonTap,
+  required double Function() totalPrice,
 }) {
   return Container(
     height: 350.h,
@@ -163,10 +388,10 @@ Widget _buildProductBottomSheet({
           height: 5,
           decoration: BoxDecoration(
             color: Colors.grey[400],
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         ListTile(
           title: Text(
             "Sản phẩm đã quét (${productItems.length})",
@@ -186,7 +411,7 @@ Widget _buildProductBottomSheet({
           child: Align(
             alignment: Alignment.bottomRight,
             child: Text(
-              'Tổng tiền: 12,0000đ',
+              'Tổng tiền: ${formatMoney(totalPrice())}đ',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -199,7 +424,7 @@ Widget _buildProductBottomSheet({
           padding: const EdgeInsets.all(16.0),
           child: SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: AppTextButton(
               style: ButtonStyle(
                 shape: WidgetStatePropertyAll(
                   RoundedRectangleBorder(
@@ -215,7 +440,7 @@ Widget _buildProductBottomSheet({
                 ),
               ),
               onPressed: onButtonTap,
-              child: Text(
+              label: Text(
                 "Xác nhận",
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -240,7 +465,7 @@ Widget buildProductCartItem({
   required VoidCallback onDelete,
 }) {
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    padding: const EdgeInsets.symmetric(vertical: 10),
     child: DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -277,7 +502,7 @@ Widget buildProductCartItem({
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${price.toStringAsFixed(0)}đ",
+                  "${formatMoney(price)}đ",
                   style: const TextStyle(fontSize: 13, color: Colors.black54),
                 ),
               ],
@@ -301,7 +526,6 @@ Widget buildProductCartItem({
 
           // Quantity text
           Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
 
           // Increase
           IconButton(
@@ -318,12 +542,16 @@ Widget buildProductCartItem({
             ),
           ),
 
+          SizedBox(width: 8.w),
           // Delete
-          IconButton(
-            iconSize: 22,
-            padding: EdgeInsets.zero,
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete, color: Colors.red),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              iconSize: 22,
+              padding: EdgeInsets.zero,
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete, color: Colors.red),
+            ),
           ),
         ],
       ),

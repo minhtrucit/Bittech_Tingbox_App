@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ting_box/ting_box.dart';
 
-
-
 class BasePage extends StatefulWidget {
   const BasePage({super.key});
 
@@ -16,14 +14,14 @@ class _BasePageState extends State<BasePage> {
   final List<Widget> _pages = const [
     HomePage(),
     HomePage(),
-    ScanProductScreen(),
+    SalePage(),
     HomePage(),
   ];
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
+      hasSafeArea: false,
       backgroundColor: AppColors.white,
       body: _pages[_selectedIndex],
       bottomNavigationBar: AppNavigationBar(
