@@ -1,12 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../common/app_colors.dart';
-import '../../common/components/app_text_button.dart';
 import '../../services/product_api_services.dart';
+import '../../ting_box.dart';
 
-class Product{
+class Product {
   final String name;
   final double price;
   // final String imageUrl;
@@ -18,7 +19,6 @@ class Product{
   });
 }
 
-
 class ScanProductPage extends StatefulWidget {
   const ScanProductPage({super.key});
 
@@ -27,9 +27,10 @@ class ScanProductPage extends StatefulWidget {
 }
 
 class _ScanProductPageState extends State<ScanProductPage> {
-  CameraController? _controller;
+  CameraController? _camera;
   bool _isCameraReady = false;
-
+  CameraLensDirection _lenDirection = CameraLensDirection.back;
+  bool _isFlashOn = false;
   @override
   void initState() {
     super.initState();
@@ -37,37 +38,64 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-
-      _controller = CameraController(
-        cameras.first,
+    final description = await CameraUtils.getCamera(_lenDirection);
+      _camera = CameraController(
+        description,
         ResolutionPreset.high,
         enableAudio: false,
       );
 
-      await _controller!.initialize();
+      await _camera!.initialize().catchError((Object e) {
+        if (e is CameraException) {
+          debugPrint('Camera exception: ${e.description}');
+        }
+      });
+      await CameraUtils.lockCaptureOrientation(_camera!);
+      unawaited(_camera?.setFlashMode(FlashMode.off));
       setState(() => _isCameraReady = true);
-    } catch (e) {
-      debugPrint("Camera error: $e");
+  }
+
+  void _toggleFlash() {
+    if (_isFlashOn) {
+      _camera?.setFlashMode(FlashMode.off);
+    } else {
+      _camera?.setFlashMode(FlashMode.torch);
     }
+    setState(() {
+      _isFlashOn = !_isFlashOn;
+    });
+  }
+
+  void _changeLenDirection() {
+    if (_lenDirection == CameraLensDirection.back) {
+      _lenDirection = CameraLensDirection.front;
+      _camera?.setFlashMode(FlashMode.off);
+      setState(() {
+        _isFlashOn = false;
+      });
+    } else {
+      _lenDirection = CameraLensDirection.back;
+    }
+    _initCamera();
   }
 
   final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
-    final XFile file = await _controller!.takePicture();
+    final XFile file = await _camera!.takePicture();
     print('Ảnh path: ${file.path}');
 
     final product = await apiService.sendImage(file.path);
     if (product != null) {
       print('Product match: ${product['name']} - ${product['price']}đ');
       setState(() {
-        scannedProducts.add(Product(
-          name: product['name'],
-          price: product['price'].toDouble(),
-          // imageUrl: product['image_path'],
-        ));
+        scannedProducts.add(
+          Product(
+            name: product['name'],
+            price: product['price'].toDouble(),
+            // imageUrl: product['image_path'],
+          ),
+        );
       });
     }
   }
@@ -75,20 +103,80 @@ class _ScanProductPageState extends State<ScanProductPage> {
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
-    _controller?.dispose();
+    _camera?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (!_isCameraReady) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const AppScaffold(
+        backgroundColor: AppColors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryBlue),
+        ),
+      );
     }
 
-    return Scaffold(
+    return AppScaffold(
+      backgroundColor: AppColors.white,
+      hasSafeArea: false,
+      appBar: AppAppBar(
+        backgroundColor: Colors.transparent,
+        leading: Padding(
+          padding: EdgeInsets.only(left: 16.w),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Container(
+              width: 30.w,
+              height: 30.w,
+              decoration: const BoxDecoration(
+                color: AppColors.white10,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            ),
+          ),
+        ),
+        actions: [
+          if (_lenDirection == CameraLensDirection.back)
+            GestureDetector(
+              onTap: _toggleFlash,
+              child: Container(
+                width: 30.w,
+                height: 30.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.white10,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(8),
+                child:
+                    _isFlashOn
+                        ? Icon(Icons.flash_on_outlined, color: Colors.white)
+                        : Icon(Icons.flash_off_outlined, color: Colors.white),
+              ),
+            ),
+          GestureDetector(
+            onTap: _changeLenDirection,
+            child: Container(
+              width: 30.w,
+              height: 30.w,
+              decoration: const BoxDecoration(
+                color: AppColors.white10,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.change_circle_outlined, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
-          SizedBox.expand(child: CameraPreview(_controller!)),
+          SizedBox.expand(child: CameraPreview(_camera!)),
 
           Positioned(
             bottom: 0,
@@ -96,21 +184,22 @@ class _ScanProductPageState extends State<ScanProductPage> {
             right: 0,
             child: _buildProductBottomSheet(
               context: context,
-              productItems: scannedProducts.map((product) {
-                return buildProductCartItem(
-                  name: product.name,
-                  imageUrl: '',
-                  price: product.price,
-                  quantity: 1,
-                  onIncrease: () {},
-                  onDecrease: () {},
-                  onDelete: () {
-                    setState(() {
-                      scannedProducts.remove(product);
-                    });
-                  },
-                );
-              }).toList(),
+              productItems:
+                  scannedProducts.map((product) {
+                    return buildProductCartItem(
+                      name: product.name,
+                      imageUrl: '',
+                      price: product.price,
+                      quantity: 1,
+                      onIncrease: () {},
+                      onDecrease: () {},
+                      onDelete: () {
+                        setState(() {
+                          scannedProducts.remove(product);
+                        });
+                      },
+                    );
+                  }).toList(),
               onButtonTap: () {},
             ),
           ),

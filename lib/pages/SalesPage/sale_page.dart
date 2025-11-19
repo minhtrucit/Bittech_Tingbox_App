@@ -24,9 +24,10 @@ class SalePage extends StatelessWidget {
           children: [
             Text(
               'Chọn phương thức thêm sản phẩm',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: Colors.grey, letterSpacing: -0.8),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.grey,
+                letterSpacing: -0.8,
+              ),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -34,13 +35,17 @@ class SalePage extends StatelessWidget {
                 width: double.infinity,
                 child: AppTextButton(
                   style: ButtonStyle(
-                    padding: WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 12.h)),
+                    padding: WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(vertical: 12.h),
+                    ),
                     shape: WidgetStatePropertyAll(
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    backgroundColor: WidgetStatePropertyAll(AppColors.primaryBlue),
+                    backgroundColor: WidgetStatePropertyAll(
+                      AppColors.primaryBlue,
+                    ),
                     textStyle: WidgetStatePropertyAll(
                       Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
@@ -52,16 +57,15 @@ class SalePage extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ScanProductPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const ScanProductPage(),
+                      ),
                     );
                   },
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.qr_code_scanner,
-                        color: Colors.white,
-                      ),
+                      const Icon(Icons.qr_code_scanner, color: Colors.white),
                       SizedBox(width: 8.w),
                       Text(
                         "Quét mã sản phẩm",
@@ -72,14 +76,15 @@ class SalePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  ),
+                ),
               ),
             ),
             Text(
               'Hoặc',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: Colors.grey, letterSpacing: -0.8),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.grey,
+                letterSpacing: -0.8,
+              ),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -87,7 +92,9 @@ class SalePage extends StatelessWidget {
                 width: double.infinity,
                 child: AppTextButton(
                   style: ButtonStyle(
-                    padding: WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 12.h)),
+                    padding: WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(vertical: 12.h),
+                    ),
                     shape: WidgetStatePropertyAll(
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -98,29 +105,45 @@ class SalePage extends StatelessWidget {
                       Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-
                       ),
                     ),
                   ),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ScanProductPage()),
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            backgroundColor: AppColors.white,
+                            title: const Text('Chức năng đang phát triển'),
+                            content: const Text(
+                              'Chức năng chọn sản phẩm từ danh mục đang được phát triển. Vui lòng quay lại sau!',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text(
+                                  'Đóng',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.primaryBlue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                     );
                   },
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.list_alt,
-                        color: Colors.black,
-                      ),
+                      const Icon(Icons.list_alt, color: Colors.black),
                       SizedBox(width: 8.w),
                       Text(
                         "Chọn sản phẩm từ danh mục",
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-
                         ),
                       ),
                     ],
