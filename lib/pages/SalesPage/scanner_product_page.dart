@@ -19,7 +19,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool _isCameraReady = false;
   CameraLensDirection _lenDirection = CameraLensDirection.back;
   bool _isFlashOn = false;
-
+  ValueNotifier<bool> _isLoading = ValueNotifier(false);
   final products = [
     Product(id: '1', name: 'Bình đựng nước', price: 50000),
     Product(id: '2', name: 'Sổ tay', price: 20000),
@@ -77,44 +77,52 @@ class _ScanProductPageState extends State<ScanProductPage> {
   final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
-    final XFile file = await _camera!.takePicture();
-    print('Ảnh path: ${file.path}');
+    _isLoading.value = true;
+    debugPrint('isLoading $_isLoading');
+    try {
+      final XFile file = await _camera!.takePicture();
+      print('Ảnh path: ${file.path}');
 
-    final product = await apiService.sendImage(file.path);
-    if (product != null) {
-      print('Product match: ${product['name']} - ${product['price']}đ');
+      final product = await apiService.sendImage(file.path);
+      if (product != null) {
+        print('Product match: ${product['name']} - ${product['price']}đ');
 
-      setState(() {
-        final name = product['name'];
+        setState(() {
+          final name = product['name'];
 
-        final index = scannedProducts.indexWhere((p) => p.name == name);
+          final index = scannedProducts.indexWhere((p) => p.name == name);
 
-        if (index != -1) {
-          final existing = scannedProducts[index];
+          if (index != -1) {
+            final existing = scannedProducts[index];
 
-          scannedProducts.removeAt(index);
+            scannedProducts.removeAt(index);
 
-          scannedProducts.insert(
-            0,
-            Product(
-              id: existing.id,
-              name: existing.name,
-              price: existing.price,
-              quantity: existing.quantity + 1,
-            ),
-          );
-        } else {
-          scannedProducts.insert(
-            0,
-            Product(
-              id: product['product_id'],
-              name: product['name'],
-              price: product['price'].toDouble(),
-              quantity: 1,
-            ),
-          );
-        }
-      });
+            scannedProducts.insert(
+              0,
+              Product(
+                id: existing.id,
+                name: existing.name,
+                price: existing.price,
+                quantity: existing.quantity + 1,
+              ),
+            );
+          } else {
+            scannedProducts.insert(
+              0,
+              Product(
+                id: product['product_id'],
+                name: product['name'],
+                price: product['price'].toDouble(),
+                quantity: 1,
+              ),
+            );
+          }
+        });
+        _isLoading.value = false;
+      }
+    } catch (e) {
+      debugPrint('Error taking picture or sending to API: $e');
+      _isLoading.value = false;
     }
   }
 
@@ -190,7 +198,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
       return;
     }
 
-    // Không trùng → thay thế bình thường
     setState(() {
       scannedProducts[oldIndex] = Product(
         id: newProduct.id,
@@ -227,6 +234,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('_isLoading build $_isLoading' );
     if (!_isCameraReady) {
       return const AppScaffold(
         resizeToAvoidBottomInset: false,
@@ -319,7 +327,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
               ),
             ),
 
-            _buildTakePhotoButton(onTap: _takePictureAndSend),
+            _buildTakePhotoButton(
+              onTap: _takePictureAndSend,
+              isLoading: _isLoading,
+            ),
           ],
         ),
       ),
@@ -393,7 +404,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 }
 
-Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
+Widget _buildTakePhotoButton({
+  required VoidCallback? onTap,
+  ValueNotifier<bool>? isLoading,
+}) {
   return Positioned(
     bottom: 360.h,
     left: 0,
@@ -401,19 +415,32 @@ Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
     child: Center(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 65,
-          height: 65,
-          decoration: BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 4),
-          ),
+        child: ValueListenableBuilder<bool>(
+          valueListenable: isLoading ?? ValueNotifier(false),
+          builder: (context, isLoadingState, child) {
+            return Container(
+              width: 65,
+              height: 65,
+              decoration: BoxDecoration(
+                color: isLoadingState ? Colors.transparent : Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 4),
+              ),
+              child: isLoadingState
+                  ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primaryBlue,
+                ),
+              )
+                  : null,
+            );
+          },
         ),
       ),
     ),
   );
 }
+
 
 Widget _buildProductBottomSheet({
   required BuildContext context,
@@ -456,7 +483,9 @@ Widget _buildProductBottomSheet({
         ),
         DecoratedBox(
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(width: 0.4.w, color: Colors.grey.shade300))
+            border: Border(
+              top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+            ),
           ),
           child: Padding(
             padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
@@ -470,7 +499,8 @@ Widget _buildProductBottomSheet({
                     fontWeight: FontWeight.w500,
                     color: Colors.grey,
                   ),
-                ),Text(
+                ),
+                Text(
                   '${formatMoney(totalPrice())}đ',
                   style: const TextStyle(
                     fontSize: 18,
