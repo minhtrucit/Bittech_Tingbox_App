@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../ting_box.dart';
+import '../../../ting_box.dart';
 
 class ProductBottomSheet extends StatefulWidget {
   final List<Product> products;

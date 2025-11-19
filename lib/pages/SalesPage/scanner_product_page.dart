@@ -225,6 +225,18 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
+  void showConfirmOrderDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => ConfirmOrderDialog(
+        items: scannedProducts,
+        onComplete: () {
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -322,7 +334,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         },
                       );
                     }).toList(),
-                onConfirmButtonTap: () {},
+                onConfirmButtonTap: showConfirmOrderDialog,
                 totalPrice: _calculateTotalPrice,
               ),
             ),
