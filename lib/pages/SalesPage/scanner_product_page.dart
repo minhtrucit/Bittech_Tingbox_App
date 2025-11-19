@@ -11,10 +11,12 @@ class Product {
   final String name;
   final double price;
   // final String imageUrl;
+  final int quantity;
 
   Product({
     required this.name,
     required this.price,
+    this.quantity = 1,
     // required this.imageUrl,
   });
 }
@@ -88,14 +90,35 @@ class _ScanProductPageState extends State<ScanProductPage> {
     final product = await apiService.sendImage(file.path);
     if (product != null) {
       print('Product match: ${product['name']} - ${product['price']}đ');
+
       setState(() {
-        scannedProducts.add(
-          Product(
-            name: product['name'],
-            price: product['price'].toDouble(),
-            // imageUrl: product['image_path'],
-          ),
-        );
+        final name = product['name'];
+
+        final index = scannedProducts.indexWhere((p) => p.name == name);
+
+        if (index != -1) {
+          final existing = scannedProducts[index];
+
+          scannedProducts.removeAt(index);
+
+          scannedProducts.insert(
+            0,
+            Product(
+              name: existing.name,
+              price: existing.price,
+              quantity: existing.quantity + 1,
+            ),
+          );
+        } else {
+          scannedProducts.insert(
+            0,
+            Product(
+              name: product['name'],
+              price: product['price'].toDouble(),
+              quantity: 1,
+            ),
+          );
+        }
       });
     }
   }
@@ -103,8 +126,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
   double _calculateTotalPrice() {
     return scannedProducts.fold(0.0, (sum, product) => sum + product.price);
   }
-
-
 
   @override
   void dispose() {
@@ -151,7 +172,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                       name: product.name,
                       imageUrl: '',
                       price: product.price,
-                      quantity: 1,
+                      quantity: product.quantity,
                       onIncrease: () {},
                       onDecrease: () {},
                       onDelete: () {
@@ -350,7 +371,7 @@ Widget buildProductCartItem({
   required VoidCallback onDelete,
 }) {
   return Padding(
-    padding: const EdgeInsets.symmetric( vertical: 10),
+    padding: const EdgeInsets.symmetric(vertical: 10),
     child: DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -427,8 +448,7 @@ Widget buildProductCartItem({
             ),
           ),
 
-
-          SizedBox(width: 8.w,),
+          SizedBox(width: 8.w),
           // Delete
           Align(
             alignment: Alignment.centerRight,
