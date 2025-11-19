@@ -87,7 +87,7 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return hasSafeArea
         ? Container(
-          color: backgroundColor,
+          color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
           child: SafeArea(
             left: left,
             top: top,
@@ -137,7 +137,7 @@ class AppScaffold extends StatelessWidget {
           onEndDrawerChanged: onEndDrawerChanged,
           bottomNavigationBar: bottomNavigationBar,
           bottomSheet: bottomSheet,
-          backgroundColor: backgroundColor,
+          backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
           resizeToAvoidBottomInset: resizeToAvoidBottomInset,
           primary: primary,
           drawerDragStartBehavior: drawerDragStartBehavior,

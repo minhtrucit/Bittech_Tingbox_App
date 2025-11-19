@@ -119,7 +119,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
     }
 
     return AppScaffold(
-      backgroundColor: AppColors.white,
       hasSafeArea: false,
       appBar: AppAppBar(
         backgroundColor: Colors.transparent,
@@ -146,8 +145,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
             GestureDetector(
               onTap: _toggleFlash,
               child: Container(
-                width: 30.w,
-                height: 30.w,
+                width: 40.w,
+                height: 40.w,
                 decoration: const BoxDecoration(
                   color: AppColors.white10,
                   shape: BoxShape.circle,
@@ -159,17 +158,21 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         : Icon(Icons.flash_off_outlined, color: Colors.white),
               ),
             ),
-          GestureDetector(
-            onTap: _changeLenDirection,
-            child: Container(
-              width: 30.w,
-              height: 30.w,
-              decoration: const BoxDecoration(
-                color: AppColors.white10,
-                shape: BoxShape.circle,
+          SizedBox(width: 8.w,),
+          Padding(
+            padding:  EdgeInsets.only(right: 16.w),
+            child: GestureDetector(
+              onTap: _changeLenDirection,
+              child: Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.white10,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(8),
+                child: Icon(Icons.change_circle_outlined, color: Colors.white),
               ),
-              padding: const EdgeInsets.all(8),
-              child: Icon(Icons.change_circle_outlined, color: Colors.white),
             ),
           ),
         ],

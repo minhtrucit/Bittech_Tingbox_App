@@ -20,7 +20,8 @@ class _BasePageState extends State<BasePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
+      hasSafeArea: false,
       backgroundColor: AppColors.white,
       body: _pages[_selectedIndex],
       bottomNavigationBar: AppNavigationBar(
