@@ -8,7 +8,7 @@ class ProductApiService {
 
   /// Gửi ảnh lên Python API và nhận JSON product
   Future<Map<String, dynamic>?> sendImage(String imagePath) async {
-    final uri = Uri.parse('$baseUrl/match');
+    final uri = Uri.parse('$baseUrl/product/detect');
     final request = http.MultipartRequest('POST', uri);
 
     request.files.add(await http.MultipartFile.fromPath('image', imagePath));

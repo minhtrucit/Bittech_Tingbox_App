@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/AuthPage/auth.dart';
 
@@ -8,13 +9,14 @@ import 'package:ting_box/services/auth_services.dart';
 
 import 'common/theme.dart';
 
-void main() {
+void main() async{
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarBrightness: Brightness.dark,
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+  await dotenv.load(fileName: '.env');
   runApp(const MyApp());
 }
 
