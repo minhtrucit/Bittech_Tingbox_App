@@ -36,9 +36,6 @@ class AuthService {
 
         final user = User.fromJson(userJson);
         debugPrint('Parsed User: ${user.toJson()}');
-
-        await UserRepository.saveUser(user);
-
         return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
         final msg =

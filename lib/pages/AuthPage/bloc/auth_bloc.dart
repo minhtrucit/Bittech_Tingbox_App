@@ -30,7 +30,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('[AuthBloc] _onLogin: authService.login completed, result=$result');
 
       // 3️⃣ Kiểm tra kết quả
-      if (result['status'] == 'success' && result['user'] != null) {
+      if (result['success'] && result['user'] != null) {
         final user = result['user'] as User;
         debugPrint('[AuthBloc] _onLogin: login success, user=${user.toJson()}');
 
