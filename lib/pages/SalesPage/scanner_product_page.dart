@@ -21,10 +21,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool _isFlashOn = false;
   ValueNotifier<bool> _isLoading = ValueNotifier(false);
   final products = [
-    Product(id: '1', name: 'Bình đựng nước', price: 50000),
-    Product(id: '2', name: 'Sổ tay', price: 20000),
-    Product(id: '3', name: 'Viết', price: 5000),
-    Product(id: '4', name: 'Chuột', price: 100000),
+    Product(id: '1', name: 'Bình đựng nước', price: 50000, url: ''),
+    Product(id: '2', name: 'Sổ tay', price: 20000, url: ''),
+    Product(id: '3', name: 'Viết', price: 5000, url: ''),
+    Product(id: '4', name: 'Chuột', price: 100000, url: ''),
   ];
   @override
   void initState() {
@@ -84,6 +84,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
       print('Ảnh path: ${file.path}');
 
       final product = await apiService.sendImage(file.path);
+      print('API response: $product');
+
       if (product != null) {
         print('Product match: ${product['name']} - ${product['price']}đ');
 
@@ -104,16 +106,18 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 name: existing.name,
                 price: existing.price,
                 quantity: existing.quantity + 1,
+                url: existing.url,
               ),
             );
           } else {
             scannedProducts.insert(
               0,
               Product(
-                id: product['product_id'],
+                id: product['id'],
                 name: product['name'],
                 price: product['price'].toDouble(),
                 quantity: 1,
+                url: product['url'],
               ),
             );
           }
@@ -176,6 +180,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
             isIncrease
                 ? product.quantity + 1
                 : (product.quantity > 1 ? product.quantity - 1 : 1),
+        url: product.url,
       );
     });
   }
@@ -204,6 +209,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
         name: newProduct.name,
         price: newProduct.price,
         quantity: oldProduct.quantity,
+        url: newProduct.url,
       );
     });
   }
@@ -228,14 +234,16 @@ class _ScanProductPageState extends State<ScanProductPage> {
   void showConfirmOrderDialog() {
     showDialog(
       context: context,
-      builder: (_) => ConfirmOrderDialog(
-        items: scannedProducts,
-        onComplete: () {
-          Navigator.pop(context);
-        },
-      ),
+      builder:
+          (_) => ConfirmOrderDialog(
+            items: scannedProducts,
+            onComplete: () {
+              Navigator.pop(context);
+            },
+          ),
     );
   }
+
 
   @override
   void dispose() {
@@ -246,7 +254,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('_isLoading build $_isLoading' );
     if (!_isCameraReady) {
       return const AppScaffold(
         resizeToAvoidBottomInset: false,
@@ -438,13 +445,14 @@ Widget _buildTakePhotoButton({
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 4),
               ),
-              child: isLoadingState
-                  ? const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primaryBlue,
-                ),
-              )
-                  : null,
+              child:
+                  isLoadingState
+                      ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryBlue,
+                        ),
+                      )
+                      : null,
             );
           },
         ),
