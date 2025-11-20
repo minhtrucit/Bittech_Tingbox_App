@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../services/product_api_services.dart';
@@ -244,7 +245,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
-
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -289,6 +289,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
       child: AppScaffold(
         hasSafeArea: false,
         resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.black,
         appBar: AppAppBar(
           backgroundColor: Colors.transparent,
           leading: buildBackButton(context),
@@ -460,7 +461,6 @@ Widget _buildTakePhotoButton({
     ),
   );
 }
-
 
 Widget _buildProductBottomSheet({
   required BuildContext context,

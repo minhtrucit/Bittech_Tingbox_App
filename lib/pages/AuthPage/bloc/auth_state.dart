@@ -15,3 +15,8 @@ final class AuthFailure extends AuthState {
   final String message;
   AuthFailure(this.message);
 }
+
+final class AuthLogoutSuccess extends AuthState {
+  final bool success;
+  AuthLogoutSuccess({required this.success});
+}

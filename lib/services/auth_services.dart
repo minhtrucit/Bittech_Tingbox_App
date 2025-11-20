@@ -21,7 +21,9 @@ class AuthService {
         '/auth/login',
         data: {'phone': phone, 'password': password},
       );
-      debugPrint('API Response status: ${resp.statusCode} - ${resp.data['statusCode']}');
+      debugPrint(
+        'API Response status: ${resp.statusCode} - ${resp.data['statusCode']}',
+      );
 
       if (resp.statusCode == 201 && resp.data['statusCode'] == 200) {
         final data = resp.data['data'] ?? {};
@@ -56,25 +58,18 @@ class AuthService {
     }
   }
 
-  Future<void> logout() async {
+  Future<bool> logout() async {
     try {
-      // Optionally call API to invalidate token
-      final token = await UserRepository.getToken();
-      if (token != null && token.isNotEmpty) {
-        try {
-          await api.client.post(
-            '/auth/logout',
-            options: Options(headers: {'Authorization': 'Bearer $token'}),
-          );
-        } catch (e) {
-          print(
-            'AuthService.logout: server logout failed but continue locally: $e',
-          );
-        }
+      final rs = await api.client.post('/auth/logout');
+      if(rs.data['success']){
+        return true;
       }
-    } catch (e, st) {
-      print('AuthService.logout error: $e\n$st');
-      rethrow;
+      return false;
+    } catch (e) {
+      debugPrint(
+        'AuthService.logout: server logout failed but continue locally: $e',
+      );
+      return false;
     }
   }
 

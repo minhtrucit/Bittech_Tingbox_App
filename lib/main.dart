@@ -13,21 +13,29 @@ import 'package:ting_box/services/auth_services.dart';
 
 import 'common/theme.dart';
 
-void main() {
+void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarBrightness: Brightness.dark,
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-
-  final apiService = ApiService.getInstance(baseUrl: 'https://api-tingbox.bittechx.cloud' ?? '');
+  await dotenv.load(fileName: ".env");
+  final apiService = ApiService.getInstance(
+    baseUrl: dotenv.get('API_BASE_URL') ?? '',
+  );
   final authService = AuthService.getInstance(api: apiService);
   final userRepository = UserRepository();
-  runApp( BlocProvider(
-    create: (_) => AuthBloc(authService: authService, userRepository: userRepository,),
-    child: const MyApp(),
-  ),);
+  runApp(
+    BlocProvider(
+      create:
+          (_) => AuthBloc(
+            authService: authService,
+            userRepository: userRepository,
+          ),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

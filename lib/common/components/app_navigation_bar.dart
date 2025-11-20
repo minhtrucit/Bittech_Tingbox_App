@@ -32,12 +32,16 @@ class AppNavigationBar extends StatelessWidget {
           label: "Chi phí",
         ),
         BottomNavigationBarItem(
+          icon: SizedBox(width: 40),
+          label: '',
+        ),
+        BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.cart_fill),
           label: "Bán hàng",
         ),
         BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.chart_bar_alt_fill),
-          label: "Báo cáo",
+          icon: Icon(CupertinoIcons.person_alt),
+          label: "Hồ sơ",
         ),
       ],
     );

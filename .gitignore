@@ -34,7 +34,7 @@ migrate_working_dir/
 /build/
 .vscode
 .metadata
-.env
+*.env
 
 # Symbolication related
 app.*.symbols

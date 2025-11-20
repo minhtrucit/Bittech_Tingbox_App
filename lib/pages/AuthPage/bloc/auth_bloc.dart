@@ -11,13 +11,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthService authService;
   final UserRepository userRepository;
 
-  AuthBloc({required this.authService, required this.userRepository}) : super(AuthInitial()) {
+  AuthBloc({required this.authService, required this.userRepository})
+    : super(AuthInitial()) {
     on<LoginEvent>(_onLogin);
     on<LogoutEvent>(_onLogout);
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
-    debugPrint('[AuthBloc] _onLogin: received LoginEvent with phone=${event.phone}');
+    debugPrint(
+      '[AuthBloc] _onLogin: received LoginEvent with phone=${event.phone}',
+    );
 
     // 1️⃣ Emit loading
     emit(AuthLoading());
@@ -27,7 +30,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // 2️⃣ Gọi API
       debugPrint('[AuthBloc] _onLogin: calling authService.login...');
       final result = await authService.login(event.phone, event.password);
-      debugPrint('[AuthBloc] _onLogin: authService.login completed, result=$result');
+      debugPrint(
+        '[AuthBloc] _onLogin: authService.login completed, result=$result',
+      );
 
       // 3️⃣ Kiểm tra kết quả
       if (result['success'] && result['user'] != null) {
@@ -59,13 +64,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-
-
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
     try {
-      await authService.logout();
+      final success = await authService.logout();
       await UserRepository.logout();
-      emit(AuthInitial());
+      if (success) {
+        debugPrint('[AuthBloc] _onLogout: success: $success');
+        emit(AuthLogoutSuccess(success: true));
+      }
+      debugPrint('[AuthBloc] _onLogout: success: $success');
+      emit(AuthLogoutSuccess(success: false));
     } catch (e) {
       emit(AuthFailure('Logout failed: $e'));
     }

@@ -105,17 +105,7 @@ class _AuthState extends State<Auth> {
             },
           ),
           if (_isLoadingOverlay)
-            Stack(
-              children: [
-                const ModalBarrier(
-                  dismissible: false,
-                  color: Colors.black38,
-                ),
-                const Center(
-                  child: CircularProgressIndicator(color: AppColors.primaryBlue,),
-                ),
-              ],
-            ),
+            LoadingOverlay(),
         ],
       ),
     );
