@@ -42,19 +42,21 @@ class AuthPage extends StatelessWidget {
         ),
       ),
       backgroundColor: AppColors.white,
-      body: SizedBox.expand(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 28.h,
-              children: [
-                buildMainTitle(context),
-                buildLoginForm(context),
-                buildButtonSubmit(),
-              ],
+      body: SafeArea(
+        child: SizedBox.expand(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 28.h,
+                children: [
+                  buildMainTitle(context),
+                  buildLoginForm(context),
+                  buildButtonSubmit(),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../repositories/user_repository.dart';
 import 'api_services.dart';
@@ -15,32 +16,41 @@ class AuthService {
     return _instance!;
   }
 
-  /// Trả về Map {success: bool, message: String, user?: User}
   Future<Map<String, dynamic>> login(String phone, String password) async {
     try {
-      final resp = await api.post('/auth/login', data: {
-        'phone': phone,
-        'password': password,
-      });
+      final resp = await api.post(
+        '/auth/login',
+        data: {'phone': phone, 'password': password},
+      );
+      debugPrint('Reponse Data : $resp');
+
 
       // success code 200
-      if (resp.statusCode == 200) {
+      if (resp.statusCode == 201 || resp.data.statusCode == 200) {
         final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
-        // Giả sử API trả { "id": "...", "phone":"...","token":"...", "name":"..." }
+
         final user = User.fromJson(Map<String, dynamic>.from(data));
         await UserRepository.saveUser(user);
         return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
-        return {'success': false, 'message': 'Server returned ${resp.statusCode}', 'data': resp.data};
+        return {
+          'success': false,
+          'message': 'Server returned ${resp.statusCode}',
+          'data': resp.data,
+        };
       }
     } on DioException catch (e) {
       // Dio error: có thể network / server / response data lỗi
       final msg = _dioErrorMessage(e);
-      print('AuthService.login DioError: $msg');
+      debugPrint('AuthService.login DioError: $msg');
       return {'success': false, 'message': msg, 'error': e};
     } catch (e, st) {
-      print('AuthService.login error: $e\n$st');
-      return {'success': false, 'message': 'Unexpected error', 'error': e.toString()};
+      debugPrint('AuthService.login error: $e\n$st');
+      return {
+        'success': false,
+        'message': 'Unexpected error',
+        'error': e.toString(),
+      };
     }
   }
 
@@ -50,9 +60,14 @@ class AuthService {
       final token = await UserRepository.getToken();
       if (token != null && token.isNotEmpty) {
         try {
-          await api.client.post('/auth/logout', options: Options(headers: {'Authorization': 'Bearer $token'}));
+          await api.client.post(
+            '/auth/logout',
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          );
         } catch (e) {
-          print('AuthService.logout: server logout failed but continue locally: $e');
+          print(
+            'AuthService.logout: server logout failed but continue locally: $e',
+          );
         }
       }
     } catch (e, st) {
@@ -62,7 +77,8 @@ class AuthService {
   }
 
   String _dioErrorMessage(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout) return 'Connection timeout';
+    if (e.type == DioExceptionType.connectionTimeout)
+      return 'Connection timeout';
     if (e.type == DioExceptionType.receiveTimeout) return 'Receive timeout';
     if (e.type == DioExceptionType.badResponse) {
       return 'Server error: ${e.response?.statusCode} - ${e.response?.data}';

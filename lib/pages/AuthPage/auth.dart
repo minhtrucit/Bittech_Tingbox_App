@@ -14,17 +14,20 @@ class _AuthState extends State<Auth> {
   final TextEditingController passwordController = TextEditingController();
   late final AuthBloc authBloc;
   bool isPhoneValid = true;
+  bool _isLoadingOverlay = false; // để kiểm soát overlay
 
   @override
   void initState() {
-    authBloc = BlocProvider.of<AuthBloc>(context);
     super.initState();
+    authBloc = BlocProvider.of<AuthBloc>(context);
+    debugPrint('[Auth] initState: AuthBloc initialized');
   }
 
   void onPhoneChanged(String value) {
     setState(() {
       isPhoneValid = isValidPhone(value);
     });
+    debugPrint('[Auth] onPhoneChanged: $value, isPhoneValid=$isPhoneValid');
   }
 
   bool isValidPhone(String phone) {
@@ -37,55 +40,83 @@ class _AuthState extends State<Auth> {
     final pass = passwordController.text.trim();
 
     if (phone.isEmpty || pass.isEmpty) {
-      showSnack("Vui lòng nhập đủ thông tin");
+      debugPrint('[Auth] handleSubmit: Missing phone or password');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đủ thông tin')),
+      );
       return;
     }
 
     if (!isPhoneValid) {
-      showSnack("Số điện thoại không hợp lệ");
+      debugPrint('[Auth] handleSubmit: Invalid phone number');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Số điện thoại không hợp lệ')),
+      );
       return;
     }
 
-    // gửi event đến Bloc
+    debugPrint('[Auth] handleSubmit: Sending LoginEvent phone=$phone');
     authBloc.add(LoginEvent(phone: phone, password: pass));
-  }
-
-  void showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
+        debugPrint('[AuthListener] state changed: $state');
+
         if (state is AuthLoading) {
-          // có thể show loading indicator (hoặc overlay)
-        } else if (state is AuthSuccess) {
-          showSnack("Đăng nhập thành công");
+          setState(() => _isLoadingOverlay = true);
+          debugPrint('[AuthListener] AuthLoading: show overlay');
+        } else {
+          setState(() => _isLoadingOverlay = false);
+          debugPrint('[AuthListener] AuthLoading finished: hide overlay');
+        }
+
+        if (state is AuthSuccess) {
+          debugPrint('[AuthListener] AuthSuccess: Navigate to BasePage');
+          // Delay 200ms để overlay loading ẩn trước khi chuyển màn hình
+          await Future.delayed(const Duration(milliseconds: 200));
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const BasePage()),
           );
-        } else if (state is AuthFailure) {
-          showSnack("Đăng nhập thất bại: ${state.message}");
+        }
+
+        if (state is AuthFailure) {
+          debugPrint('[AuthListener] AuthFailure: ${state.message}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Đăng nhập thất bại: ${state.message}')),
+          );
         }
       },
-      child: BlocBuilder<AuthBloc, AuthState>(
-        buildWhen: (previous, current) {
-          return previous != current;
-        },
-        builder: (BuildContext context, state) {
-          if (state is AuthLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return AuthPage(
-            onPhoneChanged: onPhoneChanged,
-            onLogin: handleSubmit,
-            isPhoneValid: isPhoneValid,
-            phoneController: phoneController,
-            passwordController: passwordController,
-          );
-        },
+      child: Stack(
+        children: [
+          BlocBuilder<AuthBloc, AuthState>(
+            buildWhen: (previous, current) => previous != current,
+            builder: (context, state) {
+              return AuthPage(
+                onPhoneChanged: onPhoneChanged,
+                onLogin: handleSubmit,
+                isPhoneValid: isPhoneValid,
+                phoneController: phoneController,
+                passwordController: passwordController,
+              );
+            },
+          ),
+          if (_isLoadingOverlay)
+            Stack(
+              children: [
+                const ModalBarrier(
+                  dismissible: false,
+                  color: Colors.black38,
+                ),
+                const Center(
+                  child: CircularProgressIndicator(color: AppColors.primaryBlue,),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }

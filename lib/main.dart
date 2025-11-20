@@ -13,16 +13,15 @@ import 'package:ting_box/services/auth_services.dart';
 
 import 'common/theme.dart';
 
-void main() async{
+void main() {
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarBrightness: Brightness.dark,
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  await dotenv.load(fileName: '.env');
 
-  final apiService = ApiService.getInstance(baseUrl: dotenv.env['API_BASE_URL'] ?? '');
+  final apiService = ApiService.getInstance(baseUrl: 'https://api-tingbox.bittechx.cloud' ?? '');
   final authService = AuthService.getInstance(api: apiService);
   final userRepository = UserRepository();
   runApp( BlocProvider(
