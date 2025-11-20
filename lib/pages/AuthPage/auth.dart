@@ -41,16 +41,28 @@ class _AuthState extends State<Auth> {
 
     if (phone.isEmpty || pass.isEmpty) {
       debugPrint('[Auth] handleSubmit: Missing phone or password');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập đủ thông tin')),
-      );
-      return;
-    }
-
-    if (!isPhoneValid) {
-      debugPrint('[Auth] handleSubmit: Invalid phone number');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Số điện thoại không hợp lệ')),
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            title: Text(
+              'Đăng nhập thất bại',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            content: Text(
+              'Vui lòng nhập đầy đủ số điện thoại và mật khẩu!',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK', style: Theme.of(context).textTheme.bodyLarge),
+              ),
+            ],
+          );
+        },
       );
       return;
     }
@@ -75,7 +87,7 @@ class _AuthState extends State<Auth> {
 
         if (state is AuthSuccess) {
           debugPrint('[AuthListener] AuthSuccess: Navigate to BasePage');
-          // Delay 200ms để overlay loading ẩn trước khi chuyển màn hình
+
           await Future.delayed(const Duration(milliseconds: 200));
           Navigator.pushReplacement(
             context,
@@ -85,8 +97,29 @@ class _AuthState extends State<Auth> {
 
         if (state is AuthFailure) {
           debugPrint('[AuthListener] AuthFailure: ${state.message}');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đăng nhập thất bại: ${state.message}')),
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: Colors.white,
+                title: Text(
+                  'Đăng nhập thất bại',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                content: Text(state.message),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'OK',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         }
       },
@@ -104,8 +137,7 @@ class _AuthState extends State<Auth> {
               );
             },
           ),
-          if (_isLoadingOverlay)
-            LoadingOverlay(),
+          if (_isLoadingOverlay) LoadingOverlay(),
         ],
       ),
     );

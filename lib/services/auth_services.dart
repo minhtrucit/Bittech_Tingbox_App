@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
-import '../repositories/user_repository.dart';
 import 'api_services.dart';
 
 class AuthService {
@@ -40,14 +39,15 @@ class AuthService {
         debugPrint('Parsed User: ${user.toJson()}');
         return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
-        final msg =
-            resp.data['message'] ?? 'Server returned ${resp.statusCode}';
+        final msg = resp.data ?? 'Server returned ${resp.statusCode}';
         return {'success': false, 'message': msg};
       }
     } on DioException catch (e) {
-      final msg = _dioErrorMessage(e);
-      debugPrint('Login DioException: $msg');
-      return {'success': false, 'message': msg, 'error': e};
+      return {
+        'success': false,
+        'message': e.response?.data['message'],
+        'error': e.message,
+      };
     } catch (e, st) {
       debugPrint('Login unexpected error: $e\n$st');
       return {
@@ -61,7 +61,7 @@ class AuthService {
   Future<bool> logout() async {
     try {
       final rs = await api.client.post('/auth/logout');
-      if(rs.data['success']){
+      if (rs.data['success']) {
         return true;
       }
       return false;
@@ -71,16 +71,5 @@ class AuthService {
       );
       return false;
     }
-  }
-
-  String _dioErrorMessage(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout)
-      return 'Connection timeout';
-    if (e.type == DioExceptionType.receiveTimeout) return 'Receive timeout';
-    if (e.type == DioExceptionType.badResponse) {
-      return 'Server error: ${e.response?.statusCode} - ${e.response?.data}';
-    }
-    if (e.type == DioExceptionType.cancel) return 'Request cancelled';
-    return 'Network error: ${e.message}';
   }
 }
