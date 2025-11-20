@@ -1,76 +1,73 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import '../models/user.dart';
+import '../repositories/user_repository.dart';
+import 'api_services.dart';
 
 class AuthService {
-  static const String usersKey = "users";
-  static const String currentUserKey = "current_user";
+  static AuthService? _instance;
+  final ApiService api;
 
-  static Future<List<User>> _getUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(usersKey);
+  AuthService._internal({required this.api});
 
-    if (data == null) return [];
-
-    final List<dynamic> jsonList = jsonDecode(data);
-    return jsonList.map((e) => User.fromJson(e)).toList();
+  static AuthService getInstance({required ApiService api}) {
+    _instance ??= AuthService._internal(api: api);
+    return _instance!;
   }
 
-  static Future<void> _saveUsers(List<User> users) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = users.map((e) => e.toJson()).toList();
-    await prefs.setString(usersKey, jsonEncode(jsonList));
-  }
+  /// Trả về Map {success: bool, message: String, user?: User}
+  Future<Map<String, dynamic>> login(String phone, String password) async {
+    try {
+      final resp = await api.post('/auth/login', data: {
+        'phone': phone,
+        'password': password,
+      });
 
-  static Future<String?> loginOrRegister(String phone, String password) async {
-    final users = await _getUsers();
-
-    // Check existing user
-    final existingUser =
-        users.where((u) => u.phone == phone).cast<User?>().firstOrNull;
-
-    // Check password if user exists
-    if (existingUser != null) {
-      if (existingUser.password == password) {
-        await _setCurrentUser(phone);
-        return "login_ok";
+      // success code 200
+      if (resp.statusCode == 200) {
+        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+        // Giả sử API trả { "id": "...", "phone":"...","token":"...", "name":"..." }
+        final user = User.fromJson(Map<String, dynamic>.from(data));
+        await UserRepository.saveUser(user);
+        return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
-        return "wrong_password";
+        return {'success': false, 'message': 'Server returned ${resp.statusCode}', 'data': resp.data};
       }
+    } on DioException catch (e) {
+      // Dio error: có thể network / server / response data lỗi
+      final msg = _dioErrorMessage(e);
+      print('AuthService.login DioError: $msg');
+      return {'success': false, 'message': msg, 'error': e};
+    } catch (e, st) {
+      print('AuthService.login error: $e\n$st');
+      return {'success': false, 'message': 'Unexpected error', 'error': e.toString()};
     }
-
-    // Register new user
-    final newUser = User(phone: phone, password: password);
-    users.add(newUser);
-    await _saveUsers(users);
-    await _setCurrentUser(phone);
-    return "registered";
   }
 
-  // save current user
-  static Future<void> _setCurrentUser(String phone) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(currentUserKey, phone);
+  Future<void> logout() async {
+    try {
+      // Optionally call API to invalidate token
+      final token = await UserRepository.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await api.client.post('/auth/logout', options: Options(headers: {'Authorization': 'Bearer $token'}));
+        } catch (e) {
+          print('AuthService.logout: server logout failed but continue locally: $e');
+        }
+      }
+    } catch (e, st) {
+      print('AuthService.logout error: $e\n$st');
+      rethrow;
+    }
   }
 
-  // get current user
-  static Future<String?> currentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey);
+  String _dioErrorMessage(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout) return 'Connection timeout';
+    if (e.type == DioExceptionType.receiveTimeout) return 'Receive timeout';
+    if (e.type == DioExceptionType.badResponse) {
+      return 'Server error: ${e.response?.statusCode} - ${e.response?.data}';
+    }
+    if (e.type == DioExceptionType.cancel) return 'Request cancelled';
+    return 'Network error: ${e.message}';
   }
-
-  // Logout
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(currentUserKey);
-  }
-
-  static Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey) != null;
-  }
-}
-
-extension IterableExt<E> on Iterable<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }

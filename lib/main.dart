@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/AuthPage/auth.dart';
+import 'package:ting_box/pages/AuthPage/bloc/auth_bloc.dart';
 
 import 'package:ting_box/pages/base_page.dart';
+import 'package:ting_box/repositories/user_repository.dart';
+import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
 
 import 'common/theme.dart';
@@ -17,7 +21,14 @@ void main() async{
     ),
   );
   await dotenv.load(fileName: '.env');
-  runApp(const MyApp());
+
+  final apiService = ApiService.getInstance(baseUrl: dotenv.env['API_BASE_URL'] ?? '');
+  final authService = AuthService.getInstance(api: apiService);
+  final userRepository = UserRepository();
+  runApp( BlocProvider(
+    create: (_) => AuthBloc(authService: authService, userRepository: userRepository,),
+    child: const MyApp(),
+  ),);
 }
 
 class MyApp extends StatelessWidget {
@@ -34,7 +45,7 @@ class MyApp extends StatelessWidget {
           title: 'BitTech Ting Box',
           theme: ThemeConfig.defaultLight,
           home: FutureBuilder<bool>(
-            future: AuthService.isLoggedIn(),
+            future: UserRepository.isLoggedIn(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const Scaffold(

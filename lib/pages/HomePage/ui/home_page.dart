@@ -8,7 +8,7 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   void handleLogout(BuildContext context) async {
-    await AuthService.logout();
+    await UserRepository.logout();
     if (context.mounted) {
       Navigator.pushReplacement(
         context,

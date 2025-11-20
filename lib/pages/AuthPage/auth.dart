@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ting_box/pages/AuthPage/ui/auth_page.dart';
-
-import '../../services/auth_services.dart';
-import '../base_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ting_box/ting_box.dart';
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -14,7 +12,14 @@ class Auth extends StatefulWidget {
 class _AuthState extends State<Auth> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  late final AuthBloc authBloc;
   bool isPhoneValid = true;
+
+  @override
+  void initState() {
+    authBloc = BlocProvider.of<AuthBloc>(context);
+    super.initState();
+  }
 
   void onPhoneChanged(String value) {
     setState(() {
@@ -27,8 +32,7 @@ class _AuthState extends State<Auth> {
     return regex.hasMatch(phone);
   }
 
-
-  void handleSubmit() async {
+  void handleSubmit() {
     final phone = phoneController.text.trim();
     final pass = passwordController.text.trim();
 
@@ -37,25 +41,13 @@ class _AuthState extends State<Auth> {
       return;
     }
 
-    final result = await AuthService.loginOrRegister(phone, pass);
+    if (!isPhoneValid) {
+      showSnack("Số điện thoại không hợp lệ");
+      return;
+    }
 
-    switch (result) {
-      case "login_ok":
-        showSnack("Đăng nhập thành công");
-        break;
-      case "registered":
-        showSnack("Số điện thoại chưa có, đã tạo tài khoản mới!");
-        break;
-      case "wrong_password":
-        showSnack("Sai mật khẩu!");
-        return;
-    }
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const BasePage()),
-      );
-    }
+    // gửi event đến Bloc
+    authBloc.add(LoginEvent(phone: phone, password: pass));
   }
 
   void showSnack(String msg) {
@@ -64,12 +56,37 @@ class _AuthState extends State<Auth> {
 
   @override
   Widget build(BuildContext context) {
-    return AuthPage(
-      onPhoneChanged: onPhoneChanged,
-      onLogin: handleSubmit,
-      isPhoneValid: isPhoneValid,
-      phoneController: phoneController,
-      passwordController: passwordController,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthLoading) {
+          // có thể show loading indicator (hoặc overlay)
+        } else if (state is AuthSuccess) {
+          showSnack("Đăng nhập thành công");
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const BasePage()),
+          );
+        } else if (state is AuthFailure) {
+          showSnack("Đăng nhập thất bại: ${state.message}");
+        }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        buildWhen: (previous, current) {
+          return previous != current;
+        },
+        builder: (BuildContext context, state) {
+          if (state is AuthLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return AuthPage(
+            onPhoneChanged: onPhoneChanged,
+            onLogin: handleSubmit,
+            isPhoneValid: isPhoneValid,
+            phoneController: phoneController,
+            passwordController: passwordController,
+          );
+        },
+      ),
     );
   }
 }

@@ -3,74 +3,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 
 class UserRepository {
-  static const String usersKey = "users";
-  static const String currentUserKey = "current_user";
+  static const String _keyUser = 'current_user';
+  static const String _keyToken = 'auth_token';
 
-  static Future<List<User>> _getUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(usersKey);
-
-    if (data == null) return [];
-
-    final List<dynamic> jsonList = jsonDecode(data);
-    return jsonList.map((e) => User.fromJson(e)).toList();
-  }
-
-  static Future<void> _saveUsers(List<User> users) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = users.map((e) => e.toJson()).toList();
-    await prefs.setString(usersKey, jsonEncode(jsonList));
-  }
-
-  static Future<String?> loginOrRegister(String phone, String password) async {
-    final users = await _getUsers();
-
-    // Check existing user
-    final existingUser =
-        users.where((u) => u.phone == phone).cast<User?>().firstOrNull;
-
-    // Check password if user exists
-    if (existingUser != null) {
-      if (existingUser.password == password) {
-        await _setCurrentUser(phone);
-        return "login_ok";
-      } else {
-        return "wrong_password";
+  // Save user object (json) + token
+  static Future<void> saveUser(User user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+      if (user.token != null) {
+        await prefs.setString(_keyToken, user.token!);
       }
+    } catch (e, st) {
+      // log error, but don't throw to UI (optionally rethrow)
+      print('UserRepository.saveUser error: $e\n$st');
+      rethrow;
     }
-
-    // Register new user
-    final newUser = User(phone: phone, password: password);
-    users.add(newUser);
-    await _saveUsers(users);
-    await _setCurrentUser(phone);
-    return "registered";
   }
 
-  // save current user
-  static Future<void> _setCurrentUser(String phone) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(currentUserKey, phone);
+  static Future<User?> getUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyUser);
+      if (raw == null) return null;
+      final Map<String, dynamic> json = jsonDecode(raw);
+      return User.fromJson(json);
+    } catch (e, st) {
+      print('UserRepository.getUser error: $e\n$st');
+      return null;
+    }
   }
 
-  // get current user
-  static Future<String?> currentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey);
+  static Future<String?> getToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keyToken);
+    } catch (e, st) {
+      print('UserRepository.getToken error: $e\n$st');
+      return null;
+    }
   }
 
-  // Logout
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(currentUserKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyUser);
+      await prefs.remove(_keyToken);
+    } catch (e, st) {
+      print('UserRepository.clear error: $e\n$st');
+    }
   }
 
   static Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey) != null;
+    final t = await getToken();
+    return t != null && t.isNotEmpty;
   }
-}
-
-extension IterableExt<E> on Iterable<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }
