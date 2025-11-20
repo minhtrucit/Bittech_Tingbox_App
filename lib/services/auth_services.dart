@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
@@ -22,30 +21,36 @@ class AuthService {
         '/auth/login',
         data: {'phone': phone, 'password': password},
       );
-      debugPrint('Reponse Data : $resp');
+      debugPrint('API Response status: ${resp.statusCode} - ${resp.data['statusCode']}');
 
+      if (resp.statusCode == 201 && resp.data['statusCode'] == 200) {
+        final data = resp.data['data'] ?? {};
+        debugPrint('Data JSON: $data');
 
-      // success code 200
-      if (resp.statusCode == 201 || resp.data.statusCode == 200) {
-        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+        final userJson = Map<String, dynamic>.from(data['user'] ?? {});
+        // Gán token từ API
+        userJson['expenseManagerAccessToken'] =
+            data['expenseManagerAccessToken'];
+        userJson['expenseManagerRefreshToken'] =
+            data['expenseManagerRefreshToken'];
 
-        final user = User.fromJson(Map<String, dynamic>.from(data));
+        final user = User.fromJson(userJson);
+        debugPrint('Parsed User: ${user.toJson()}');
+
         await UserRepository.saveUser(user);
+
         return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
-        return {
-          'success': false,
-          'message': 'Server returned ${resp.statusCode}',
-          'data': resp.data,
-        };
+        final msg =
+            resp.data['message'] ?? 'Server returned ${resp.statusCode}';
+        return {'success': false, 'message': msg};
       }
     } on DioException catch (e) {
-      // Dio error: có thể network / server / response data lỗi
       final msg = _dioErrorMessage(e);
-      debugPrint('AuthService.login DioError: $msg');
+      debugPrint('Login DioException: $msg');
       return {'success': false, 'message': msg, 'error': e};
     } catch (e, st) {
-      debugPrint('AuthService.login error: $e\n$st');
+      debugPrint('Login unexpected error: $e\n$st');
       return {
         'success': false,
         'message': 'Unexpected error',
