@@ -15,7 +15,7 @@ class _BasePageState extends State<BasePage> {
     HomePage(),
     HomePage(),
     HomePage(),
-    HomePage(),
+    CreateProductPage(),
     UserProfilePage(),
   ];
 
