@@ -77,7 +77,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   final apiService = ProductApiService(
-    baseUrl: dotenv.get('https://bittech-object-detector-python.onrender.com'),
+    baseUrl: dotenv.get('API_DETECT_URL'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
   List<Product> scannedProducts = [];
