@@ -3,7 +3,7 @@ class Product {
   final String id;
   final String name;
   final double price;
-  final String url;
+   String? url;
   int quantity;
   String? sku;
   String? distributorId;
@@ -17,7 +17,7 @@ class Product {
     required this.id,
     required this.name,
     required this.price,
-    required this.url,
+     this.url,
     this.categoryId,
     this.quantity = 1,
     this.sku,
@@ -33,9 +33,9 @@ class Product {
     return Product(
       id: json['id'],
       name: json['name'],
-      price: (json['price'] ?? 0).toDouble(),
-      url: json['url'],
-      quantity: json['quantity'] ?? 1,
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
+      url: json['thumbnailUrl'],
+      quantity:  1,
       sku: json['sku'],
       distributorId: json['distributorId'],
       barcode: json['barcode'],
@@ -55,7 +55,7 @@ class Product {
       'id': id,
       'name': name,
       'price': price,
-      'url': url,
+      'thumbnailUrl': url,
       'quantity': quantity,
       'sku': sku,
       'distributorId': distributorId,

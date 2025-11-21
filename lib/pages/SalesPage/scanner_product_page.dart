@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -78,7 +77,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   final apiService = ProductApiService(
-    baseUrl: dotenv.get('API_DETECT_URL'),
+    baseUrl: dotenv.get('https://bittech-object-detector-python.onrender.com'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
   List<Product> scannedProducts = [];

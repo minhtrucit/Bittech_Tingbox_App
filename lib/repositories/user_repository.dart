@@ -61,4 +61,14 @@ class UserRepository {
     final t = await getToken();
     return t != null && t.isNotEmpty;
   }
+
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyToken, token);
+  }
+
+  static Future<void> saveRefreshToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyRefreshToken, token);
+  }
 }

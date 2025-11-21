@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ting_box/models/product.dart';
 
 sealed class ProductEvent {}
@@ -8,5 +10,6 @@ final class LoadCategoriesEvent extends ProductEvent {
 
 final class CreateProductEvent extends ProductEvent {
   final Product productData;
-  CreateProductEvent({required this.productData});
+  final List<File> images;
+  CreateProductEvent({required this.productData, required this.images});
 }

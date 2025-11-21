@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -52,25 +55,42 @@ class ProductApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createProduct(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> createProduct({
+    required Map<String, dynamic> body,
+    required List<File> images,
+  }) async {
     try {
-      final resp = await api.post('/products', data: body);
+      // Prepare FormData
+      final formData = FormData.fromMap({
+        ...body,
+        "images": [
+          for (final f in images)
+            await MultipartFile.fromFile(
+              f.path,
+              filename: f.path.split('/').last,
+            ),
+        ],
+      });
+
+      debugPrint("📤 Uploading product: $body");
+      debugPrint("📤 Uploading images count: ${images.length}");
+
+      final resp = await api.post('/products', data: formData);
 
       debugPrint("📩 API Response: ${resp.data}");
 
       final ok =
-          resp.statusCode == 201 &&
-          resp.data is Map &&
-          resp.data['statusCode'] == 200;
+          resp.statusCode == 201 ||
+          resp.data['statusCode'] == 201;
 
-      if (ok) {
-        return resp.data as Map<String, dynamic>;
+      if (!ok) {
+        throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
       }
 
-      throw Exception(resp.data['message'] ?? "Unknown API error");
-    } catch (e, stack) {
+      return resp.data as Map<String, dynamic>;
+    } catch (e, st) {
       debugPrint("❌ createProduct error: $e");
-      debugPrint("STACK: $stack");
+      debugPrint("STACK: $st");
 
       throw Exception("Không thể tạo sản phẩm. Lỗi: $e");
     }

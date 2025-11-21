@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,7 +21,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
   final priceCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   List<XFile> pickedImages = [];
-  List<String> images = [];
+
   @override
   void initState() {
     super.initState();
@@ -37,35 +39,72 @@ class _CreateProductPageState extends State<CreateProductPage> {
     }
   }
 
+  Future<void> handleCreateProduct() async {
+    // Validate đơn giản
+
+    // Chuẩn bị list File cho upload
+    final List<File> images = pickedImages.map((e) => File(e.path)).toList();
+
+    // Tạo payload
+    Product productData = Product(
+      id: '1',
+      name: nameCtrl.text.trim(),
+      price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
+      description: descCtrl.text.trim(),
+      categoryId: '1',
+    );
+
+    // Gọi bloc
+    context.read<ProductBloc>().add(
+      CreateProductEvent(productData: productData, images: images),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      appBar: _buildAppBar(),
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            right: 16.w,
-            left: 16.w,
-            top: 12.h,
-            bottom: 64.h,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCategorySection(context),
-              const SizedBox(height: 20),
-              _buildProductNameSection(),
-              const SizedBox(height: 20),
-              _buildPriceSection(),
-              const SizedBox(height: 20),
-              _buildDescriptionSection(),
-              const SizedBox(height: 20),
-              _buildPhotoSection(),
-              const SizedBox(height: 40),
-              _buildSaveButton(),
-              const SizedBox(height: 30),
-            ],
+    return BlocListener<ProductBloc, ProductState>(
+      listener: (context, state) {
+        if (state is ProductCreateSuccess) {
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Tạo sản phẩm thành công',
+            content: '',
+            onFirstAction: () {
+              Navigator.pop(context, true);
+            },
+            firstActionText: 'OK',
+          );
+          Navigator.pop(context, true);
+        }
+      },
+      child: AppScaffold(
+        appBar: _buildAppBar(),
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              right: 16.w,
+              left: 16.w,
+              top: 12.h,
+              bottom: 64.h,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCategorySection(context),
+                const SizedBox(height: 20),
+                _buildProductNameSection(),
+                const SizedBox(height: 20),
+                _buildPriceSection(),
+                const SizedBox(height: 20),
+                _buildDescriptionSection(),
+                const SizedBox(height: 20),
+                _buildPhotoSection(),
+                const SizedBox(height: 40),
+                _buildSaveButton(),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
@@ -290,7 +329,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTitle("Tên sản phẩm"),
-        _buildInput(hint: "Nhập tên sản phẩm"),
+        _buildInput(hint: "Nhập tên sản phẩm", controller: nameCtrl),
       ],
     );
   }
@@ -303,7 +342,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTitle("Giá tiền"),
-        _buildInput(hint: "0.00đ", keyboard: TextInputType.number),
+        _buildInput(hint: "0.00đ", keyboard: TextInputType.number, controller: priceCtrl,),
       ],
     );
   }
@@ -316,7 +355,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTitle("Mô tả"),
-        _buildInput(hint: "Mô tả ngắn về sản phẩm", maxLines: 4),
+        _buildInput(hint: "Mô tả ngắn về sản phẩm", maxLines: 4, controller: descCtrl),
       ],
     );
   }
@@ -334,7 +373,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
           children: [
             _buildTitle("Hình ảnh sản phẩm"),
             Text(
-              "${images.length}/5",
+              "${pickedImages.length}/5",
               style: TextStyle(color: Colors.grey.shade600),
             ),
           ],
@@ -357,26 +396,51 @@ class _CreateProductPageState extends State<CreateProductPage> {
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(
-                    Icons.add_photo_alternate_outlined,
-                    size: 40,
-                    color: Colors.blue,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Thêm hình ảnh",
-                    style: TextStyle(
+                children: [
+                  if (pickedImages.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(left: 8.w),
+                      child: SizedBox(
+                        height: 100,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: pickedImages.length,
+                          separatorBuilder: (_, __) => SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(pickedImages[index].path),
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  else ...[
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 40,
                       color: Colors.blue,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    "Chọn hình ảnh cho sản phẩm của bạn",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Thêm hình ảnh",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Chọn hình ảnh cho sản phẩm của bạn",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -400,7 +464,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {},
+        onPressed: handleCreateProduct,
         child: const Text(
           "Lưu sản phẩm",
           style: TextStyle(fontSize: 16, color: Colors.white),
@@ -422,6 +486,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
   Widget _buildInput({
     required String hint,
     TextInputType keyboard = TextInputType.text,
+    TextEditingController? controller,
     int maxLines = 1,
   }) {
     return Container(
@@ -429,6 +494,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: _boxDecoration(),
       child: TextField(
+        controller: controller,
         maxLines: maxLines,
         keyboardType: keyboard,
         decoration: InputDecoration(hintText: hint, border: InputBorder.none),

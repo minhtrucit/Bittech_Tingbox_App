@@ -57,14 +57,15 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     emit(ProductLoading());
 
     try {
-      final response = await productApiService.createProduct({
+      final body = {
         "name": event.productData.name,
         "price": event.productData.price,
         "categoryId": event.productData.categoryId,
         "description": event.productData.description,
         "images": event.productData.images,
         "distributorId": 1,
-      });
+      };
+      final response = await productApiService.createProduct(body: body, images: event.images);
       final product = Product.fromJson(response['data']);
       emit(ProductCreateSuccess(product: product));
     } catch (e) {

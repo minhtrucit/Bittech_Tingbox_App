@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../repositories/user_repository.dart';
+
 class ApiService {
   static ApiService? _instance;
   final Dio _dio;
@@ -118,15 +120,32 @@ class ApiService {
   Future<String> _performRefreshToken() async {
     if (_refreshToken == null) throw Exception("Missing refresh token");
 
+    debugPrint('[ApiService] Refreshing token...');
+
     final response = await _dio.post(
       "/auth/refresh",
       data: {
-        "refresh_token": _refreshToken,
+        "refreshToken": _refreshToken,
       },
     );
 
-    return response.data["access_token"];
+    final data = response.data["data"];
+    if (data == null) throw Exception("Invalid refresh response");
+
+    final newAccessToken = data["expenseManagerAccessToken"];
+    final newRefreshToken = data["expenseManagerRefreshToken"];
+
+    // LƯU VÀO SharedPreferences
+    await UserRepository.saveToken(newAccessToken);
+    await UserRepository.saveRefreshToken(newRefreshToken);
+
+    // cập nhật biến memory
+    _accessToken = newAccessToken;
+    _refreshToken = newRefreshToken;
+
+    return newAccessToken;
   }
+
 
   // ----------------------
   // REQUEST WRAPPER
