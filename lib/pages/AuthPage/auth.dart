@@ -15,7 +15,7 @@ class _AuthState extends State<Auth> {
   late final AuthBloc authBloc;
   bool isPhoneValid = true;
   bool _isLoadingOverlay = false; // để kiểm soát overlay
-
+  final String loginFailTitle = 'Đăng nhập thất bại';
   @override
   void initState() {
     super.initState();
@@ -41,29 +41,14 @@ class _AuthState extends State<Auth> {
 
     if (phone.isEmpty || pass.isEmpty) {
       debugPrint('[Auth] handleSubmit: Missing phone or password');
-      showDialog(
+      DialogUtils.showAppDialog(
         context: context,
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            title: Text(
-              'Đăng nhập thất bại',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            content: Text(
-              'Vui lòng nhập đầy đủ số điện thoại và mật khẩu!',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK', style: Theme.of(context).textTheme.bodyLarge),
-              ),
-            ],
-          );
-        },
+        title: loginFailTitle,
+        content: 'Vui lòng nhập đầy đủ số điện thoại và mật khẩu!',
+        onFirstAction: () => Navigator.of(context).pop(),
+        firstActionText: 'OK',
       );
+
       return;
     }
 
@@ -97,29 +82,12 @@ class _AuthState extends State<Auth> {
 
         if (state is AuthFailure) {
           debugPrint('[AuthListener] AuthFailure: ${state.message}');
-          showDialog(
+          DialogUtils.showAppDialog(
             context: context,
-            builder: (context) {
-              return AlertDialog(
-                backgroundColor: Colors.white,
-                title: Text(
-                  'Đăng nhập thất bại',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                content: Text(state.message),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'OK',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                ],
-              );
-            },
+            title: loginFailTitle,
+            content: state.message,
+            onFirstAction: () => Navigator.of(context).pop(),
+            firstActionText: 'OK',
           );
         }
       },

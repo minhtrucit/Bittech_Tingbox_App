@@ -43,6 +43,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
       centerTitle: centerTitle ?? true,
       systemOverlayStyle: systemOverlayStyle,
+      scrolledUnderElevation: 0,
     );
   }
 

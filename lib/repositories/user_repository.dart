@@ -4,7 +4,8 @@ import '../models/user.dart';
 
 class UserRepository {
   static const String _keyUser = 'current_user';
-  static const String _keyToken = 'auth_token';
+  static const String keyToken = 'auth_token';
+  static const String keyRefreshToken = 'refresh_token';
 
   // Save user object (json) + token
   static Future<void> saveUser(User user) async {
@@ -12,8 +13,10 @@ class UserRepository {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyUser, jsonEncode(user.toJson()));
       if (user.token != null) {
-        await prefs.setString(_keyToken, user.token!);
+        await prefs.setString(keyToken, user.token!);
       }
+
+      await prefs.setString(keyRefreshToken, user.refreshToken);
     } catch (e, st) {
       // log error, but don't throw to UI (optionally rethrow)
       print('UserRepository.saveUser error: $e\n$st');
@@ -37,7 +40,7 @@ class UserRepository {
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyToken);
+      return prefs.getString(keyToken);
     } catch (e, st) {
       print('UserRepository.getToken error: $e\n$st');
       return null;
@@ -48,7 +51,7 @@ class UserRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyUser);
-      await prefs.remove(_keyToken);
+      await prefs.remove(keyToken);
     } catch (e, st) {
       print('UserRepository.clear error: $e\n$st');
     }
@@ -57,5 +60,15 @@ class UserRepository {
   static Future<bool> isLoggedIn() async {
     final t = await getToken();
     return t != null && t.isNotEmpty;
+  }
+
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyToken, token);
+  }
+
+  static Future<void> saveRefreshToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyRefreshToken, token);
   }
 }

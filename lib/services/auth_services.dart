@@ -37,6 +37,12 @@ class AuthService {
 
         final user = User.fromJson(userJson);
         debugPrint('Parsed User: ${user.toJson()}');
+        api.setTokens(
+          accessToken: user.token!,
+          refreshToken: user.refreshToken,
+        );
+        debugPrint('Access token set in ApiService: ${user.token}');
+        debugPrint('Refresh token set in ApiService: ${user.refreshToken}');
         return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
         final msg = resp.data ?? 'Server returned ${resp.statusCode}';
@@ -60,7 +66,7 @@ class AuthService {
 
   Future<bool> logout() async {
     try {
-      final rs = await api.client.post('/auth/logout');
+      final rs = await api.post('/auth/logout');
       if (rs.data['success']) {
         return true;
       }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../services/auth_services.dart';
 import '../../../ting_box.dart';
 
 class HomePage extends StatelessWidget {
@@ -69,15 +68,16 @@ class HomePage extends StatelessWidget {
                     side: BorderSide(width: 0.2.w, color: Colors.grey),
                     title: Text(
                       'Tổng thu',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     amount: Text(
                       '8,500,000đ',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.sp,
+                      ),
                     ),
                     initialBalance: RichText(
                       text: TextSpan(
@@ -105,15 +105,16 @@ class HomePage extends StatelessWidget {
                     side: BorderSide(width: 0.2.w, color: Colors.grey),
                     title: Text(
                       'Tổng chi',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     amount: Text(
                       '3,500,000đ',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.sp,
+                      ),
                     ),
                     initialBalance: RichText(
                       text: TextSpan(
@@ -121,7 +122,12 @@ class HomePage extends StatelessWidget {
                           context,
                         ).textTheme.bodyLarge?.copyWith(color: Colors.red),
                         children: [
-                          WidgetSpan(child: Icon(Icons.arrow_downward, color: Colors.red,)),
+                          WidgetSpan(
+                            child: Icon(
+                              Icons.arrow_downward,
+                              color: Colors.red,
+                            ),
+                          ),
                           WidgetSpan(child: SizedBox(width: 2.w)),
 
                           TextSpan(text: 'Giảm 1.2%'),

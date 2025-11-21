@@ -37,7 +37,7 @@ class AppNavigationBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.cart_fill),
-          label: "Bán hàng",
+          label: "Sản phẩm",
         ),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.person_alt),

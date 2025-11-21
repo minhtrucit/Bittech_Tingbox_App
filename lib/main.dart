@@ -3,15 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ting_box/pages/AuthPage/auth.dart';
-import 'package:ting_box/pages/AuthPage/bloc/auth_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:ting_box/pages/base_page.dart';
-import 'package:ting_box/repositories/user_repository.dart';
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
-
-import 'common/theme.dart';
+import 'package:ting_box/services/product_api_services.dart';
+import 'package:ting_box/ting_box.dart';
 
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(
@@ -21,18 +18,41 @@ void main() async {
     ),
   );
   await dotenv.load(fileName: ".env");
-  final apiService = ApiService.getInstance(
-    baseUrl: dotenv.get('API_BASE_URL') ?? '',
-  );
+  final baseUrl = dotenv.get('API_BASE_URL');
+  final apiService = ApiService.getInstance(baseUrl: baseUrl);
   final authService = AuthService.getInstance(api: apiService);
   final userRepository = UserRepository();
+  final productApiService = ProductApiService(baseUrl: baseUrl, api: apiService);
+
+  final prefs = await SharedPreferences.getInstance();
+  final accessToken = prefs.getString(UserRepository.keyToken);
+  final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
+
+
+  if (accessToken != null && refreshToken != null) {
+    apiService.setTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+    debugPrint('[main] Loaded tokens from SharedPreferences');
+  } else {
+    debugPrint('[main] No tokens found in SharedPreferences');
+  }
+
   runApp(
-    BlocProvider(
-      create:
-          (_) => AuthBloc(
-            authService: authService,
-            userRepository: userRepository,
-          ),
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create:
+              (_) => AuthBloc(
+                authService: authService,
+                userRepository: userRepository,
+              ),
+        ),
+        BlocProvider<ProductBloc>(
+          create: (_) => ProductBloc(productApiService: productApiService),
+        ),
+      ],
       child: const MyApp(),
     ),
   );
