@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../services/api_services.dart';
 import '../../services/product_api_services.dart';
 import '../../ting_box.dart';
 
@@ -75,7 +77,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
     _initCamera();
   }
 
-  final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
+  final apiService = ProductApiService(
+    baseUrl: dotenv.get('API_DETECT_URL'),
+    api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
+  );
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
     _isLoading.value = true;

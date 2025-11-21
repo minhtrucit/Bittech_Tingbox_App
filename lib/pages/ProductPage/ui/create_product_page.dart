@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
 
@@ -12,9 +14,28 @@ class CreateProductPage extends StatefulWidget {
 
 class _CreateProductPageState extends State<CreateProductPage> {
   String? selectedCategory;
-  final List<String> categories = ["Food", "Drink", "Snack", "Other"];
-
+  List<String> categories = [];
+  final nameCtrl = TextEditingController();
+  final priceCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
+  List<XFile> pickedImages = [];
   List<String> images = [];
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> pickImages() async {
+    final ImagePicker picker = ImagePicker();
+
+    final List<XFile> images = await picker.pickMultiImage(imageQuality: 70);
+
+    if (images.isNotEmpty) {
+      setState(() {
+        pickedImages = images.take(5).toList();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,24 +88,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       children: [
         _buildTitle("Danh mục sản phẩm"),
         const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: _boxDecoration(),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              hint: const Text("Chọn 1 danh mục"),
-              value: selectedCategory,
-              items:
-                  categories
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-              onChanged: (value) {
-                setState(() => selectedCategory = value);
-              },
-            ),
-          ),
-        ),
+        _buildCategoryDropdown(),
         const SizedBox(height: 8),
 
         AppTextButton(
@@ -122,6 +126,36 @@ class _CreateProductPageState extends State<CreateProductPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return BlocBuilder<ProductBloc, ProductState>(
+      builder: (context, state) {
+        if (state is ProductLoadCategoriesSuccess) {
+          categories = state.categories;
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: _boxDecoration(),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              dropdownColor: Colors.white,
+              hint: const Text("Chọn 1 danh mục"),
+              value: selectedCategory,
+              items:
+                  categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+              onChanged: (value) {
+                setState(() => selectedCategory = value);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -315,7 +349,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
         // Add Photo Box
         GestureDetector(
           onTap: () {
-            // TODO: add image picker logic
+            pickImages();
           },
           child: Container(
             height: 130,

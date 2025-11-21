@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/ting_box.dart';
 
 class BasePage extends StatefulWidget {
@@ -10,6 +11,12 @@ class BasePage extends StatefulWidget {
 
 class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
+  @override
+  void initState() {
+    final productBloc = BlocProvider.of<ProductBloc>(context);
+    productBloc.add(LoadCategoriesEvent());
+    super.initState();
+  }
 
   final _pages = const [
     HomePage(),
