@@ -1,76 +1,75 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
+import 'api_services.dart';
 
 class AuthService {
-  static const String usersKey = "users";
-  static const String currentUserKey = "current_user";
+  static AuthService? _instance;
+  final ApiService api;
 
-  static Future<List<User>> _getUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(usersKey);
+  AuthService._internal({required this.api});
 
-    if (data == null) return [];
-
-    final List<dynamic> jsonList = jsonDecode(data);
-    return jsonList.map((e) => User.fromJson(e)).toList();
+  static AuthService getInstance({required ApiService api}) {
+    _instance ??= AuthService._internal(api: api);
+    return _instance!;
   }
 
-  static Future<void> _saveUsers(List<User> users) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = users.map((e) => e.toJson()).toList();
-    await prefs.setString(usersKey, jsonEncode(jsonList));
-  }
+  Future<Map<String, dynamic>> login(String phone, String password) async {
+    try {
+      final resp = await api.post(
+        '/auth/login',
+        data: {'phone': phone, 'password': password},
+      );
+      debugPrint(
+        'API Response status: ${resp.statusCode} - ${resp.data['statusCode']}',
+      );
 
-  static Future<String?> loginOrRegister(String phone, String password) async {
-    final users = await _getUsers();
+      if (resp.statusCode == 201 && resp.data['statusCode'] == 200) {
+        final data = resp.data['data'] ?? {};
+        debugPrint('Data JSON: $data');
 
-    // Check existing user
-    final existingUser =
-        users.where((u) => u.phone == phone).cast<User?>().firstOrNull;
+        final userJson = Map<String, dynamic>.from(data['user'] ?? {});
+        // Gán token từ API
+        userJson['expenseManagerAccessToken'] =
+            data['expenseManagerAccessToken'];
+        userJson['expenseManagerRefreshToken'] =
+            data['expenseManagerRefreshToken'];
 
-    // Check password if user exists
-    if (existingUser != null) {
-      if (existingUser.password == password) {
-        await _setCurrentUser(phone);
-        return "login_ok";
+        final user = User.fromJson(userJson);
+        debugPrint('Parsed User: ${user.toJson()}');
+        return {'success': true, 'message': 'login_ok', 'user': user};
       } else {
-        return "wrong_password";
+        final msg = resp.data ?? 'Server returned ${resp.statusCode}';
+        return {'success': false, 'message': msg};
       }
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': e.response?.data['message'],
+        'error': e.message,
+      };
+    } catch (e, st) {
+      debugPrint('Login unexpected error: $e\n$st');
+      return {
+        'success': false,
+        'message': 'Unexpected error',
+        'error': e.toString(),
+      };
     }
-
-    // Register new user
-    final newUser = User(phone: phone, password: password);
-    users.add(newUser);
-    await _saveUsers(users);
-    await _setCurrentUser(phone);
-    return "registered";
   }
 
-  // save current user
-  static Future<void> _setCurrentUser(String phone) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(currentUserKey, phone);
+  Future<bool> logout() async {
+    try {
+      final rs = await api.client.post('/auth/logout');
+      if (rs.data['success']) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint(
+        'AuthService.logout: server logout failed but continue locally: $e',
+      );
+      return false;
+    }
   }
-
-  // get current user
-  static Future<String?> currentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey);
-  }
-
-  // Logout
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(currentUserKey);
-  }
-
-  static Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentUserKey) != null;
-  }
-}
-
-extension IterableExt<E> on Iterable<E> {
-  E? get firstOrNull => isEmpty ? null : first;
 }

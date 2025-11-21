@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../common/components/app_scaffold.dart';
 import '../../../services/auth_services.dart';
 import '../../../ting_box.dart';
-import '../../AuthPage/auth.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   void handleLogout(BuildContext context) async {
-    await AuthService.logout();
+    await UserRepository.logout();
     if (context.mounted) {
       Navigator.pushReplacement(
         context,

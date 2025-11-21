@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ting_box/pages/AuthPage/ui/auth_page.dart';
-
-import '../../services/auth_services.dart';
-import '../base_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ting_box/ting_box.dart';
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -14,12 +12,22 @@ class Auth extends StatefulWidget {
 class _AuthState extends State<Auth> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  late final AuthBloc authBloc;
   bool isPhoneValid = true;
+  bool _isLoadingOverlay = false; // để kiểm soát overlay
+
+  @override
+  void initState() {
+    super.initState();
+    authBloc = BlocProvider.of<AuthBloc>(context);
+    debugPrint('[Auth] initState: AuthBloc initialized');
+  }
 
   void onPhoneChanged(String value) {
     setState(() {
       isPhoneValid = isValidPhone(value);
     });
+    debugPrint('[Auth] onPhoneChanged: $value, isPhoneValid=$isPhoneValid');
   }
 
   bool isValidPhone(String phone) {
@@ -27,49 +35,111 @@ class _AuthState extends State<Auth> {
     return regex.hasMatch(phone);
   }
 
-
-  void handleSubmit() async {
+  void handleSubmit() {
     final phone = phoneController.text.trim();
     final pass = passwordController.text.trim();
 
     if (phone.isEmpty || pass.isEmpty) {
-      showSnack("Vui lòng nhập đủ thông tin");
+      debugPrint('[Auth] handleSubmit: Missing phone or password');
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            title: Text(
+              'Đăng nhập thất bại',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            content: Text(
+              'Vui lòng nhập đầy đủ số điện thoại và mật khẩu!',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK', style: Theme.of(context).textTheme.bodyLarge),
+              ),
+            ],
+          );
+        },
+      );
       return;
     }
 
-    final result = await AuthService.loginOrRegister(phone, pass);
-
-    switch (result) {
-      case "login_ok":
-        showSnack("Đăng nhập thành công");
-        break;
-      case "registered":
-        showSnack("Số điện thoại chưa có, đã tạo tài khoản mới!");
-        break;
-      case "wrong_password":
-        showSnack("Sai mật khẩu!");
-        return;
-    }
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const BasePage()),
-      );
-    }
-  }
-
-  void showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    debugPrint('[Auth] handleSubmit: Sending LoginEvent phone=$phone');
+    authBloc.add(LoginEvent(phone: phone, password: pass));
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthPage(
-      onPhoneChanged: onPhoneChanged,
-      onLogin: handleSubmit,
-      isPhoneValid: isPhoneValid,
-      phoneController: phoneController,
-      passwordController: passwordController,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) async {
+        debugPrint('[AuthListener] state changed: $state');
+
+        if (state is AuthLoading) {
+          setState(() => _isLoadingOverlay = true);
+          debugPrint('[AuthListener] AuthLoading: show overlay');
+        } else {
+          setState(() => _isLoadingOverlay = false);
+          debugPrint('[AuthListener] AuthLoading finished: hide overlay');
+        }
+
+        if (state is AuthSuccess) {
+          debugPrint('[AuthListener] AuthSuccess: Navigate to BasePage');
+
+          await Future.delayed(const Duration(milliseconds: 200));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const BasePage()),
+          );
+        }
+
+        if (state is AuthFailure) {
+          debugPrint('[AuthListener] AuthFailure: ${state.message}');
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: Colors.white,
+                title: Text(
+                  'Đăng nhập thất bại',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                content: Text(state.message),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'OK',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      },
+      child: Stack(
+        children: [
+          BlocBuilder<AuthBloc, AuthState>(
+            buildWhen: (previous, current) => previous != current,
+            builder: (context, state) {
+              return AuthPage(
+                onPhoneChanged: onPhoneChanged,
+                onLogin: handleSubmit,
+                isPhoneValid: isPhoneValid,
+                phoneController: phoneController,
+                passwordController: passwordController,
+              );
+            },
+          ),
+          if (_isLoadingOverlay) LoadingOverlay(),
+        ],
+      ),
     );
   }
 }

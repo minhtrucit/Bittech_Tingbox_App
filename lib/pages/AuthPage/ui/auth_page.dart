@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
-class AuthPage extends StatelessWidget {
+class AuthPage extends StatefulWidget {
   const AuthPage({
     super.key,
     required this.onLogin,
@@ -20,9 +20,17 @@ class AuthPage extends StatelessWidget {
   final void Function(String) onPhoneChanged;
 
   @override
+  State<AuthPage> createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  bool isShowPassword = false;
+
+  @override
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         scrolledUnderElevation: 0,
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -42,19 +50,21 @@ class AuthPage extends StatelessWidget {
         ),
       ),
       backgroundColor: AppColors.white,
-      body: SizedBox.expand(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 28.h,
-              children: [
-                buildMainTitle(context),
-                buildLoginForm(context),
-                buildButtonSubmit(),
-              ],
+      body: SafeArea(
+        child: SizedBox.expand(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 28.h,
+                children: [
+                  buildMainTitle(context),
+                  buildLoginForm(context),
+                  buildButtonSubmit(),
+                ],
+              ),
             ),
           ),
         ),
@@ -75,7 +85,7 @@ class AuthPage extends StatelessWidget {
         ),
         onPressed: () {
           debugPrint("Đăng nhập");
-          onLogin();
+          widget.onLogin();
         },
         child: const Text(
           "Đăng nhập",
@@ -100,11 +110,12 @@ class AuthPage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           TextField(
-            controller: phoneController,
-            onChanged: onPhoneChanged,
+            controller: widget.phoneController,
+            onChanged: widget.onPhoneChanged,
             decoration: InputDecoration(
               hintText: "Nhập sđt của bạn",
-              errorText: isPhoneValid ? null : "Số điện thoại không hợp lệ",
+              errorText:
+                  widget.isPhoneValid ? null : "Số điện thoại không hợp lệ",
               prefixIcon: const Icon(Icons.phone),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -112,7 +123,8 @@ class AuthPage extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(
-                  color: isPhoneValid ? AppColors.primaryBlue : Colors.red,
+                  color:
+                      widget.isPhoneValid ? AppColors.primaryBlue : Colors.red,
                   width: 2,
                 ),
               ),
@@ -129,12 +141,24 @@ class AuthPage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           TextField(
-            obscureText: true,
-            controller: passwordController,
+            obscureText: isShowPassword ? false : true,
+            controller: widget.passwordController,
             decoration: InputDecoration(
               hintText: "Nhập mật khẩu",
               prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: const Icon(Icons.visibility_off_outlined),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    isShowPassword = !isShowPassword;
+                  });
+                },
+                icon: Icon(
+                  isShowPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+              ),
+
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

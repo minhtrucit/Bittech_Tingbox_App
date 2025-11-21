@@ -2,26 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../services/product_api_services.dart';
 import '../../ting_box.dart';
-
-class Product {
-  final String product_id;
-  final String name;
-  final double price;
-  // final String imageUrl;
-  final int quantity;
-
-  Product({
-    required this.product_id,
-    required this.name,
-    required this.price,
-    this.quantity = 1,
-    // required this.imageUrl,
-  });
-}
 
 class ScanProductPage extends StatefulWidget {
   const ScanProductPage({super.key});
@@ -35,6 +20,13 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool _isCameraReady = false;
   CameraLensDirection _lenDirection = CameraLensDirection.back;
   bool _isFlashOn = false;
+  ValueNotifier<bool> _isLoading = ValueNotifier(false);
+  final products = [
+    Product(id: '1', name: 'Bình đựng nước', price: 50000, url: ''),
+    Product(id: '2', name: 'Sổ tay', price: 20000, url: ''),
+    Product(id: '3', name: 'Viết', price: 5000, url: ''),
+    Product(id: '4', name: 'Chuột', price: 100000, url: ''),
+  ];
   @override
   void initState() {
     super.initState();
@@ -86,49 +78,64 @@ class _ScanProductPageState extends State<ScanProductPage> {
   final apiService = ProductApiService(baseUrl: 'http://192.168.100.49:5000');
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
-    final XFile file = await _camera!.takePicture();
-    print('Ảnh path: ${file.path}');
+    _isLoading.value = true;
+    debugPrint('isLoading $_isLoading');
+    try {
+      final XFile file = await _camera!.takePicture();
+      print('Ảnh path: ${file.path}');
 
-    final product = await apiService.sendImage(file.path);
-    if (product != null) {
-      print('Product match: ${product['name']} - ${product['price']}đ');
+      final product = await apiService.sendImage(file.path);
+      print('API response: $product');
 
-      setState(() {
-        final name = product['name'];
+      if (product != null) {
+        print('Product match: ${product['name']} - ${product['price']}đ');
 
-        final index = scannedProducts.indexWhere((p) => p.name == name);
+        setState(() {
+          final name = product['name'];
 
-        if (index != -1) {
-          final existing = scannedProducts[index];
+          final index = scannedProducts.indexWhere((p) => p.name == name);
 
-          scannedProducts.removeAt(index);
+          if (index != -1) {
+            final existing = scannedProducts[index];
 
-          scannedProducts.insert(
-            0,
-            Product(
-              product_id: existing.product_id,
-              name: existing.name,
-              price: existing.price,
-              quantity: existing.quantity + 1,
-            ),
-          );
-        } else {
-          scannedProducts.insert(
-            0,
-            Product(
-              product_id: product['product_id'],
-              name: product['name'],
-              price: product['price'].toDouble(),
-              quantity: 1,
-            ),
-          );
-        }
-      });
+            scannedProducts.removeAt(index);
+
+            scannedProducts.insert(
+              0,
+              Product(
+                id: existing.id,
+                name: existing.name,
+                price: existing.price,
+                quantity: existing.quantity + 1,
+                url: existing.url,
+              ),
+            );
+          } else {
+            scannedProducts.insert(
+              0,
+              Product(
+                id: product['id'],
+                name: product['name'],
+                price: product['price'].toDouble(),
+                quantity: 1,
+                url: product['url'],
+              ),
+            );
+          }
+        });
+        _isLoading.value = false;
+      }
+    } catch (e) {
+      debugPrint('Error taking picture or sending to API: $e');
+      _isLoading.value = false;
     }
   }
 
   double _calculateTotalPrice() {
-    return scannedProducts.fold(0.0, (sum, product) => sum + product.price * product.quantity);
+    return scannedProducts.fold(
+      0.0,
+      (sum, product) => sum + product.price * product.quantity,
+    );
   }
 
   Widget _buildDialogConfirmWidget() {
@@ -167,15 +174,75 @@ class _ScanProductPageState extends State<ScanProductPage> {
     setState(() {
       final product = scannedProducts[index];
       scannedProducts[index] = Product(
-        product_id: product.product_id,
+        id: product.id,
         name: product.name,
         price: product.price,
         quantity:
             isIncrease
                 ? product.quantity + 1
                 : (product.quantity > 1 ? product.quantity - 1 : 1),
+        url: product.url,
       );
     });
+  }
+
+  void replaceProductAtIndex(int oldIndex, Product newProduct) async {
+    final oldProduct = scannedProducts[oldIndex];
+
+    if (oldProduct.id == newProduct.id) return;
+
+    final existingIndex = scannedProducts.indexWhere(
+      (p) => p.id == newProduct.id,
+    );
+
+    if (existingIndex != -1) {
+      setState(() {
+        scannedProducts[existingIndex].quantity += oldProduct.quantity;
+        scannedProducts.removeAt(oldIndex);
+      });
+
+      return;
+    }
+
+    setState(() {
+      scannedProducts[oldIndex] = Product(
+        id: newProduct.id,
+        name: newProduct.name,
+        price: newProduct.price,
+        quantity: oldProduct.quantity,
+        url: newProduct.url,
+      );
+    });
+  }
+
+  void showProductBottomSheet(BuildContext context, int oldIndex) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder:
+          (_) => ProductBottomSheet(
+            products: products,
+            onSelected: (newProduct) {
+              replaceProductAtIndex(oldIndex, newProduct);
+            },
+          ),
+    );
+  }
+
+  void showConfirmOrderDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (_) => ConfirmOrderDialog(
+            items: scannedProducts,
+            onComplete: () {
+              Navigator.pop(context);
+            },
+          ),
+    );
   }
 
   @override
@@ -189,6 +256,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   Widget build(BuildContext context) {
     if (!_isCameraReady) {
       return const AppScaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: AppColors.white,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primaryBlue),
@@ -220,6 +288,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
       },
       child: AppScaffold(
         hasSafeArea: false,
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.black,
         appBar: AppAppBar(
           backgroundColor: Colors.transparent,
           leading: buildBackButton(context),
@@ -242,6 +312,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 productItems:
                     scannedProducts.map((product) {
                       return buildProductCartItem(
+                        onTap: () {
+                          showProductBottomSheet(
+                            context,
+                            scannedProducts.indexOf(product),
+                          );
+                        },
                         name: product.name,
                         imageUrl: '',
                         price: product.price,
@@ -266,12 +342,15 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         },
                       );
                     }).toList(),
-                onButtonTap: () {},
+                onConfirmButtonTap: showConfirmOrderDialog,
                 totalPrice: _calculateTotalPrice,
               ),
             ),
 
-            _buildTakePhotoButton(onTap: _takePictureAndSend),
+            _buildTakePhotoButton(
+              onTap: _takePictureAndSend,
+              isLoading: _isLoading,
+            ),
           ],
         ),
       ),
@@ -345,7 +424,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 }
 
-Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
+Widget _buildTakePhotoButton({
+  required VoidCallback? onTap,
+  ValueNotifier<bool>? isLoading,
+}) {
   return Positioned(
     bottom: 360.h,
     left: 0,
@@ -353,14 +435,27 @@ Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
     child: Center(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 65,
-          height: 65,
-          decoration: BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 4),
-          ),
+        child: ValueListenableBuilder<bool>(
+          valueListenable: isLoading ?? ValueNotifier(false),
+          builder: (context, isLoadingState, child) {
+            return Container(
+              width: 65,
+              height: 65,
+              decoration: BoxDecoration(
+                color: isLoadingState ? Colors.transparent : Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 4),
+              ),
+              child:
+                  isLoadingState
+                      ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryBlue,
+                        ),
+                      )
+                      : null,
+            );
+          },
         ),
       ),
     ),
@@ -370,7 +465,7 @@ Widget _buildTakePhotoButton({required VoidCallback? onTap}) {
 Widget _buildProductBottomSheet({
   required BuildContext context,
   required List<Widget> productItems,
-  required VoidCallback onButtonTap,
+  required VoidCallback onConfirmButtonTap,
   required double Function() totalPrice,
 }) {
   return Container(
@@ -406,17 +501,34 @@ Widget _buildProductBottomSheet({
             itemBuilder: (context, index) => productItems[index],
           ),
         ),
-        Padding(
-          padding: EdgeInsets.only(right: 8.w),
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              'Tổng tiền: ${formatMoney(totalPrice())}đ',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tổng cộng: ',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                  ),
+                ),
+                Text(
+                  '${formatMoney(totalPrice())}đ',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -439,9 +551,9 @@ Widget _buildProductBottomSheet({
                   ),
                 ),
               ),
-              onPressed: onButtonTap,
+              onPressed: onConfirmButtonTap,
               label: Text(
-                "Xác nhận",
+                "Hoàn tất",
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -463,97 +575,101 @@ Widget buildProductCartItem({
   required VoidCallback onIncrease,
   required VoidCallback onDecrease,
   required VoidCallback onDelete,
+  required VoidCallback onTap,
 }) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              'https://picsum.photos/200/300',
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
+  return InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                'https://picsum.photos/200/300',
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
 
-          // Name & Price
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+            // Name & Price
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${formatMoney(price)}đ",
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
-
-          // Decrease
-          IconButton(
-            iconSize: 22,
-            padding: EdgeInsets.zero,
-            onPressed: onDecrease,
-            icon: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                shape: BoxShape.circle,
+                  const SizedBox(height: 4),
+                  Text(
+                    "${formatMoney(price)}đ",
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.all(6),
-              child: const Icon(Icons.remove, size: 16),
             ),
-          ),
 
-          // Quantity text
-          Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
-
-          // Increase
-          IconButton(
-            iconSize: 22,
-            padding: EdgeInsets.zero,
-            onPressed: onIncrease,
-            icon: Container(
-              decoration: const BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(6),
-              child: const Icon(Icons.add, size: 16, color: Colors.white),
-            ),
-          ),
-
-          SizedBox(width: 8.w),
-          // Delete
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
+            // Decrease
+            IconButton(
               iconSize: 22,
               padding: EdgeInsets.zero,
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: onDecrease,
+              icon: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: const Icon(Icons.remove, size: 16),
+              ),
             ),
-          ),
-        ],
+
+            // Quantity text
+            Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
+
+            // Increase
+            IconButton(
+              iconSize: 22,
+              padding: EdgeInsets.zero,
+              onPressed: onIncrease,
+              icon: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: const Icon(Icons.add, size: 16, color: Colors.white),
+              ),
+            ),
+
+            SizedBox(width: 8.w),
+            // Delete
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                iconSize: 22,
+                padding: EdgeInsets.zero,
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete, color: Colors.red),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
