@@ -56,7 +56,7 @@ class Product {
       barcode: json['barcode'],
       costPrice:
           json['costPrice'] != null
-              ? (json['costPrice'] as num).toDouble()
+              ? double.tryParse(json['costPrice'].toString()) ?? 0.0
               : null,
       images:
           json['images'] != null
