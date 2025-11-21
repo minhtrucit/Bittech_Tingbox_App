@@ -65,10 +65,31 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         "images": event.productData.images,
         "distributorId": 1,
       };
-      final response = await productApiService.createProduct(body: body, images: event.images);
-      final product = Product.fromJson(response['data']);
+      final response = await productApiService.createProduct(
+        body: body,
+        images: event.images,
+      );
+
+      debugPrint('=== RESPONSE DATA ===');
+      debugPrint(response['data'].toString());
+      Product product;
+      try {
+        product = Product.fromJson(response['data']);
+        debugPrint('=== PRODUCT PARSED ===');
+        debugPrint(product.toJson().toString());
+      } catch (jsonError, stackTrace) {
+        debugPrint('=== JSON PARSE ERROR ===');
+        debugPrint('Error: $jsonError');
+        debugPrint('StackTrace: $stackTrace');
+        rethrow; // ném tiếp để biết app crash ở đâu
+      }
+
       emit(ProductCreateSuccess(product: product));
-    } catch (e) {
+    } catch (e, st) {
+      // 3️⃣ In toàn bộ exception và stack trace
+      debugPrint('=== CREATE PRODUCT ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
       emit(ProductFailure('Failed to create product'));
     }
   }

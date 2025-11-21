@@ -80,8 +80,7 @@ class ProductApiService {
       debugPrint("📩 API Response: ${resp.data}");
 
       final ok =
-          resp.statusCode == 201 ||
-          resp.data['statusCode'] == 201;
+          resp.statusCode == 201 ;
 
       if (!ok) {
         throw Exception(resp.data['message'] ?? "Lỗi API không xác định");

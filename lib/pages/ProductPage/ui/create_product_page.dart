@@ -21,6 +21,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
   final priceCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   List<XFile> pickedImages = [];
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -41,7 +42,18 @@ class _CreateProductPageState extends State<CreateProductPage> {
 
   Future<void> handleCreateProduct() async {
     // Validate đơn giản
-
+    if(nameCtrl.text.isEmpty || priceCtrl.text.isEmpty || pickedImages.isEmpty){
+      DialogUtils.showAppDialog(
+        context: context,
+        title: 'Lỗi điền thông tin',
+        content: 'Vui lòng điền đầy đủ thông tin sản phẩm và chọn ít nhất 1 hình ảnh.',
+        onFirstAction: () {
+          Navigator.pop(context);
+        },
+        firstActionText: 'OK',
+      );
+      return;
+    }
     // Chuẩn bị list File cho upload
     final List<File> images = pickedImages.map((e) => File(e.path)).toList();
 
@@ -60,53 +72,92 @@ class _CreateProductPageState extends State<CreateProductPage> {
     );
   }
 
+  void clearForm() {
+    nameCtrl.clear();
+    descCtrl.clear();
+    priceCtrl.clear();
+    pickedImages.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
+        debugPrint('Create product $state');
+
+        if (state is ProductLoading) {
+          setState(() {
+            isLoading = true;
+          });
+        }
+
         if (state is ProductCreateSuccess) {
+          setState(() {
+            isLoading = false;
+          });
           DialogUtils.showAppDialog(
             context: context,
             title: 'Tạo sản phẩm thành công',
-            content: '',
+            content: 'Đã tạo mới thành công sản phẩm: ${state.product.name}',
             onFirstAction: () {
               Navigator.pop(context, true);
+
+              clearForm();
             },
             firstActionText: 'OK',
           );
-          Navigator.pop(context, true);
+        }
+
+        if (state is ProductFailure) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Lỗi',
+            content: state.message,
+            onFirstAction: () {
+              Navigator.pop(context);
+            },
+            firstActionText: 'OK',
+          );
         }
       },
-      child: AppScaffold(
-        appBar: _buildAppBar(),
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              right: 16.w,
-              left: 16.w,
-              top: 12.h,
-              bottom: 64.h,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCategorySection(context),
-                const SizedBox(height: 20),
-                _buildProductNameSection(),
-                const SizedBox(height: 20),
-                _buildPriceSection(),
-                const SizedBox(height: 20),
-                _buildDescriptionSection(),
-                const SizedBox(height: 20),
-                _buildPhotoSection(),
-                const SizedBox(height: 40),
-                _buildSaveButton(),
-                const SizedBox(height: 30),
-              ],
+      child: Stack(
+        children: [
+          AppScaffold(
+            appBar: _buildAppBar(),
+            backgroundColor: Colors.white,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  right: 16.w,
+                  left: 16.w,
+                  top: 12.h,
+                  bottom: 64.h,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // _buildCategorySection(context),
+                    // const SizedBox(height: 20),
+                    _buildProductNameSection(),
+                    const SizedBox(height: 20),
+                    _buildPriceSection(),
+                    const SizedBox(height: 20),
+                    _buildDescriptionSection(),
+                    const SizedBox(height: 20),
+                    _buildPhotoSection(),
+                    const SizedBox(height: 40),
+                    _buildSaveButton(),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          if (isLoading) LoadingOverlay(),
+        ],
       ),
     );
   }
@@ -342,7 +393,11 @@ class _CreateProductPageState extends State<CreateProductPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTitle("Giá tiền"),
-        _buildInput(hint: "0.00đ", keyboard: TextInputType.number, controller: priceCtrl,),
+        _buildInput(
+          hint: "0.00đ",
+          keyboard: TextInputType.number,
+          controller: priceCtrl,
+        ),
       ],
     );
   }
@@ -355,7 +410,11 @@ class _CreateProductPageState extends State<CreateProductPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTitle("Mô tả"),
-        _buildInput(hint: "Mô tả ngắn về sản phẩm", maxLines: 4, controller: descCtrl),
+        _buildInput(
+          hint: "Mô tả ngắn về sản phẩm",
+          maxLines: 4,
+          controller: descCtrl,
+        ),
       ],
     );
   }
