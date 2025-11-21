@@ -21,6 +21,7 @@ export 'pages/SalesPage/Components/confirm_order_dialog.dart';
 export 'pages/SalesPage/Components/payment_option_button.dart';
 export 'pages/base_page.dart';
 export 'utils/camera_utils.dart';
+export 'utils/dialog_utils.dart';
 export 'repositories/user_repository.dart';
 export 'models/user.dart';
 export 'models/product.dart';
