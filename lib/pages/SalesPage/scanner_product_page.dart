@@ -32,7 +32,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   @override
   void initState() {
     final productBloc = BlocProvider.of<ProductBloc>(context);
-    
+
     Future.delayed(Duration(milliseconds: 300), () {
       productBloc.add(GetProductsEvent());
     });
