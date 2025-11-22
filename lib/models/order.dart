@@ -1,5 +1,7 @@
 // order_model.dart
 
+import 'package:ting_box/models/payment_info.dart';
+
 class Order {
   final int userId;
   final int distributorId;
@@ -7,10 +9,11 @@ class Order {
   final String customerPhone;
   final String customerEmail;
   final String shippingAddress;
-  final int discount;
+  final double discount;
   final String paymentMethod;
   final String? note;
   final List<OrderItem> items;
+  final PaymentInfo? paymentInfo;
 
   Order({
     required this.userId,
@@ -23,6 +26,7 @@ class Order {
     required this.paymentMethod,
      this.note,
     required this.items,
+    this.paymentInfo,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,9 @@ class Order {
       items: (json['items'] as List)
           .map((item) => OrderItem.fromJson(item))
           .toList(),
+      paymentInfo: json['paymentInfo'] != null
+          ? PaymentInfo.fromJson(json['paymentInfo'])
+          : null,
     );
   }
 
@@ -61,7 +68,7 @@ class Order {
 class OrderItem {
   final int productId;
   final int quantity;
-  final int unitPrice;
+  final double unitPrice;
 
   OrderItem({
     required this.productId,

@@ -7,6 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../services/api_services.dart';
+import '../../services/order_service.dart';
 import '../../services/product_api_services.dart';
 import '../../ting_box.dart';
 
@@ -26,9 +27,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool isLoadingProducts = false;
 
   ValueNotifier<bool> _isLoading = ValueNotifier(false);
-   List<Product> products = [
+  List<Product> products = [];
 
-  ];
   @override
   void initState() {
     final productBloc = BlocProvider.of<ProductBloc>(context);
@@ -251,6 +251,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
             onComplete: () {
               Navigator.pop(context);
             },
+            parentContext: context,
           ),
     );
   }
