@@ -32,6 +32,8 @@ export 'utils/camera_utils.dart';
 export 'utils/dialog_utils.dart';
 export 'repositories/user_repository.dart';
 export 'models/user.dart';
+export 'models/order.dart';
+export 'models/statistic.dart';
 export 'models/product.dart';
 export 'extension/number_extension.dart';
 export 'ting_box.dart';

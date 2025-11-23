@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../models/statistic.dart';
 import 'api_services.dart';
 
 class OrderService {
@@ -9,7 +10,6 @@ class OrderService {
     required Map<String, dynamic> body,
   }) async {
     try {
-
       debugPrint("📤 Uploading product: $body");
 
       final resp = await api.post('/orders', data: body);
@@ -31,4 +31,22 @@ class OrderService {
     }
   }
 
+  Future<Statistic> getStatisticsOverview() async {
+    try {
+      final resp = await api.get('/orders/statistics/overview');
+
+      debugPrint("📌 API RAW DATA: ${resp.data}");
+
+      if (resp.statusCode == 200) {
+        debugPrint("📌 DATA PARSED: ${resp.data['data']}");
+
+        return Statistic.fromJson(resp.data['data']);
+      }
+
+      throw Exception('Failed to load dashboard statistic');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      throw Exception('Error: $e');
+    }
+  }
 }

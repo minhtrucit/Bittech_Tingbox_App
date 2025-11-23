@@ -1,173 +1,267 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/extension/date_time_extension.dart';
 
 import '../../../ting_box.dart';
+import 'home_skeleton.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  void handleLogout(BuildContext context) async {
-    await UserRepository.logout();
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const Auth()),
-      );
-    }
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late Statistic statistic;
+  late Revenue revenue;
+
+  @override
+  void initState() {
+    super.initState();
+
+    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppAppBar(
-        title: TitleAppbarText(title: 'Quản lý doanh thu'),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.w),
-            child: IconButton(
-              icon: Icon(Icons.calendar_today_outlined, color: Colors.black),
-              onPressed: () {},
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          spacing: 20.h,
-          children: [
-            buildMainCard(
-              context,
-              title: Text(
-                'Số dư hiện tại',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.grey),
-              ),
-              amount: Text(
-                '15,000,000đ',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28.sp,
-                ),
-              ),
-              initialBalance: Text(
-                'Số dư đầu kỳ: 10,000,000đ',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.grey),
-              ),
-            ),
-            Row(
-              spacing: 8.w,
-              children: [
-                Expanded(
-                  child: buildMainCard(
-                    context,
-                    side: BorderSide(width: 0.2.w, color: Colors.grey),
-                    title: Text(
-                      'Tổng thu',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    amount: Text(
-                      '8,500,000đ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                      ),
-                    ),
-                    initialBalance: RichText(
-                      text: TextSpan(
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(color: Colors.green),
-                        children: [
-                          WidgetSpan(
-                            child: Icon(
-                              Icons.arrow_upward,
-                              size: 20.w,
-                              color: Colors.green,
-                            ),
-                          ),
-                          WidgetSpan(child: SizedBox(width: 2.w)),
-                          TextSpan(text: 'Tăng 5.2%'),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: buildMainCard(
-                    context,
-                    side: BorderSide(width: 0.2.w, color: Colors.grey),
-                    title: Text(
-                      'Tổng chi',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    amount: Text(
-                      '3,500,000đ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                      ),
-                    ),
-                    initialBalance: RichText(
-                      text: TextSpan(
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(color: Colors.red),
-                        children: [
-                          WidgetSpan(
-                            child: Icon(
-                              Icons.arrow_downward,
-                              color: Colors.red,
-                            ),
-                          ),
-                          WidgetSpan(child: SizedBox(width: 2.w)),
+    return BlocListener<OrderBloc, OrderState>(
+      listenWhen: (prev, curr) => prev != curr,
+      listener: (context, state) {
+        if (state is OrderFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi tải dữ liệu thống kê")),
+          );
+        }
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        backgroundColor: Color(0xFFF4F7FC),
+        appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
+        body: BlocBuilder<OrderBloc, OrderState>(
+          builder: (context, state) {
+            if (state is OrderLoading) {
+              return const HomeSkeleton();
+            }
 
-                          TextSpan(text: 'Giảm 1.2%'),
-                        ],
-                      ),
-                    ),
+            if (state is OrderGetStatisticSuccess) {
+              statistic = state.statistic;
+              revenue = statistic.revenue;
+            } else {
+              return const Center(child: Text("Không có dữ liệu"));
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 64.h),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildRevenueSection(revenue),
+                      SizedBox(height: 20.h),
+                      _buildExpenseSection(),
+                      SizedBox(height: 20.h),
+                      _buildRecentTransactionsSection(statistic),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  SizedBox buildMainCard(
-    BuildContext context, {
-    required Text title,
-    required Text amount,
-    required Widget initialBalance,
-    BorderSide? side,
-  }) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width,
-      child: Card(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.r)),
-          side: side ?? BorderSide.none,
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Column(
-            spacing: 8.h,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [title, amount, initialBalance],
+  // -------------------------------
+  // SECTION: Tổng Thu
+  // -------------------------------
+  Widget _buildRevenueSection(Revenue revenue) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Tổng Thu",
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
           ),
+          SizedBox(height: 8.h),
+          Text(
+            "${formatMoney(revenue.total.amount)}đ",
+            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 16.h),
+          _buildIconRow(
+            Icons.money,
+            "Tiền mặt từ đơn hàng",
+            formatMoney(revenue.cash.amount),
+          ),
+          SizedBox(height: 12.h),
+          _buildIconRow(
+            Icons.account_balance,
+            "Chuyển khoản từ đơn hàng",
+            formatMoney(revenue.bankTransfer.amount),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Một hàng nhỏ có icon + label + số tiền
+  Widget _buildIconRow(IconData icon, String title, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.green, size: 20),
+        SizedBox(width: 8.w),
+        Expanded(child: Text(title)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  // -------------------------------
+  // SECTION: Tổng Chi (tạm = 0)
+  // -------------------------------
+  Widget _buildExpenseSection() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Tổng Chi",
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "-0đ",
+            style: TextStyle(
+              fontSize: 20.sp,
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          _buildExpenseRow("Chi trả nhà cung cấp", '-0'),
+          SizedBox(height: 12.h),
+          _buildExpenseRow("Chi phí vận hành", '-0'),
+          SizedBox(height: 12.h),
+          _buildExpenseRow("Chi phí khác", '-0'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseRow(String title, String value) {
+    return Row(
+      children: [
+        Icon(Icons.circle, color: Colors.redAccent, size: 12),
+        SizedBox(width: 8.w),
+        Expanded(child: Text(title)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
+      ],
+    );
+  }
+
+  // -------------------------------
+  // SECTION: Giao Dịch Gần Đây
+  // -------------------------------
+  Widget _buildRecentTransactionsSection(Statistic statistic) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                "Giao dịch gần đây",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text(
+              "Xem tất cả",
+              style: TextStyle(color: Colors.blue, fontSize: 14.sp),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+
+        // Danh sách đơn hàng gần đây
+        ...statistic.recentOrders.map(_buildTransactionItem).toList(),
+      ],
+    );
+  }
+
+  Widget _buildTransactionItem(Order order) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Icon cố định: xanh + arrow_downward
+          Icon(Icons.arrow_downward, color: Colors.green, size: 22),
+          SizedBox(width: 12.w),
+
+          // Thông tin giao dịch
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Tổng tiền
+                Text(
+                  "${formatMoney(order.totalAmount ?? 0)}đ",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15.sp,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+
+                // Phương thức thanh toán
+                Text(
+                  order.paymentMethod,
+                  style: TextStyle(fontSize: 13.sp, color: Colors.blueGrey),
+                ),
+
+                SizedBox(height: 4.h),
+
+                // Thời gian tạo
+                Text(
+                  '${order.createdAt?.toReadableDateTime()}',
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

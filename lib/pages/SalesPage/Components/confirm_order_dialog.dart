@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../models/order.dart';
 import '../../../ting_box.dart';
 
 enum PaymentMethod { BANK_TRANSFER, CASH }

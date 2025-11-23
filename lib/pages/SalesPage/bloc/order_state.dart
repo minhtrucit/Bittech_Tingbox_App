@@ -36,3 +36,7 @@ class OrderPaymentFailed extends OrderState {
   OrderPaymentFailed({required this.orderId, required this.message});
 }
 
+final class OrderGetStatisticSuccess extends OrderState {
+  final Statistic statistic;
+  OrderGetStatisticSuccess({required this.statistic});
+}

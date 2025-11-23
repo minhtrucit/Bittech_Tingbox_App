@@ -30,6 +30,7 @@ dependencies:
   bloc: ^9.1.0
   flutter_bloc: ^9.1.1
   web_socket_channel: ^3.0.3
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

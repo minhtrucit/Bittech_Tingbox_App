@@ -12,3 +12,5 @@ class OrderRealtimeEvent extends OrderEvent {
   final Map<String, dynamic> data;
   OrderRealtimeEvent(this.data);
 }
+
+class OrderGetStatisticsEvent extends OrderEvent {}
