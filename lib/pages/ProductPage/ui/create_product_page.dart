@@ -28,7 +28,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
     super.initState();
   }
 
-  Future<void> pickImages() async {
+  Future<void> pickImagesFromGallery() async {
     final ImagePicker picker = ImagePicker();
 
     final List<XFile> images = await picker.pickMultiImage(imageQuality: 70);
@@ -36,6 +36,18 @@ class _CreateProductPageState extends State<CreateProductPage> {
     if (images.isNotEmpty) {
       setState(() {
         pickedImages = images.take(5).toList();
+      });
+    }
+  }
+
+  Future<void> pickImageFromCamera() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    if (image != null) {
+      setState(() {
+        if (pickedImages.length < 5) {
+          pickedImages.add(image);
+        }
       });
     }
   }
@@ -73,10 +85,12 @@ class _CreateProductPageState extends State<CreateProductPage> {
   }
 
   void clearForm() {
-    nameCtrl.clear();
-    descCtrl.clear();
-    priceCtrl.clear();
-    pickedImages.clear();
+    setState(() {
+      nameCtrl.clear();
+      descCtrl.clear();
+      priceCtrl.clear();
+      pickedImages.clear();
+    });
   }
 
   @override
@@ -426,7 +440,6 @@ class _CreateProductPageState extends State<CreateProductPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -443,62 +456,97 @@ class _CreateProductPageState extends State<CreateProductPage> {
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 12),
-
-        // Add Photo Box
         GestureDetector(
           onTap: () {
-            pickImages();
+            showModalBottomSheet(
+              backgroundColor: Colors.white,
+              context: context,
+              builder: (context) => SizedBox(
+                height: 120,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.photo_library),
+                      title: const Text("Chọn từ thư viện"),
+                      onTap: () {
+                        Navigator.pop(context);
+                        pickImagesFromGallery();
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text("Chụp ảnh"),
+                      onTap: () {
+                        Navigator.pop(context);
+                        pickImageFromCamera();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
           },
           child: Container(
             height: 130,
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
             decoration: _boxDecoration(),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (pickedImages.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.only(left: 8.w),
-                      child: SizedBox(
-                        height: 100,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: pickedImages.length,
-                          separatorBuilder: (_, __) => SizedBox(width: 8),
-                          itemBuilder: (context, index) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(pickedImages[index].path),
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
+                    SizedBox(
+                      height: 100,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: pickedImages.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(pickedImages[index].path),
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            );
-                          },
-                        ),
+                              // Icon X để xoá ảnh
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      pickedImages.removeAt(index);
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     )
                   else ...[
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 40,
-                      color: Colors.blue,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "Thêm hình ảnh",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Chọn hình ảnh cho sản phẩm của bạn",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
+                    const Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.blue),
+                    const SizedBox(height: 8),
+                    const Text("Thêm hình ảnh", style: TextStyle(color: Colors.blue, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    const Text("Chọn hình ảnh cho sản phẩm của bạn", style: TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ],
               ),
@@ -508,6 +556,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       ],
     );
   }
+
 
   // ---------------------------------------------------------------------------
   // ✔ Section: Save Button
