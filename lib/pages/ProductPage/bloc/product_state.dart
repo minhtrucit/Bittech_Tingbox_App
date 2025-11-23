@@ -20,3 +20,8 @@ final class ProductCreateSuccess extends ProductState {
   final Product product;
   ProductCreateSuccess({required this.product});
 }
+
+final class ProductLoadProductsSuccess extends ProductState{
+  final List<Product> products;
+  ProductLoadProductsSuccess({required this.products});
+}

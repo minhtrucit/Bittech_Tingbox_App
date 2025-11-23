@@ -13,3 +13,7 @@ final class CreateProductEvent extends ProductEvent {
   final List<File> images;
   CreateProductEvent({required this.productData, required this.images});
 }
+
+final class GetProductsEvent extends ProductEvent{
+  GetProductsEvent();
+}

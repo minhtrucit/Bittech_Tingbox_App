@@ -14,7 +14,9 @@ class _BasePageState extends State<BasePage> {
   @override
   void initState() {
     final productBloc = BlocProvider.of<ProductBloc>(context);
+
     productBloc.add(LoadCategoriesEvent());
+
     super.initState();
   }
 

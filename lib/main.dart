@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
+import 'package:ting_box/services/order_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
+import 'package:ting_box/services/websocket_service.dart';
 import 'package:ting_box/ting_box.dart';
 
 void main() async {
@@ -22,18 +24,19 @@ void main() async {
   final apiService = ApiService.getInstance(baseUrl: baseUrl);
   final authService = AuthService.getInstance(api: apiService);
   final userRepository = UserRepository();
-  final productApiService = ProductApiService(baseUrl: baseUrl, api: apiService);
-
+  final productApiService = ProductApiService(
+    baseUrl: baseUrl,
+    api: apiService,
+  );
+  final orderService = OrderService(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
+  final webSocketService = WebSocketService(url: dotenv.get('WEBSOCKET_BASE_URL'));
 
-
+  // webSocketService.connect();
   if (accessToken != null && refreshToken != null) {
-    apiService.setTokens(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
+    apiService.setTokens(accessToken: accessToken, refreshToken: refreshToken);
     debugPrint('[main] Loaded tokens from SharedPreferences');
   } else {
     debugPrint('[main] No tokens found in SharedPreferences');
@@ -51,6 +54,9 @@ void main() async {
         ),
         BlocProvider<ProductBloc>(
           create: (_) => ProductBloc(productApiService: productApiService),
+        ),
+        BlocProvider<OrderBloc>(
+          create: (_) => OrderBloc(orderService: orderService, webSocketService: webSocketService),
         ),
       ],
       child: const MyApp(),

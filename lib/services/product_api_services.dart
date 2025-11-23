@@ -79,8 +79,7 @@ class ProductApiService {
 
       debugPrint("📩 API Response: ${resp.data}");
 
-      final ok =
-          resp.statusCode == 201 ;
+      final ok = resp.statusCode == 201;
 
       if (!ok) {
         throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
@@ -92,6 +91,25 @@ class ProductApiService {
       debugPrint("STACK: $st");
 
       throw Exception("Không thể tạo sản phẩm. Lỗi: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getAllProducts() async {
+    try {
+      final response = await api.get('/products');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        debugPrint('API response: ${data}');
+
+        return data;
+      } else {
+        debugPrint('API Error: ${response.data['message']}');
+        throw Exception('Lỗi API: ${response.data['message']}');
+      }
+    } catch (e) {
+      debugPrint('Error getting products: $e');
+      throw Exception('Lỗi khi lấy sản phẩm: $e');
     }
   }
 }

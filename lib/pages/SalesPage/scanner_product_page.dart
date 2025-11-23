@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../services/api_services.dart';
+import '../../services/order_service.dart';
 import '../../services/product_api_services.dart';
 import '../../ting_box.dart';
 
@@ -19,19 +21,27 @@ class ScanProductPage extends StatefulWidget {
 class _ScanProductPageState extends State<ScanProductPage> {
   CameraController? _camera;
   bool _isCameraReady = false;
+
   CameraLensDirection _lenDirection = CameraLensDirection.back;
   bool _isFlashOn = false;
+  bool isLoadingProducts = false;
+
   ValueNotifier<bool> _isLoading = ValueNotifier(false);
-  final products = [
-    Product(id: '1', name: 'Bình đựng nước', price: 50000, url: ''),
-    Product(id: '2', name: 'Sổ tay', price: 20000, url: ''),
-    Product(id: '3', name: 'Viết', price: 5000, url: ''),
-    Product(id: '4', name: 'Chuột', price: 100000, url: ''),
-  ];
+  List<Product> products = [];
+  late OrderService orderService;
+
   @override
   void initState() {
-    super.initState();
+    final apiService = ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL'));
+    orderService = OrderService(api: apiService);
+    final productBloc = BlocProvider.of<ProductBloc>(context);
+
+
     _initCamera();
+    Future.delayed(Duration(milliseconds: 300), () {
+      productBloc.add(GetProductsEvent());
+    });
+    super.initState();
   }
 
   Future<void> _initCamera() async {
@@ -77,7 +87,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   final apiService = ProductApiService(
-    baseUrl: dotenv.get('https://bittech-object-detector-python.onrender.com'),
+    baseUrl: dotenv.get('API_DETECT_URL'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
   List<Product> scannedProducts = [];
@@ -226,13 +236,14 @@ class _ScanProductPageState extends State<ScanProductPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder:
-          (_) => ProductBottomSheet(
-            products: products,
-            onSelected: (newProduct) {
-              replaceProductAtIndex(oldIndex, newProduct);
-            },
-          ),
+      builder: (_) {
+        return ProductBottomSheet(
+          products: products,
+          onSelected: (newProduct) {
+            replaceProductAtIndex(oldIndex, newProduct);
+          },
+        );
+      },
     );
   }
 
@@ -245,6 +256,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
             onComplete: () {
               Navigator.pop(context);
             },
+            parentContext: context,
           ),
     );
   }
@@ -290,72 +302,87 @@ class _ScanProductPageState extends State<ScanProductPage> {
           Navigator.pop(context);
         }
       },
-      child: AppScaffold(
-        hasSafeArea: false,
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.black,
-        appBar: AppAppBar(
-          backgroundColor: Colors.transparent,
-          leading: buildBackButton(context),
-          actions: [
-            if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
-            SizedBox(width: 8.w),
-            buildChangeLenButton(),
-          ],
-        ),
-        body: Stack(
-          children: [
-            SizedBox.expand(child: CameraPreview(_camera!)),
+      child: BlocListener<ProductBloc, ProductState>(
+        listener: (context, state) {
+          if (state is ProductLoading) {
+            setState(() {
+              isLoadingProducts = true;
+            });
+          }
+          if (state is ProductLoadProductsSuccess) {
+            setState(() {
+              isLoadingProducts = false;
+            });
+            products.addAll(state.products);
+          }
+        },
+        child: AppScaffold(
+          hasSafeArea: false,
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.black,
+          appBar: AppAppBar(
+            backgroundColor: Colors.transparent,
+            leading: buildBackButton(context),
+            actions: [
+              if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
+              SizedBox(width: 8.w),
+              buildChangeLenButton(),
+            ],
+          ),
+          body: Stack(
+            children: [
+              SizedBox.expand(child: CameraPreview(_camera!)),
 
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildProductBottomSheet(
-                context: context,
-                productItems:
-                    scannedProducts.map((product) {
-                      return buildProductCartItem(
-                        onTap: () {
-                          showProductBottomSheet(
-                            context,
-                            scannedProducts.indexOf(product),
-                          );
-                        },
-                        name: product.name,
-                        imageUrl: '',
-                        price: product.price,
-                        quantity: product.quantity,
-                        onIncrease: () {
-                          handleUpdateQuantity(
-                            index: scannedProducts.indexOf(product),
-                            isIncrease: true,
-                          );
-                        },
-                        onDecrease: () {
-                          handleUpdateQuantity(
-                            index: scannedProducts.indexOf(product),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildProductBottomSheet(
+                  context: context,
+                  productItems:
+                      scannedProducts.map((product) {
+                        return buildProductCartItem(
+                          onTap: () {
+                            showProductBottomSheet(
+                              context,
+                              scannedProducts.indexOf(product),
+                            );
+                          },
+                          name: product.name,
+                          imageUrl: '',
+                          price: product.price,
+                          quantity: product.quantity,
+                          onIncrease: () {
+                            handleUpdateQuantity(
+                              index: scannedProducts.indexOf(product),
+                              isIncrease: true,
+                            );
+                          },
+                          onDecrease: () {
+                            handleUpdateQuantity(
+                              index: scannedProducts.indexOf(product),
 
-                            isIncrease: false,
-                          );
-                        },
-                        onDelete: () {
-                          setState(() {
-                            scannedProducts.remove(product);
-                          });
-                        },
-                      );
-                    }).toList(),
-                onConfirmButtonTap: showConfirmOrderDialog,
-                totalPrice: _calculateTotalPrice,
+                              isIncrease: false,
+                            );
+                          },
+                          onDelete: () {
+                            setState(() {
+                              scannedProducts.remove(product);
+                            });
+                          },
+                        );
+                      }).toList(),
+                  onConfirmButtonTap: showConfirmOrderDialog,
+                  totalPrice: _calculateTotalPrice,
+                ),
               ),
-            ),
 
-            _buildTakePhotoButton(
-              onTap: _takePictureAndSend,
-              isLoading: _isLoading,
-            ),
-          ],
+              _buildTakePhotoButton(
+                onTap: _takePictureAndSend,
+                isLoading: _isLoading,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -426,255 +453,260 @@ class _ScanProductPageState extends State<ScanProductPage> {
       ),
     );
   }
-}
 
-Widget _buildTakePhotoButton({
-  required VoidCallback? onTap,
-  ValueNotifier<bool>? isLoading,
-}) {
-  return Positioned(
-    bottom: 360.h,
-    left: 0,
-    right: 0,
-    child: Center(
-      child: GestureDetector(
-        onTap: onTap,
-        child: ValueListenableBuilder<bool>(
-          valueListenable: isLoading ?? ValueNotifier(false),
-          builder: (context, isLoadingState, child) {
-            return Container(
-              width: 65,
-              height: 65,
-              decoration: BoxDecoration(
-                color: isLoadingState ? Colors.transparent : Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-              ),
-              child:
-                  isLoadingState
-                      ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primaryBlue,
-                        ),
-                      )
-                      : null,
-            );
-          },
+  Widget _buildTakePhotoButton({
+    required VoidCallback? onTap,
+    ValueNotifier<bool>? isLoading,
+  }) {
+    return Positioned(
+      bottom: 360.h,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: onTap,
+          child: ValueListenableBuilder<bool>(
+            valueListenable: isLoading ?? ValueNotifier(false),
+            builder: (context, isLoadingState, child) {
+              return Container(
+                width: 65,
+                height: 65,
+                decoration: BoxDecoration(
+                  color: isLoadingState ? Colors.transparent : Colors.red,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                ),
+                child:
+                    isLoadingState
+                        ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryBlue,
+                          ),
+                        )
+                        : null,
+              );
+            },
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildProductBottomSheet({
-  required BuildContext context,
-  required List<Widget> productItems,
-  required VoidCallback onConfirmButtonTap,
-  required double Function() totalPrice,
-}) {
-  return Container(
-    height: 350.h,
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        const SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 5,
-          decoration: BoxDecoration(
-            color: Colors.grey[400],
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-        ),
-        const SizedBox(height: 10),
-        ListTile(
-          title: Text(
-            "Sản phẩm đã quét (${productItems.length})",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: productItems.length,
-            itemBuilder: (context, index) => productItems[index],
-          ),
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+  Widget _buildProductBottomSheet({
+    required BuildContext context,
+    required List<Widget> productItems,
+    required VoidCallback onConfirmButtonTap,
+    required double Function() totalPrice,
+  }) {
+    return Container(
+      height: 350.h,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 45,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(12.r),
             ),
           ),
-          child: Padding(
-            padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Tổng cộng: ',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
-                  ),
-                ),
-                Text(
-                  '${formatMoney(totalPrice())}đ',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          ListTile(
+            title: Text(
+              "Sản phẩm đã quét (${productItems.length})",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: AppTextButton(
-              style: ButtonStyle(
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: productItems.length,
+              itemBuilder: (context, index) => productItems[index],
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Tổng cộng: ',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    '${formatMoney(totalPrice())}đ',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: AppTextButton(
+                style: ButtonStyle(
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  backgroundColor: WidgetStatePropertyAll(
+                    AppColors.primaryBlue,
+                  ),
+                  textStyle: WidgetStatePropertyAll(
+                    Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                backgroundColor: WidgetStatePropertyAll(AppColors.primaryBlue),
-                textStyle: WidgetStatePropertyAll(
-                  Theme.of(context).textTheme.bodyLarge?.copyWith(
+                onPressed: onConfirmButtonTap,
+                label: Text(
+                  "Hoàn tất",
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
               ),
-              onPressed: onConfirmButtonTap,
-              label: Text(
-                "Hoàn tất",
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-Widget buildProductCartItem({
-  required String name,
-  required String imageUrl,
-  required double price,
-  required int quantity,
-  required VoidCallback onIncrease,
-  required VoidCallback onDecrease,
-  required VoidCallback onDelete,
-  required VoidCallback onTap,
-}) {
-  return InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                'https://picsum.photos/200/300',
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
+  Widget buildProductCartItem({
+    required String name,
+    required String imageUrl,
+    required double price,
+    required int quantity,
+    required VoidCallback onIncrease,
+    required VoidCallback onDecrease,
+    required VoidCallback onDelete,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  'https://picsum.photos/200/300',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-            // Name & Price
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+              // Name & Price
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${formatMoney(price)}đ",
-                    style: const TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-
-            // Decrease
-            IconButton(
-              iconSize: 22,
-              padding: EdgeInsets.zero,
-              onPressed: onDecrease,
-              icon: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  shape: BoxShape.circle,
+                    const SizedBox(height: 4),
+                    Text(
+                      "${formatMoney(price)}đ",
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.all(6),
-                child: const Icon(Icons.remove, size: 16),
               ),
-            ),
 
-            // Quantity text
-            Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
-
-            // Increase
-            IconButton(
-              iconSize: 22,
-              padding: EdgeInsets.zero,
-              onPressed: onIncrease,
-              icon: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(6),
-                child: const Icon(Icons.add, size: 16, color: Colors.white),
-              ),
-            ),
-
-            SizedBox(width: 8.w),
-            // Delete
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
+              // Decrease
+              IconButton(
                 iconSize: 22,
                 padding: EdgeInsets.zero,
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: onDecrease,
+                icon: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: const Icon(Icons.remove, size: 16),
+                ),
               ),
-            ),
-          ],
+
+              // Quantity text
+              Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
+
+              // Increase
+              IconButton(
+                iconSize: 22,
+                padding: EdgeInsets.zero,
+                onPressed: onIncrease,
+                icon: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: const Icon(Icons.add, size: 16, color: Colors.white),
+                ),
+              ),
+
+              SizedBox(width: 8.w),
+              // Delete
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  iconSize: 22,
+                  padding: EdgeInsets.zero,
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

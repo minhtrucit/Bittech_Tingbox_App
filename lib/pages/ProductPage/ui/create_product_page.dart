@@ -59,11 +59,11 @@ class _CreateProductPageState extends State<CreateProductPage> {
 
     // Tạo payload
     Product productData = Product(
-      id: '1',
+      id: 1,
       name: nameCtrl.text.trim(),
       price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
       description: descCtrl.text.trim(),
-      categoryId: '1',
+      categoryId: 2,
     );
 
     // Gọi bloc

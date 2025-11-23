@@ -9,6 +9,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   ProductBloc({required this.productApiService}) : super(ProductInitial()) {
     on<LoadCategoriesEvent>(_onLoadCategories);
     on<CreateProductEvent>(_onCreateProduct);
+    on<GetProductsEvent>(_onGetProducts);
   }
 
   Future<void> _onLoadCategories(
@@ -91,6 +92,42 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       debugPrint('Error: $e');
       debugPrint('StackTrace: $st');
       emit(ProductFailure('Failed to create product'));
+    }
+  }
+
+  Future<void> _onGetProducts(
+      GetProductsEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+
+    try {
+      final response = await productApiService.getAllProducts();
+
+      debugPrint('=== RESPONSE DATA ===');
+      final List<dynamic> data = response['data'];
+
+      final
+      List<Product> products;
+      try {
+        products = data.map((e) => Product.fromJson(e)).toList();
+        debugPrint('=== PRODUCT PARSED ===');
+        debugPrint('products[0]: ${products[0].toJson()}');
+      } catch (jsonError, stackTrace) {
+        debugPrint('=== JSON PARSE ERROR ===');
+        debugPrint('Error: $jsonError');
+        debugPrint('StackTrace: $stackTrace');
+        rethrow; // ném tiếp để biết app crash ở đâu
+      }
+
+
+      emit(ProductLoadProductsSuccess(products: products));
+    } catch (e, st) {
+      // 3️⃣ In toàn bộ exception và stack trace
+      debugPrint('=== GET PRODUCTS ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      emit(ProductFailure('Failed to get products'));
     }
   }
 }

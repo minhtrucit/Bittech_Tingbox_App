@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
 class PaymentOptionSelector extends StatefulWidget {
-  const PaymentOptionSelector({super.key});
+  final ValueChanged<String>? onPaymentSelected; // callback
+
+  const PaymentOptionSelector({super.key, this.onPaymentSelected});
 
   @override
   State<PaymentOptionSelector> createState() => _PaymentOptionSelectorState();
@@ -12,6 +14,15 @@ class PaymentOptionSelector extends StatefulWidget {
 
 class _PaymentOptionSelectorState extends State<PaymentOptionSelector> {
   String selectedPayment = "transfer";
+
+  void _selectPayment(String method) {
+    setState(() {
+      selectedPayment = method;
+    });
+    if (widget.onPaymentSelected != null) {
+      widget.onPaymentSelected!(method); // gửi ra ngoài
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +33,7 @@ class _PaymentOptionSelectorState extends State<PaymentOptionSelector> {
             label: "Chuyển khoản",
             icon: Icons.account_balance_outlined,
             selected: selectedPayment == "transfer",
-            onTap: () {
-              setState(() {
-                selectedPayment = "transfer";
-              });
-            },
+            onTap: () => _selectPayment("transfer"), // gọi callback
           ),
         ),
         SizedBox(width: 8.w),
@@ -35,17 +42,14 @@ class _PaymentOptionSelectorState extends State<PaymentOptionSelector> {
             label: "Tiền mặt",
             icon: Icons.payment,
             selected: selectedPayment == "cash",
-            onTap: () {
-              setState(() {
-                selectedPayment = "cash";
-              });
-            },
+            onTap: () => _selectPayment("cash"), // gọi callback
           ),
         ),
       ],
     );
   }
 }
+
 
 class PaymentOptionButton extends StatelessWidget {
   final String label;
