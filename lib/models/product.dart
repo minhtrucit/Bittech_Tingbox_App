@@ -2,19 +2,19 @@ import 'category.dart';
 import 'distributor.dart';
 
 class Product {
-  final String id;
+  final int id;
   final String name;
   final double price;
   String? url;
   int quantity;
   String? sku;
-  String? distributorId;
+  int? distributorId;
   Distributor? distributor;
   String? barcode;
   double? costPrice;
   List<ProductImage>? images;
   String? description;
-  String? categoryId;
+  int? categoryId;
   Category? category;
   bool? isActive;
   String? createdAt;
@@ -42,13 +42,13 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'].toString(),
+      id: json['id'],
       name: json['name'],
       price: double.tryParse(json['price'].toString()) ?? 0.0,
       url: json['thumbnailUrl'],
       quantity: 1,
       sku: json['sku'],
-      distributorId: json['distributorId']?.toString(),
+      distributorId: json['distributorId'],
       distributor:
           json['distributor'] != null
               ? Distributor.fromJson(json['distributor'])
@@ -65,7 +65,7 @@ class Product {
                   .toList()
               : null,
       description: json['description'],
-      categoryId: json['categoryId']?.toString(),
+      categoryId: json['categoryId'],
       category:
           json['category'] != null ? Category.fromJson(json['category']) : null,
       isActive: json['isActive'],

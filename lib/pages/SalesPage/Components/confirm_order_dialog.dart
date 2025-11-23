@@ -26,6 +26,11 @@ class ConfirmOrderDialog extends StatefulWidget {
 class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
   String _selectedPaymentMethod = PaymentMethod.BANK_TRANSFER.toString();
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   void onCreateOrder(BuildContext context, String paymentMethod) {
     final order = Order(
       userId: 1,
@@ -41,7 +46,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
           widget.items
               .map(
                 (p) => OrderItem(
-                  productId: 1,
+                  productId: p.id,
                   quantity: p.quantity,
                   unitPrice: p.price,
                 ),
@@ -74,14 +79,19 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
           });
           Navigator.pop(context);
           final paymentInfo = state.paymentInfo;
-          Future.delayed(Duration(seconds: 1), () {
-            Navigator.push(
-              widget.parentContext,
-              MaterialPageRoute(
-                builder: (_) => QrPage(paymentInfo: paymentInfo!),
-              ),
-            );
-          });
+
+          if (state.paymentMethod == PaymentMethod.BANK_TRANSFER) {
+            Future.delayed(Duration(seconds: 1), () {
+              Navigator.push(
+                widget.parentContext,
+                MaterialPageRoute(
+                  builder: (_) => QrPage(paymentInfo: paymentInfo!),
+                ),
+              );
+            });
+          } else {
+            // Todo handle for cash method
+          }
         }
         if (state is OrderFailure) {
           setState(() {

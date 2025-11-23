@@ -28,16 +28,20 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   ValueNotifier<bool> _isLoading = ValueNotifier(false);
   List<Product> products = [];
+  late OrderService orderService;
 
   @override
   void initState() {
+    final apiService = ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL'));
+    orderService = OrderService(api: apiService);
     final productBloc = BlocProvider.of<ProductBloc>(context);
 
+
+    _initCamera();
     Future.delayed(Duration(milliseconds: 300), () {
       productBloc.add(GetProductsEvent());
     });
     super.initState();
-    _initCamera();
   }
 
   Future<void> _initCamera() async {
@@ -232,13 +236,14 @@ class _ScanProductPageState extends State<ScanProductPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder:
-          (_) => ProductBottomSheet(
-            products: products,
-            onSelected: (newProduct) {
-              replaceProductAtIndex(oldIndex, newProduct);
-            },
-          ),
+      builder: (_) {
+        return ProductBottomSheet(
+          products: products,
+          onSelected: (newProduct) {
+            replaceProductAtIndex(oldIndex, newProduct);
+          },
+        );
+      },
     );
   }
 
