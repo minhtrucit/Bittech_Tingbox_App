@@ -63,7 +63,7 @@ class Product {
               ? (json['images'] as List)
                   .map((e) => ProductImage.fromJson(e))
                   .toList()
-              : null,
+              : [],
       description: json['description'],
       categoryId: json['categoryId'],
       category:
@@ -86,7 +86,7 @@ class Product {
       'distributor': distributor?.toJson(),
       'barcode': barcode,
       'costPrice': costPrice,
-      'images': images?.map((e) => e.toJson()).toList(),
+      'images': images?.map((e) => e.toJson()).toList() ?? [],
       'description': description,
       'categoryId': categoryId,
       'category': category?.toJson(),
