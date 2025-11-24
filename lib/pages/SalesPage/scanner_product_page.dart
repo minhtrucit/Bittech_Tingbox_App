@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -349,7 +350,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                             );
                           },
                           name: product.name,
-                          imageUrl: '',
+                          imageUrl: product.url ?? '',
                           price: product.price,
                           quantity: product.quantity,
                           onIncrease: () {
@@ -625,7 +626,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  'https://picsum.photos/200/300',
+                  imageUrl,
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,

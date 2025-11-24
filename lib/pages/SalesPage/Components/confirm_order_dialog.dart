@@ -1,7 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../../ting_box.dart';
 
 enum PaymentMethod { BANK_TRANSFER, CASH }
@@ -24,11 +24,6 @@ class ConfirmOrderDialog extends StatefulWidget {
 
 class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
   String _selectedPaymentMethod = PaymentMethod.BANK_TRANSFER.toString();
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   void onCreateOrder(BuildContext context, String paymentMethod) {
     final order = Order(
@@ -72,6 +67,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             isShowOverlay = true;
           });
         }
+
         if (state is OrderCreateSuccess) {
           setState(() {
             isShowOverlay = false;
@@ -92,6 +88,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             // Todo handle for cash method
           }
         }
+
         if (state is OrderFailure) {
           setState(() {
             isShowOverlay = false;
@@ -129,25 +126,27 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Xác nhận đơn hàng',
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Xác nhận đơn hàng',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Colors.grey,
+                            IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                size: 20,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       SizedBox(height: 16.h),
                       buildItemList(),

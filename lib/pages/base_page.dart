@@ -20,6 +20,8 @@ class _BasePageState extends State<BasePage> {
     super.initState();
   }
 
+  
+
   final _pages = const [
     HomePage(),
     HomePage(),
