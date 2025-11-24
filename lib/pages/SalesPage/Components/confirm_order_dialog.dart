@@ -126,25 +126,27 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Xác nhận đơn hàng',
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Xác nhận đơn hàng',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Colors.grey,
+                            IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                size: 20,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       SizedBox(height: 16.h),
                       buildItemList(),

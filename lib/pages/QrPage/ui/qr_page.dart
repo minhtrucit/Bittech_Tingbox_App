@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/models/payment_info.dart';
@@ -32,26 +31,115 @@ class _QrPageState extends State<QrPage> {
     super.initState();
   }
 
+  void showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon check
+                  Container(
+                    width: 64.w,
+                    height: 64.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9), // Light green
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      color: const Color(0xFF4CAF50), // Green
+                      size: 32.w,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Title
+                  Text(
+                    "Thanh toán thành công",
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+
+                  // Button: In hóa đơn
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2962FF), // Blue
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Text(
+                        "In hóa đơn",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+
+                  // Button: Trở về trang bán hàng
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE3F2FD), // Light Blue
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Text(
+                        "Trở về trang bán hàng",
+                        style: TextStyle(
+                          color: const Color(0xFF2962FF), // Blue text
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<OrderBloc, OrderState>(
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
-          DialogUtils.showAppDialog(
-            context: context,
-            title: 'Thanh toán thành công',
-            content: state.message,
-            onFirstAction: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            firstActionText: 'In hóa đơn',
-            secondActionText: 'Trở về trang bán hàng',
-            onSecondAction: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-          );
+          showSuccessDialog();
         }
       },
       child: AppScaffold(
