@@ -6,12 +6,14 @@ class UserRepository {
   static const String _keyUser = 'current_user';
   static const String keyToken = 'auth_token';
   static const String keyRefreshToken = 'refresh_token';
+  static const String keyUserId = 'user_id';
 
   // Save user object (json) + token
   static Future<void> saveUser(User user) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+      await prefs.setString(keyUserId, user.id.toString());
       if (user.token != null) {
         await prefs.setString(keyToken, user.token!);
       }
