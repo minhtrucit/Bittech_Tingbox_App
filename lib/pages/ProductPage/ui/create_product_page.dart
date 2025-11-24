@@ -42,7 +42,10 @@ class _CreateProductPageState extends State<CreateProductPage> {
 
   Future<void> pickImageFromCamera() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
     if (image != null) {
       setState(() {
         if (pickedImages.length < 5) {
@@ -54,11 +57,14 @@ class _CreateProductPageState extends State<CreateProductPage> {
 
   Future<void> handleCreateProduct() async {
     // Validate đơn giản
-    if(nameCtrl.text.isEmpty || priceCtrl.text.isEmpty || pickedImages.isEmpty){
+    if (nameCtrl.text.isEmpty ||
+        priceCtrl.text.isEmpty ||
+        pickedImages.isEmpty) {
       DialogUtils.showAppDialog(
         context: context,
         title: 'Lỗi điền thông tin',
-        content: 'Vui lòng điền đầy đủ thông tin sản phẩm và chọn ít nhất 1 hình ảnh.',
+        content:
+            'Vui lòng điền đầy đủ thông tin sản phẩm và chọn ít nhất 1 hình ảnh.',
         onFirstAction: () {
           Navigator.pop(context);
         },
@@ -79,6 +85,9 @@ class _CreateProductPageState extends State<CreateProductPage> {
     );
 
     // Gọi bloc
+    setState(() {
+      isLoading = true;
+    });
     context.read<ProductBloc>().add(
       CreateProductEvent(productData: productData, images: images),
     );
@@ -99,12 +108,6 @@ class _CreateProductPageState extends State<CreateProductPage> {
       listener: (context, state) {
         debugPrint('Create product $state');
 
-        if (state is ProductLoading) {
-          setState(() {
-            isLoading = true;
-          });
-        }
-
         if (state is ProductCreateSuccess) {
           setState(() {
             isLoading = false;
@@ -112,7 +115,8 @@ class _CreateProductPageState extends State<CreateProductPage> {
           DialogUtils.showAppDialog(
             context: context,
             title: 'Tạo sản phẩm thành công',
-            content: 'Đã tạo mới thành công sản phẩm: ${state.product.name}',
+            content:
+                'Đã tạo mới thành công sản phẩm: ${state.product.name}',
             onFirstAction: () {
               Navigator.pop(context, true);
 
@@ -461,29 +465,30 @@ class _CreateProductPageState extends State<CreateProductPage> {
             showModalBottomSheet(
               backgroundColor: Colors.white,
               context: context,
-              builder: (context) => SizedBox(
-                height: 120,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.photo_library),
-                      title: const Text("Chọn từ thư viện"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        pickImagesFromGallery();
-                      },
+              builder:
+                  (context) => SizedBox(
+                    height: 120,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.photo_library),
+                          title: const Text("Chọn từ thư viện"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            pickImagesFromGallery();
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.camera_alt),
+                          title: const Text("Chụp ảnh"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            pickImageFromCamera();
+                          },
+                        ),
+                      ],
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text("Chụp ảnh"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        pickImageFromCamera();
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                  ),
             );
           },
           child: Container(
@@ -542,11 +547,21 @@ class _CreateProductPageState extends State<CreateProductPage> {
                       ),
                     )
                   else ...[
-                    const Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.blue),
+                    const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 40,
+                      color: Colors.blue,
+                    ),
                     const SizedBox(height: 8),
-                    const Text("Thêm hình ảnh", style: TextStyle(color: Colors.blue, fontSize: 14)),
+                    const Text(
+                      "Thêm hình ảnh",
+                      style: TextStyle(color: Colors.blue, fontSize: 14),
+                    ),
                     const SizedBox(height: 4),
-                    const Text("Chọn hình ảnh cho sản phẩm của bạn", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const Text(
+                      "Chọn hình ảnh cho sản phẩm của bạn",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ],
               ),
@@ -556,7 +571,6 @@ class _CreateProductPageState extends State<CreateProductPage> {
       ],
     );
   }
-
 
   // ---------------------------------------------------------------------------
   // ✔ Section: Save Button
