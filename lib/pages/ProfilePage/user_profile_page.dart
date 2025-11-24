@@ -13,11 +13,26 @@ class UserProfilePage extends StatefulWidget {
 
 class _UserProfilePageState extends State<UserProfilePage> {
   bool _isLoadingOverlay = false;
+  
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthLogoutSuccess) {
+    return MultiBlocListener(listeners: [
+      BlocListener<UserProfileBloc, UserProfileState>(
+        listener: (context, state) {
+          if (state is UserProfileLoading) {
+            setState(() => _isLoadingOverlay = true);
+            debugPrint('[UserProfileListener] UserProfileLoading: show overlay');
+          } 
+          if(state is UserProfileSuccess){
+            setState(() => _isLoadingOverlay = false);
+            debugPrint('[UserProfileListener] UserProfileLoading finished: hide overlay');
+
+          }
+        },
+      ),
+      BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthLogoutSuccess) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const Auth()),
@@ -32,6 +47,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           debugPrint('[AuthListener] AuthLoading finished: hide overlay');
         }
       },
+      ),],
       child: Stack(
         children: [
           AppScaffold(

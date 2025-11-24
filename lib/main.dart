@@ -13,6 +13,8 @@ import 'package:ting_box/ting_box.dart';
 
 import 'services/websocket_manager.dart';
 
+import 'services/user_services.dart';
+
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
@@ -29,6 +31,7 @@ void main() async {
     baseUrl: baseUrl,
     api: apiService,
   );
+  final userService = UserService(api: apiService);
   final orderService = OrderService(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
@@ -61,6 +64,9 @@ void main() async {
               (_) => OrderBloc(
                 orderService: orderService,
               ),
+        ),
+        BlocProvider<UserProfileBloc>(
+          create: (_) => UserProfileBloc(userService: userService),
         ),
       ],
       child: const MyApp(),
