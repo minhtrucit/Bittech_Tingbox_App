@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,7 +20,6 @@ class _QrPageState extends State<QrPage> {
   @override
   void initState() {
     webSocketManager.on("payment.success", (data) {
-      debugPrint('event data from websocket12 $data');
       try {
         final jsonData = data as Map<String, dynamic>;
         debugPrint('event data from websocket json: $jsonData');
