@@ -6,9 +6,7 @@ class UserService {
   final ApiService api;
   UserService({required this.api});
 
-  Future<User> getUser({
-    required String userId,
-  }) async {
+  Future<User?> getUser({required String userId}) async {
     try {
       final resp = await api.get('/users/$userId');
 
@@ -17,17 +15,23 @@ class UserService {
       final ok = resp.statusCode == 200;
 
       if (!ok) {
+        debugPrint("❌ UserService: API Error: ${resp.data['message']}");
         throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
       }
 
-      return User.fromJson(resp.data);
+      debugPrint("✅ UserService: Parsing User JSON...");
+      final userData = resp.data['data'];
+      if (userData == null) {
+        throw Exception("API returned no data field");
+      }
+      final user = User.fromJson(userData);
+      debugPrint("✅ UserService: User parsed successfully: ${user.userName}");
+      return user;
     } catch (e, st) {
-      debugPrint("❌ Create Order error: $e");
+      debugPrint("❌ Get User error: $e");
       debugPrint("STACK: $st");
-
-      throw Exception("Không thể tạo đơn hàng. Lỗi: $e");
+      
+      throw Exception("Không thể lấy thông tin user. Lỗi: $e");
     }
   }
-
-  
 }

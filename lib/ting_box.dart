@@ -22,7 +22,7 @@ export 'pages/ProductPage/bloc/product_state.dart';
 export 'pages/ProfilePage/bloc/user_profile_bloc.dart';
 export 'pages/ProfilePage/bloc/user_profile_event.dart';
 export 'pages/ProfilePage/bloc/user_profile_state.dart';
-export 'pages/ProfilePage/user_profile_page.dart';
+export 'pages/ProfilePage/ui/user_profile_page.dart';
 export 'pages/SalesPage/scanner_product_page.dart';
 export 'pages/SalesPage/sale_page.dart';
 export 'pages/SalesPage/Components/products_bottom_sheet.dart';
