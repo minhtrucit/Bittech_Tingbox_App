@@ -60,7 +60,6 @@ void main() async {
           create:
               (_) => OrderBloc(
                 orderService: orderService,
-                webSocketManager: webSocketManager,
               ),
         ),
       ],

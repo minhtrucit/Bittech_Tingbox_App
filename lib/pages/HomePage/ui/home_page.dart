@@ -14,10 +14,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Statistic statistic;
-  late Revenue revenue;
+  Statistic? statistic;
+  Revenue? revenue;
 
-
+  @override
+  void initState() {
+    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,33 +40,49 @@ class _HomePageState extends State<HomePage> {
         appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
         body: BlocBuilder<OrderBloc, OrderState>(
           builder: (context, state) {
-            if (state is OrderLoading) {
+            if (state is OrderGetStatisticSuccess) {
+              statistic = state.statistic;
+              revenue = statistic?.revenue;
+            }
+
+            if (state is OrderLoading && statistic == null) {
               return const HomeSkeleton();
             }
 
-            if (state is OrderGetStatisticSuccess) {
-              statistic = state.statistic;
-              revenue = statistic.revenue;
-            } else {
-              return const Center(child: Text("Không có dữ liệu"));
-            }
-
-            return Padding(
-              padding: EdgeInsets.only(bottom: 64.h),
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildRevenueSection(revenue),
-                      SizedBox(height: 20.h),
-                      _buildExpenseSection(),
-                      SizedBox(height: 20.h),
-                      _buildRecentTransactionsSection(statistic),
-                    ],
+            if (statistic != null && revenue != null) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 64.h),
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRevenueSection(revenue!),
+                        SizedBox(height: 20.h),
+                        _buildExpenseSection(),
+                        SizedBox(height: 20.h),
+                        _buildRecentTransactionsSection(statistic!),
+                      ],
+                    ),
                   ),
                 ),
+              );
+            }
+
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Không có dữ liệu"),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+                    },
+                    child: const Text("Tải lại"),
+                  ),
+                ],
               ),
             );
           },
@@ -171,10 +191,7 @@ class _HomePageState extends State<HomePage> {
         Icon(Icons.circle, color: Colors.redAccent, size: 12),
         SizedBox(width: 8.w),
         Expanded(child: Text(title)),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
       ],
     );
   }

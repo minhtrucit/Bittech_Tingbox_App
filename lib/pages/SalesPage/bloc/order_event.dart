@@ -8,9 +8,9 @@ final class OrderCreateOrderEvent extends OrderEvent {
 }
 
 
-class OrderRealtimeEvent extends OrderEvent {
+class OrderPaymentSuccessEvent extends OrderEvent {
   final Map<String, dynamic> data;
-  OrderRealtimeEvent(this.data);
+  OrderPaymentSuccessEvent(this.data);
 }
 
 class OrderGetStatisticsEvent extends OrderEvent {}

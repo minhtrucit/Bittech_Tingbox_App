@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/pages/SalesPage/Components/confirm_order_dialog.dart';
@@ -8,26 +6,15 @@ import 'package:ting_box/pages/SalesPage/bloc/order_state.dart';
 import 'package:ting_box/services/order_service.dart';
 
 import '../../../models/payment_info.dart';
-import '../../../services/websocket_manager.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderService orderService;
-  final WebSocketManager webSocketManager;
-  OrderBloc({required this.orderService, required this.webSocketManager})
+  OrderBloc({required this.orderService})
     : super(OrderInitial()) {
     on<OrderCreateOrderEvent>(_onCreateOrder);
-    on<OrderRealtimeEvent>(_onRealtimeEvent);
+    on<OrderPaymentSuccessEvent>(_onPaymentSuccess);
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
-    webSocketManager.on("payment.success", (data) {
-      debugPrint('event data from websocket12 $data');
-      try {
-        final jsonData = jsonDecode(data);
-        debugPrint('event data from websocket $jsonData');
-        /// Server gửi event dạng:
-        /// { "type": "payment_success", "orderId": 123 }
-        add(OrderRealtimeEvent(jsonData));
-      } catch (_) {}
-    });
+    
   }
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
@@ -83,22 +70,20 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     }
   }
 
-  Future<void> _onRealtimeEvent(
-    OrderRealtimeEvent event,
+  Future<void> _onPaymentSuccess(
+    OrderPaymentSuccessEvent event,
     Emitter<OrderState> emit,
   ) async {
     final data = event.data;
 
-    if (data["type"] == "payment_success") {
+    if (data["event"] == "payment.success") {
       emit(
         OrderPaymentSuccess(
-          orderId: data["orderId"],
+          orderId: data["data"]["id"],
           message: "Khách đã thanh toán thành công!",
         ),
       );
-    }
-
-    if (data["type"] == "payment_failed") {
+    } else {
       emit(OrderFailure(message: "Thanh toán thất bại!"));
     }
   }
