@@ -8,20 +8,21 @@ import 'package:ting_box/pages/SalesPage/bloc/order_state.dart';
 import 'package:ting_box/services/order_service.dart';
 
 import '../../../models/payment_info.dart';
-import '../../../services/websocket_service.dart';
+import '../../../services/websocket_manager.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderService orderService;
-  final WebSocketService webSocketService;
-  OrderBloc({required this.orderService, required this.webSocketService})
+  final WebSocketManager webSocketManager;
+  OrderBloc({required this.orderService, required this.webSocketManager})
     : super(OrderInitial()) {
     on<OrderCreateOrderEvent>(_onCreateOrder);
     on<OrderRealtimeEvent>(_onRealtimeEvent);
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
-    webSocketService.stream.listen((data) {
+    webSocketManager.on("payment.success", (data) {
+      debugPrint('event data from websocket12 $data');
       try {
         final jsonData = jsonDecode(data);
-
+        debugPrint('event data from websocket $jsonData');
         /// Server gửi event dạng:
         /// { "type": "payment_success", "orderId": 123 }
         add(OrderRealtimeEvent(jsonData));

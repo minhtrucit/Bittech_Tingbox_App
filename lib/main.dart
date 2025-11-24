@@ -9,8 +9,9 @@ import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
 import 'package:ting_box/services/order_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
-import 'package:ting_box/services/websocket_service.dart';
 import 'package:ting_box/ting_box.dart';
+
+import 'services/websocket_manager.dart';
 
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(
@@ -32,9 +33,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
-  final webSocketService = WebSocketService(url: dotenv.get('WEBSOCKET_BASE_URL'));
+  final webSocketManager = WebSocketManager();
 
-  // webSocketService.connect();
+  webSocketManager.connect(dotenv.get('WEBSOCKET_BASE_URL'));
   if (accessToken != null && refreshToken != null) {
     apiService.setTokens(accessToken: accessToken, refreshToken: refreshToken);
     debugPrint('[main] Loaded tokens from SharedPreferences');
@@ -56,7 +57,11 @@ void main() async {
           create: (_) => ProductBloc(productApiService: productApiService),
         ),
         BlocProvider<OrderBloc>(
-          create: (_) => OrderBloc(orderService: orderService, webSocketService: webSocketService),
+          create:
+              (_) => OrderBloc(
+                orderService: orderService,
+                webSocketManager: webSocketManager,
+              ),
         ),
       ],
       child: const MyApp(),

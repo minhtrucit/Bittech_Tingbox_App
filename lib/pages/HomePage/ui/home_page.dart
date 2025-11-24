@@ -17,12 +17,7 @@ class _HomePageState extends State<HomePage> {
   late Statistic statistic;
   late Revenue revenue;
 
-  @override
-  void initState() {
-    super.initState();
 
-    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -16,6 +16,7 @@ class _BasePageState extends State<BasePage> {
     final productBloc = BlocProvider.of<ProductBloc>(context);
 
     productBloc.add(LoadCategoriesEvent());
+    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
 
     super.initState();
   }
