@@ -90,6 +90,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     baseUrl: dotenv.get('API_DETECT_URL'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
+
   List<Product> scannedProducts = [];
   Future<void> _takePictureAndSend() async {
     _isLoading.value = true;
@@ -122,6 +123,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 url: existing.url,
                 isEmbedded: existing.isEmbedded,
                 embeddingUrl: file.path,
+                images: existing.images,
               ),
             );
           } else {
@@ -135,6 +137,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 url: product['url'],
                 isEmbedded: product['is_embedded'],
                 embeddingUrl: file.path,
+                
               ),
             );
           }
@@ -237,6 +240,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
         price: newProduct.price,
         quantity: oldProduct.quantity,
         url: newProduct.url,
+        images: newProduct.images,
       );
     });
   }
@@ -358,7 +362,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
                             );
                           },
                           name: product.name,
-                          imageUrl: product.url ?? '',
+                          imageUrl:
+                              product.url ??
+                              product.images?.first.url ??
+                              '',
                           price: product.price,
                           quantity: product.quantity,
                           onIncrease: () {
@@ -633,12 +640,31 @@ class _ScanProductPageState extends State<ScanProductPage> {
               // Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                ),
+                child:
+                    imageUrl.isNotEmpty
+                        ? Image.network(
+                          imageUrl,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[300],
+                              child: Icon(
+                                Icons.image_not_supported,
+                                color: Colors.grey[600],
+                              ),
+                            );
+                          },
+                        )
+                        : Container(
+                          width: 50,
+                          height: 50,
+                          color: Colors.grey[300],
+                          child: Icon(Icons.image, color: Colors.grey[600]),
+                        ),
               ),
               const SizedBox(width: 12),
 

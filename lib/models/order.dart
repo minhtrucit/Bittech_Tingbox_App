@@ -64,7 +64,7 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
-    int id = parseInt(json['id'], 'id') ?? 0;
+    int id = parseInt(json['id'], 'id');
     int userId = parseInt(json['userId'], 'userId');
     int distributorId = parseInt(json['distributorId'], 'distributorId');
     String code = json['code'] ?? '';

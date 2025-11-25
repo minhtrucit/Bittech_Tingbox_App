@@ -231,7 +231,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              'https://picsum.photos/200/300',
+                              item.url ?? item.images?.first.url ?? '',
                               width: 50,
                               height: 50,
                               fit: BoxFit.cover,
