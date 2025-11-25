@@ -14,7 +14,8 @@ class ProductsListPage extends StatefulWidget {
   State<ProductsListPage> createState() => _ProductsListPageState();
 }
 
-class _ProductsListPageState extends State<ProductsListPage> {
+class _ProductsListPageState extends State<ProductsListPage>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   bool isLoading = false;
   bool isSearching = false;
@@ -22,9 +23,17 @@ class _ProductsListPageState extends State<ProductsListPage> {
   Timer? _debounceTimer;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
-    context.read<ProductBloc>().add(GetProductsEvent());
     super.initState();
+
+    // Only load products if not already loaded
+    final currentState = context.read<ProductBloc>().state;
+    if (currentState is! ProductLoadProductsSuccess) {
+      context.read<ProductBloc>().add(GetProductsEvent());
+    }
 
     // Listen to search input changes with debounce
     _searchController.addListener(() {
@@ -78,6 +87,8 @@ class _ProductsListPageState extends State<ProductsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return BlocListener<ProductBloc, ProductState>(
       listenWhen: (prev, curr) => prev != curr,
       listener: (context, state) {
