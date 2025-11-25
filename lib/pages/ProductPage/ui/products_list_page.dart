@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,17 +16,63 @@ class ProductsListPage extends StatefulWidget {
 class _ProductsListPageState extends State<ProductsListPage> {
   final TextEditingController _searchController = TextEditingController();
   bool isLoading = false;
+  bool isSearching = false;
+  String _searchQuery = '';
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     context.read<ProductBloc>().add(GetProductsEvent());
     super.initState();
+
+    // Listen to search input changes with debounce
+    _searchController.addListener(() {
+      // Cancel previous timer
+      _debounceTimer?.cancel();
+
+      // Show searching state immediately if text is not empty
+      if (_searchController.text.isNotEmpty && !isSearching) {
+        setState(() {
+          isSearching = true;
+        });
+      }
+
+      // Set new timer for 300ms
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        setState(() {
+          _searchQuery = _searchController.text.toLowerCase();
+          isSearching = false;
+        });
+      });
+
+      // If search is cleared, update immediately
+      if (_searchController.text.isEmpty) {
+        _debounceTimer?.cancel();
+        setState(() {
+          _searchQuery = '';
+          isSearching = false;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  List<Product> _filterProducts(List<Product> products) {
+    if (_searchQuery.isEmpty) {
+      return products;
+    }
+
+    return products.where((product) {
+      final nameMatch = product.name.toLowerCase().contains(_searchQuery);
+      final priceMatch = product.price.toString().contains(_searchQuery);
+      return nameMatch || priceMatch;
+    }).toList();
   }
 
   @override
@@ -60,14 +108,19 @@ class _ProductsListPageState extends State<ProductsListPage> {
                           Expanded(
                             child: BlocBuilder<ProductBloc, ProductState>(
                               builder: (context, state) {
-                                if (state is ProductLoading) {
+                                // Show skeleton when loading or searching
+                                if (state is ProductLoading || isSearching) {
                                   return const ProductsListSkeleton();
                                 }
 
                                 if (state is ProductLoadProductsSuccess) {
-                                  return state.products.isEmpty
+                                  final filteredProducts = _filterProducts(
+                                    state.products,
+                                  );
+
+                                  return filteredProducts.isEmpty
                                       ? _buildEmptyState()
-                                      : _buildProductGrid(state.products);
+                                      : _buildProductGrid(filteredProducts);
                                 }
 
                                 return _buildEmptyState();
@@ -97,6 +150,15 @@ class _ProductsListPageState extends State<ProductsListPage> {
           hintText: 'Tìm kiếm sản phẩm...',
           hintStyle: TextStyle(color: Colors.grey.shade400),
           prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+          suffixIcon:
+              _searchController.text.isNotEmpty
+                  ? IconButton(
+                    icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  )
+                  : null,
           filled: true,
           fillColor: Colors.grey.shade100,
           border: OutlineInputBorder(
@@ -252,23 +314,27 @@ class _ProductsListPageState extends State<ProductsListPage> {
   }
 
   Widget _buildEmptyState() {
+    final isSearchingNow = _searchQuery.isNotEmpty;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.inventory_2_outlined,
+            isSearchingNow ? Icons.search_off : Icons.inventory_2_outlined,
             size: 64,
             color: Colors.grey.shade300,
           ),
           SizedBox(height: 16.h),
           Text(
-            'Chưa có sản phẩm nào',
+            isSearchingNow ? 'Không tìm thấy sản phẩm' : 'Chưa có sản phẩm nào',
             style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade600),
           ),
           SizedBox(height: 8.h),
           Text(
-            'Nhấn nút "Thêm" để tạo sản phẩm mới',
+            isSearchingNow
+                ? 'Thử tìm kiếm với từ khóa khác'
+                : 'Nhấn nút "Thêm" để tạo sản phẩm mới',
             style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade400),
           ),
         ],
