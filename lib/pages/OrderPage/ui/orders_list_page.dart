@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/extension/date_time_extension.dart';
 import '../../../ting_box.dart';
 import 'orders_list_skeleton.dart';
 
@@ -24,8 +25,9 @@ class _OrdersListPageState extends State<OrdersListPage>
   void initState() {
     super.initState();
 
+    // Only load orders if not already loaded
     final currentState = context.read<OrderBloc>().state;
-    if (currentState is! OrderCreateSuccess) {
+    if (currentState is! OrderGetAllOrdersSuccess) {
       context.read<OrderBloc>().add(OrderGetAllOrdersEvent());
     }
   }
@@ -131,7 +133,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   Widget _buildStatusFilterChips() {
-    final statuses = ['Tất cả', 'Đã thanh toán', 'Đang xử lý', 'Đã hủy'];
+    final statuses = ['Tất cả', 'Đã thanh toán', 'Chưa thanh toán'];
 
     return Container(
       color: Colors.white,
@@ -223,44 +225,6 @@ class _OrdersListPageState extends State<OrdersListPage>
   List<Order> _filterOrders(List<Order> orders) {
     List<Order> filtered = orders;
 
-    // Filter by time
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    filtered =
-        filtered.where((order) {
-          if (order.createdAt == null) return false;
-
-          try {
-            final orderDate = DateTime.parse(order.createdAt!);
-            final orderDay = DateTime(
-              orderDate.year,
-              orderDate.month,
-              orderDate.day,
-            );
-
-            switch (_selectedTimeFilter) {
-              case 'Hôm nay':
-                return orderDay.isAtSameMomentAs(today);
-              case 'Tuần này':
-                final weekStart = today.subtract(
-                  Duration(days: today.weekday - 1),
-                );
-                return orderDay.isAfter(
-                      weekStart.subtract(Duration(days: 1)),
-                    ) &&
-                    orderDay.isBefore(today.add(Duration(days: 1)));
-              case 'Tháng này':
-                return orderDate.year == now.year &&
-                    orderDate.month == now.month;
-              default:
-                return true;
-            }
-          } catch (e) {
-            return false;
-          }
-        }).toList();
-
     // Filter by status
     if (_selectedStatusFilter != 'Tất cả') {
       filtered =
@@ -274,33 +238,43 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   Widget _buildOrderCard(Order order) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailPage(order: order),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildOrderHeader(order),
-          SizedBox(height: 8.h),
-          _buildOrderCustomer(order),
-          SizedBox(height: 8.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildOrderTime(order), _buildOrderStatus(order)],
-          ),
-        ],
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildOrderHeader(order),
+            SizedBox(height: 8.h),
+            _buildOrderCustomer(order),
+            SizedBox(height: 8.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [_buildOrderTime(order), _buildOrderStatus(order)],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -351,17 +325,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   String _formatOrderTime(String? createdAt) {
     if (createdAt == null) return '';
 
-    try {
-      final dateTime = DateTime.parse(createdAt);
-      String timeStr =
-          '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-      String dateStr =
-          '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
-
-      return '$timeStr - $dateStr';
-    } catch (e) {
-      return createdAt;
-    }
+    return createdAt.toReadableDateTime();
   }
 
   Widget _buildOrderStatus(Order order) {
@@ -399,15 +363,16 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   OrderStatusInfo _getOrderStatus(Order order) {
-    final paymentMethod = order.paymentMethod.toLowerCase();
+    debugPrint(
+      'PaymentId: ${order.userId} - Payment status: ${order.paymentStatus}',
+    );
+    final paymentStatus = order.paymentStatus?.toLowerCase();
 
-    if (paymentMethod.contains('tiền mặt') || paymentMethod.contains('cash')) {
+    if (paymentStatus == 'paid') {
       return OrderStatusInfo(label: 'Đã thanh toán', color: Colors.green);
-    } else if (paymentMethod.contains('chuyển khoản') ||
-        paymentMethod.contains('transfer')) {
-      return OrderStatusInfo(label: 'Đang xử lý', color: Colors.orange);
     } else {
-      return OrderStatusInfo(label: 'Đã thanh toán', color: Colors.green);
+      // Default to unpaid for null or 'unpaid' or any other value
+      return OrderStatusInfo(label: 'Chưa thanh toán', color: Colors.orange);
     }
   }
 
