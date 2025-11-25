@@ -9,6 +9,10 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug: Check product data
+    print('Product description: ${product.description}');
+    print('Product category: ${product.category?.name}');
+
     return AppScaffold(
       backgroundColor: Colors.white,
       hasSafeArea: false,
@@ -47,10 +51,9 @@ class ProductDetailPage extends StatelessWidget {
       elevation: 0,
       leading: buildBackButton(context),
     );
-
-    
   }
-Padding buildBackButton(BuildContext context) {
+
+  Padding buildBackButton(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(left: 18.w),
       child: GestureDetector(
@@ -67,6 +70,7 @@ Padding buildBackButton(BuildContext context) {
       ),
     );
   }
+
   Widget _buildProductImage() {
     return Hero(
       tag: 'product_${product.id}',
@@ -93,7 +97,7 @@ Padding buildBackButton(BuildContext context) {
       child: Icon(
         Icons.image_outlined,
         size: 80,
-        color: Colors.white.withOpacity(0.5),
+        color: Colors.white.withValues(alpha: 0.5),
       ),
     );
   }
@@ -133,21 +137,22 @@ Padding buildBackButton(BuildContext context) {
           ),
         ),
         SizedBox(height: 8.h),
-        Text(
-          product.description ?? 'Không có mô tả',
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Colors.grey.shade700,
-            height: 1.5,
+        if (product.description != null)
+          Text(
+            product.description!.isNotEmpty
+                ? product.description!
+                : 'Không có mô tả',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
           ),
-        ),
       ],
     );
   }
 
   Widget _buildCategorySection() {
-    if (product.category == null) return const SizedBox.shrink();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -163,11 +168,13 @@ Padding buildBackButton(BuildContext context) {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withOpacity(0.1),
+            color: AppColors.primaryBlue.withAlpha(10),
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: Text(
-            product.category!.name,
+            product.category != null && product.category!.name.isNotEmpty
+                ? product.category!.name
+                : 'Không có danh mục',
             style: TextStyle(
               fontSize: 14.sp,
               color: AppColors.primaryBlue,
@@ -186,7 +193,7 @@ Padding buildBackButton(BuildContext context) {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
