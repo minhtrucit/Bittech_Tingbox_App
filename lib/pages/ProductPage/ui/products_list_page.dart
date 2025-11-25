@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 import 'products_list_skeleton.dart';
+import 'product_detail_page.dart';
 
 class ProductsListPage extends StatefulWidget {
   const ProductsListPage({super.key});
@@ -92,48 +93,47 @@ class _ProductsListPageState extends State<ProductsListPage> {
           });
         }
       },
-      child:
-          isLoading
-              ? ProductsListSkeleton()
-              : AppScaffold(
-                backgroundColor: Colors.white,
-                appBar: _buildAppBar(),
-                body: SafeArea(
-                  child: Stack(
-                    children: [
-                      Column(
-                        children: [
-                          _buildSearchBar(),
-                          _buildFilterRow(),
-                          Expanded(
-                            child: BlocBuilder<ProductBloc, ProductState>(
-                              builder: (context, state) {
-                                // Show skeleton when loading or searching
-                                if (state is ProductLoading || isSearching) {
-                                  return const ProductsListSkeleton();
-                                }
+      child: AppScaffold(
+        backgroundColor: Colors.white,
+        appBar: _buildAppBar(),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildSearchBar(),
+                  _buildFilterRow(),
+                  isLoading
+                      ? ProductsListSkeleton()
+                      : Expanded(
+                        child: BlocBuilder<ProductBloc, ProductState>(
+                          builder: (context, state) {
+                            // Show skeleton when loading or searching
+                            if (state is ProductLoading || isSearching) {
+                              return const ProductsListSkeleton();
+                            }
 
-                                if (state is ProductLoadProductsSuccess) {
-                                  final filteredProducts = _filterProducts(
-                                    state.products,
-                                  );
+                            if (state is ProductLoadProductsSuccess) {
+                              final filteredProducts = _filterProducts(
+                                state.products,
+                              );
 
-                                  return filteredProducts.isEmpty
-                                      ? _buildEmptyState()
-                                      : _buildProductGrid(filteredProducts);
-                                }
+                              return filteredProducts.isEmpty
+                                  ? _buildEmptyState()
+                                  : _buildProductGrid(filteredProducts);
+                            }
 
-                                return _buildEmptyState();
-                              },
-                            ),
-                          ),
-                        ],
+                            return _buildEmptyState();
+                          },
+                        ),
                       ),
-                      _buildAddButton(context),
-                    ],
-                  ),
-                ),
+                ],
               ),
+              _buildAddButton(context),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -237,72 +237,95 @@ class _ProductsListPageState extends State<ProductsListPage> {
   }
 
   Widget _buildProductCard(Product product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 500),
+            pageBuilder:
+                (_, animation, secondaryAnimation) =>
+                    ProductDetailPage(product: product),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
-                child:
-                    product.images!.isNotEmpty
-                        ? Image.network(
-                          product.images!.map((e) => e).toList()[0].url,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderImage();
-                          },
-                        )
-                        : _buildPlaceholderImage(),
-              ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          // Product Info
-          Padding(
-            padding: EdgeInsets.all(12.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image with Hero
+            Expanded(
+              child: Hero(
+                tag: 'product_${product.id}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12.r),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  '${formatMoney(product.price)} đ',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: Colors.grey.shade600,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12.r),
+                    ),
+                    child:
+                        product.images!.isNotEmpty
+                            ? Image.network(
+                              product.images!.map((e) => e).toList()[0].url,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildPlaceholderImage();
+                              },
+                            )
+                            : _buildPlaceholderImage(),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+            // Product Info
+            Padding(
+              padding: EdgeInsets.all(12.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '${formatMoney(product.price)} đ',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

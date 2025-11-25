@@ -10,30 +10,6 @@ class ProductsListSkeleton extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          // Search bar skeleton
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: _buildShimmerBox(
-              height: 48.h,
-              width: double.infinity,
-              borderRadius: 12.r,
-            ),
-          ),
-          // Filter row skeleton
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              children: [
-                _buildShimmerBox(height: 36.h, width: 100.w, borderRadius: 20.r),
-                SizedBox(width: 8.w),
-                _buildShimmerBox(height: 36.h, width: 80.w, borderRadius: 20.r),
-                SizedBox(width: 8.w),
-                _buildShimmerBox(height: 36.h, width: 90.w, borderRadius: 20.r),
-              ],
-            ),
-          ),
-          SizedBox(height: 16.h),
-          // Product grid skeleton
           Expanded(
             child: GridView.builder(
               padding: EdgeInsets.all(16.w),
