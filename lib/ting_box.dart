@@ -29,6 +29,7 @@ export 'pages/SalesPage/Components/products_bottom_sheet.dart';
 export 'pages/SalesPage/Components/confirm_order_dialog.dart';
 export 'pages/SalesPage/Components/payment_option_button.dart';
 export 'pages/ProductPage/ui/create_product_page.dart';
+export 'pages/ProductPage/ui/products_list_page.dart';
 export 'pages/QrPage/ui/qr_page.dart';
 export 'pages/base_page.dart';
 export 'utils/camera_utils.dart';
