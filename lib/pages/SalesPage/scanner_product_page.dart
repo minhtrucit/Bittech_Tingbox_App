@@ -31,10 +31,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   @override
   void initState() {
-    final apiService = ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL'));
+    final apiService = ApiService.getInstance(
+      baseUrl: dotenv.get('API_BASE_URL'),
+    );
     orderService = OrderService(api: apiService);
     final productBloc = BlocProvider.of<ProductBloc>(context);
-
 
     _initCamera();
     Future.delayed(Duration(milliseconds: 300), () {
@@ -96,13 +97,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
     try {
       final XFile file = await _camera!.takePicture();
       print('Ảnh path: ${file.path}');
-
       final product = await apiService.sendImage(file.path);
       print('API response: $product');
 
       if (product != null) {
         print('Product match: ${product['name']} - ${product['price']}đ');
-
         setState(() {
           final name = product['name'];
 
@@ -121,6 +120,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 price: existing.price,
                 quantity: existing.quantity + 1,
                 url: existing.url,
+                isEmbedded: existing.isEmbedded,
+                embeddingUrl: file.path,
               ),
             );
           } else {
@@ -132,14 +133,26 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 price: product['price'].toDouble(),
                 quantity: 1,
                 url: product['url'],
+                isEmbedded: product['is_embedded'],
+                embeddingUrl: file.path,
               ),
             );
           }
         });
-        _isLoading.value = false;
       }
     } catch (e) {
       debugPrint('Error taking picture or sending to API: $e');
+      if (mounted) {
+        DialogUtils.showAppDialog(
+          context: context,
+          title: 'Lỗi',
+          content:
+              'Không thể kết nối đến server hoặc quá thời gian chờ. Vui lòng thử lại.',
+          onFirstAction: () => Navigator.pop(context),
+          firstActionText: 'Đóng',
+        );
+      }
+    } finally {
       _isLoading.value = false;
     }
   }
@@ -252,9 +265,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
       builder:
           (_) => ConfirmOrderDialog(
             items: scannedProducts,
-            onComplete: () {
-              Navigator.pop(context);
-            },
             parentContext: context,
           ),
     );

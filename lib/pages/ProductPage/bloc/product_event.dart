@@ -14,6 +14,12 @@ final class CreateProductEvent extends ProductEvent {
   CreateProductEvent({required this.productData, required this.images});
 }
 
-final class GetProductsEvent extends ProductEvent{
+final class GetProductsEvent extends ProductEvent {
   GetProductsEvent();
+}
+
+final class UpdateProductEmbeddingEvent extends ProductEvent {
+  final int productId;
+  final String imageUrl;
+  UpdateProductEmbeddingEvent({required this.productId, required this.imageUrl});
 }

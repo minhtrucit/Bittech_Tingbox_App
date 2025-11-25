@@ -20,7 +20,9 @@ class ProductApiService {
     request.files.add(await http.MultipartFile.fromPath('image', imagePath));
 
     try {
-      final response = await request.send();
+      final response = await request.send().timeout(
+        const Duration(seconds: 15),
+      );
 
       if (response.statusCode == 200) {
         final respStr = await response.stream.bytesToString();
@@ -32,7 +34,7 @@ class ProductApiService {
       }
     } catch (e) {
       print('Error sending image: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -110,6 +112,47 @@ class ProductApiService {
     } catch (e) {
       debugPrint('Error getting products: $e');
       throw Exception('Lỗi khi lấy sản phẩm: $e');
+    }
+  }
+
+  Future<void> updateEmbedding({
+    required int productId,
+    required String imageUrl,
+  }) async {
+    final uri = Uri.parse('$baseUrl/product/update_embedding');
+    debugPrint("🌐 Full URL: $uri");
+    debugPrint("🌐 Base URL: $baseUrl");
+    final request = http.MultipartRequest('POST', uri);
+
+    request.fields['product_id'] = productId.toString();
+    request.files.add(
+      await http.MultipartFile.fromPath('image_file', imageUrl),
+    );
+
+    try {
+      debugPrint(
+        "📤 Updating embedding for product: $productId, image: $imageUrl",
+      );
+
+      final response = await request.send().timeout(
+        const Duration(seconds: 15),
+      );
+
+      if (response.statusCode == 200) {
+        final respStr = await response.stream.bytesToString();
+        final data = json.decode(respStr);
+        debugPrint("📩 Update Embedding API Response: $data");
+        debugPrint("✅ Update embedding success");
+      } else {
+        final respStr = await response.stream.bytesToString();
+        debugPrint("API Error: ${response.statusCode} - $respStr");
+        throw Exception("Lỗi API: ${response.statusCode}");
+      }
+    } catch (e, st) {
+      debugPrint("❌ updateEmbedding error: $e");
+      debugPrint("STACK: $st");
+
+      throw Exception("Không thể cập nhật embedding. Lỗi: $e");
     }
   }
 }

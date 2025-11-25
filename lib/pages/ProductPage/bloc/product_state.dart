@@ -6,7 +6,7 @@ final class ProductInitial extends ProductState {}
 
 final class ProductLoading extends ProductState {}
 
-final class ProductLoadCategoriesSuccess extends ProductState{
+final class ProductLoadCategoriesSuccess extends ProductState {
   final List<String> categories;
   ProductLoadCategoriesSuccess({required this.categories});
 }
@@ -21,7 +21,11 @@ final class ProductCreateSuccess extends ProductState {
   ProductCreateSuccess({required this.product});
 }
 
-final class ProductLoadProductsSuccess extends ProductState{
+final class ProductLoadProductsSuccess extends ProductState {
   final List<Product> products;
   ProductLoadProductsSuccess({required this.products});
+}
+
+final class ProductUpdateEmbeddingSuccess extends ProductState {
+  ProductUpdateEmbeddingSuccess();
 }
