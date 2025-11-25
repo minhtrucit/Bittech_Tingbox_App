@@ -75,8 +75,6 @@ class Product {
       isActive: json['isActive'],
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
-      isEmbedded: json['isEmbedded'],
-      embeddingUrl: json['embeddingUrl'],
     );
   }
 
