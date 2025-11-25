@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:ting_box/models/order.dart';
 import '../models/statistic.dart';
 import 'api_services.dart';
 
@@ -44,6 +45,28 @@ class OrderService {
       }
 
       throw Exception('Failed to load dashboard statistic');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      throw Exception('Error: $e');
+    }
+  }
+
+  Future<List<Order>> getAllOrders() async {
+    try {
+      final resp = await api.get('/orders');
+
+      debugPrint("📌 API RAW DATA: ${resp.data}");
+
+      if (resp.statusCode == 200) {
+        debugPrint("📌 DATA PARSED: ${resp.data['data']}");
+
+        final List<dynamic> data = resp.data['data'] as List<dynamic>;
+        return data
+            .map((e) => Order.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      throw Exception('Failed to load orders');
     } catch (e) {
       debugPrint("❌ ERROR: $e");
       throw Exception('Error: $e');

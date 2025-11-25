@@ -54,6 +54,7 @@ class _HomePageState extends State<HomePage> {
                 padding: EdgeInsets.only(bottom: 64.h),
                 child: SafeArea(
                   child: SingleChildScrollView(
+                    physics: BouncingScrollPhysics(),
                     padding: EdgeInsets.all(16.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
