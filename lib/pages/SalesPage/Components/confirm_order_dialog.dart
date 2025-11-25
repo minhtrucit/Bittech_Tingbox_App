@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,14 +7,12 @@ enum PaymentMethod { BANK_TRANSFER, CASH }
 
 class ConfirmOrderDialog extends StatefulWidget {
   final List<Product> items;
-  final VoidCallback onComplete;
   final BuildContext parentContext;
 
   const ConfirmOrderDialog({
-    Key? key,
     required this.items,
     required this.parentContext,
-    required this.onComplete,
+    Key? key,
   }) : super(key: key);
 
   @override
@@ -69,6 +66,18 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
         }
 
         if (state is OrderCreateSuccess) {
+          // Trigger update embedding for each product in the order
+          for (var item in widget.items) {
+            if (!item.isEmbedded && item.embeddingUrl.isNotEmpty) {
+              context.read<ProductBloc>().add(
+                UpdateProductEmbeddingEvent(
+                  productId: item.id,
+                  imageUrl: item.embeddingUrl,
+                ),
+              );
+            }
+          }
+
           setState(() {
             isShowOverlay = false;
           });
@@ -183,9 +192,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                       ),
                       SizedBox(height: 24.h),
                       const Text("Phương thức thanh toán"),
-                      // Buttons
                       SizedBox(height: 16.h),
-
                       PaymentOptionSelector(
                         onPaymentSelected: (method) {
                           setState(() {

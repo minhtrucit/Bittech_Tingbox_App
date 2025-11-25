@@ -19,6 +19,8 @@ class Product {
   bool? isActive;
   String? createdAt;
   String? updatedAt;
+  bool isEmbedded;
+  String embeddingUrl;
 
   Product({
     required this.id,
@@ -38,6 +40,8 @@ class Product {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.isEmbedded = false,
+    this.embeddingUrl = "",
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -71,6 +75,8 @@ class Product {
       isActive: json['isActive'],
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
+      isEmbedded: json['isEmbedded'],
+      embeddingUrl: json['embeddingUrl'],
     );
   }
 
@@ -93,6 +99,8 @@ class Product {
       'isActive': isActive,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'isEmbedded': isEmbedded,
+      'embeddingUrl': embeddingUrl,
     };
   }
 }

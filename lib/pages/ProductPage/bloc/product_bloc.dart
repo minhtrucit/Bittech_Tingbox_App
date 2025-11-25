@@ -10,6 +10,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<LoadCategoriesEvent>(_onLoadCategories);
     on<CreateProductEvent>(_onCreateProduct);
     on<GetProductsEvent>(_onGetProducts);
+    on<UpdateProductEmbeddingEvent>(_onUpdateProductEmbedding);
   }
 
   Future<void> _onLoadCategories(
@@ -96,7 +97,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onGetProducts(
-      GetProductsEvent event,
+    GetProductsEvent event,
     Emitter<ProductState> emit,
   ) async {
     emit(ProductLoading());
@@ -107,8 +108,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       debugPrint('=== RESPONSE DATA ===');
       final List<dynamic> data = response['data'];
 
-      final
-      List<Product> products;
+      final List<Product> products;
       try {
         products = data.map((e) => Product.fromJson(e)).toList();
         debugPrint('=== PRODUCT PARSED ===');
@@ -120,7 +120,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         rethrow; // ném tiếp để biết app crash ở đâu
       }
 
-
       emit(ProductLoadProductsSuccess(products: products));
     } catch (e, st) {
       // 3️⃣ In toàn bộ exception và stack trace
@@ -128,6 +127,30 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       debugPrint('Error: $e');
       debugPrint('StackTrace: $st');
       emit(ProductFailure('Failed to get products'));
+    }
+  }
+
+  Future<void> _onUpdateProductEmbedding(
+    UpdateProductEmbeddingEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+
+    try {
+      debugPrint(
+        '[ProductBloc] _onUpdateProductEmbedding: calling productApiService.updateEmbedding...',
+      );
+      await productApiService.updateEmbedding(
+        productId: event.productId,
+        imageUrl: event.imageUrl,
+      );
+
+      debugPrint('[ProductBloc] _onUpdateProductEmbedding: success');
+      emit(ProductUpdateEmbeddingSuccess());
+    } catch (e, st) {
+      debugPrint('[ProductBloc] _onUpdateProductEmbedding: error -> $e');
+      debugPrint('Stack trace: $st');
+      emit(ProductFailure('Failed to update product embedding'));
     }
   }
 }
