@@ -15,18 +15,16 @@ class ApiService {
   final List<Function(String)> _tokenQueue = [];
 
   ApiService._internal({required String baseUrl})
-      : _dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(milliseconds: 15000),
-    receiveTimeout: const Duration(milliseconds: 15000),
-    contentType: 'application/json',
-  ))
-  {
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(milliseconds: 15000),
+          receiveTimeout: const Duration(milliseconds: 15000),
+          contentType: 'application/json',
+        ),
+      ) {
     _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: _onRequest,
-        onError: _onError,
-      ),
+      InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
     );
 
     _dio.interceptors.add(
@@ -51,10 +49,10 @@ class ApiService {
   // ON REQUEST: Add token vào header
   // ----------------------
   Future<void> _onRequest(
-      RequestOptions options, RequestInterceptorHandler handler) async {
-
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     if (_accessToken != null) {
-
       options.headers["Authorization"] = "Bearer $_accessToken";
       debugPrint('[ApiService] Adding Authorization header: $_accessToken');
     }
@@ -66,8 +64,9 @@ class ApiService {
   // ON ERROR: Handle 401 → Refresh token
   // ----------------------
   Future<void> _onError(
-      DioException err, ErrorInterceptorHandler handler) async {
-
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     if (err.response?.statusCode == 401) {
       RequestOptions requestOptions = err.requestOptions;
 
@@ -124,9 +123,7 @@ class ApiService {
 
     final response = await _dio.post(
       "/auth/refresh",
-      data: {
-        "refreshToken": _refreshToken,
-      },
+      data: {"refreshToken": _refreshToken},
     );
 
     final data = response.data["data"];
@@ -146,17 +143,36 @@ class ApiService {
     return newAccessToken;
   }
 
-
   // ----------------------
   // REQUEST WRAPPER
   // ----------------------
-  Future<Response> post(String path,
-      {dynamic data,
-        Map<String, dynamic>? queryParameters,
-        Options? options}) =>
-      _dio.post(path, data: data, queryParameters: queryParameters, options: options);
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.post(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
 
-  Future<Response> get(String path,
-      {Map<String, dynamic>? queryParameters, Options? options}) =>
-      _dio.get(path, queryParameters: queryParameters, options: options);
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.get(path, queryParameters: queryParameters, options: options);
+
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.put(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
 }

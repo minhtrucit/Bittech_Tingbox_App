@@ -62,8 +62,6 @@ class _EditProductPageState extends State<EditProductPage> {
 
     if (images.isNotEmpty) {
       setState(() {
-        // Limit total images (existing + new) to 5?
-        // For now just limit new images added in this batch, or check total count
         int currentCount = existingImages.length + pickedImages.length;
         int availableSlots = 5 - currentCount;
 
@@ -103,8 +101,8 @@ class _EditProductPageState extends State<EditProductPage> {
     if (nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
       DialogUtils.showAppDialog(
         context: context,
-        title: 'Lỗi điền thông tin',
-        content: 'Vui lòng điền tên và giá sản phẩm.',
+        title: 'Lỗi điền thông tin',
+        content: 'Vui lòng điền tên và giá sản phẩm.',
         onFirstAction: () => Navigator.pop(context),
         firstActionText: 'OK',
       );
@@ -122,40 +120,75 @@ class _EditProductPageState extends State<EditProductPage> {
       return;
     }
 
-    // TODO: Implement update logic
-    // Since we don't have UpdateProductEvent yet, we show a message
-    DialogUtils.showAppDialog(
-      context: context,
-      title: 'Thông báo',
-      content: 'Chức năng cập nhật sản phẩm đang được phát triển.',
-      onFirstAction: () => Navigator.pop(context),
-      firstActionText: 'OK',
-    );
+    // Prepare new images
+    final List<File>? newImagesFiles =
+        pickedImages.isNotEmpty
+            ? pickedImages.map((e) => File(e.path)).toList()
+            : null;
 
-    /* 
-    // Example logic if event existed:
-    final List<File> newImagesFiles = pickedImages.map((e) => File(e.path)).toList();
-    
+    // Create updated product
     Product updatedProduct = Product(
       id: widget.product.id,
       name: nameCtrl.text.trim(),
       price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
       description: descCtrl.text.trim(),
-      categoryId: widget.product.categoryId, // Need to update based on selectedCategory
-      // ... other fields
+      categoryId: widget.product.categoryId,
+      distributorId: widget.product.distributorId,
     );
 
+    // Dispatch update event
+    setState(() {
+      isLoading = true;
+    });
+
     context.read<ProductBloc>().add(
-      UpdateProductEvent(productData: updatedProduct, newImages: newImagesFiles, deletedImageIds: ...),
+      UpdateProductEvent(
+        productData: updatedProduct,
+        newImages: newImagesFiles,
+      ),
     );
-    */
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
-        // Handle states if we were actually updating
+        if (state is ProductUpdateSuccess) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Cập nhật thành công',
+            content: 'Đã cập nhật sản phẩm: ${state.product.name}',
+            onFirstAction: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context, true); // Return to previous page
+            },
+            firstActionText: 'OK',
+          );
+          if (!state.product.isEmbedded && pickedImages.isNotEmpty) {
+            context.read<ProductBloc>().add(
+              UpdateProductEmbeddingEvent(
+                productId: state.product.id,
+                imageUrls: pickedImages.map((e) => e.path).toList(),
+              ),
+            );
+          }
+        }
+
+        if (state is ProductFailure) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Lỗi',
+            content: state.message,
+            onFirstAction: () => Navigator.pop(context),
+            firstActionText: 'OK',
+          );
+        }
       },
       child: Stack(
         children: [
@@ -198,14 +231,12 @@ class _EditProductPageState extends State<EditProductPage> {
     return AppAppBar(title: TitleAppbarText(title: "Sửa sản phẩm"));
   }
 
-  // Reuse sections from CreateProductPage but adapted
-
   Widget _buildProductNameSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTitle("Tên sản phẩm"),
-        _buildInput(hint: "Nhập tên sản phẩm", controller: nameCtrl),
+        _buildTitle("Tên sản phẩm"),
+        _buildInput(hint: "Nhập tên sản phẩm", controller: nameCtrl),
       ],
     );
   }
@@ -214,7 +245,7 @@ class _EditProductPageState extends State<EditProductPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTitle("Giá tiền"),
+        _buildTitle("Giá tiền"),
         _buildInput(
           hint: "0.00đ",
           keyboard: TextInputType.number,
@@ -228,9 +259,9 @@ class _EditProductPageState extends State<EditProductPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTitle("Mô tả"),
+        _buildTitle("Mô tả"),
         _buildInput(
-          hint: "Mô tả ngắn về sản phẩm",
+          hint: "Mô tả ngắn về sản phẩm",
           maxLines: 4,
           controller: descCtrl,
         ),
@@ -247,7 +278,7 @@ class _EditProductPageState extends State<EditProductPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildTitle("Hình ảnh sản phẩm"),
+            _buildTitle("Hình ảnh sản phẩm"),
             Text(
               "$totalImages/5",
               style: TextStyle(color: Colors.grey.shade600),
@@ -256,7 +287,7 @@ class _EditProductPageState extends State<EditProductPage> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "Chọn tối đa 5 ảnh",
+          "Chọn tối đa 5 ảnh",
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 12),
@@ -313,7 +344,6 @@ class _EditProductPageState extends State<EditProductPage> {
                         itemCount: totalImages,
                         separatorBuilder: (_, __) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
-                          // Determine if it's an existing image or a new one
                           bool isExisting = index < existingImages.length;
 
                           return Stack(
@@ -346,7 +376,6 @@ class _EditProductPageState extends State<EditProductPage> {
                                           fit: BoxFit.cover,
                                         ),
                               ),
-                              // Icon X để xoá ảnh
                               Positioned(
                                 top: 2,
                                 right: 2,
@@ -388,7 +417,7 @@ class _EditProductPageState extends State<EditProductPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      "Thêm hình ảnh",
+                      "Thêm hình ảnh",
                       style: TextStyle(color: Colors.blue, fontSize: 14),
                     ),
                   ],

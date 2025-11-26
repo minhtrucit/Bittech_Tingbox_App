@@ -10,6 +10,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<LoadCategoriesEvent>(_onLoadCategories);
     on<CreateProductEvent>(_onCreateProduct);
     on<GetProductsEvent>(_onGetProducts);
+    on<UpdateProductEvent>(_onUpdateProduct);
     on<UpdateProductEmbeddingEvent>(_onUpdateProductEmbedding);
   }
 
@@ -130,6 +131,51 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
+  Future<void> _onUpdateProduct(
+    UpdateProductEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+
+    try {
+      final body = {
+        "name": event.productData.name,
+        "price": event.productData.price,
+        "categoryId": event.productData.categoryId,
+        "description": event.productData.description,
+        "distributorId": event.productData.distributorId ?? 1,
+      };
+
+      final response = await productApiService.updateProduct(
+        productId: event.productData.id,
+        body: body,
+        newImages: event.newImages,
+      );
+
+      debugPrint('=== UPDATE RESPONSE DATA ===');
+      debugPrint(response['data'].toString());
+
+      Product product;
+      try {
+        product = Product.fromJson(response['data']);
+        debugPrint('=== UPDATED PRODUCT PARSED ===');
+        debugPrint(product.toJson().toString());
+      } catch (jsonError, stackTrace) {
+        debugPrint('=== JSON PARSE ERROR ===');
+        debugPrint('Error: $jsonError');
+        debugPrint('StackTrace: $stackTrace');
+        rethrow;
+      }
+
+      emit(ProductUpdateSuccess(product: product));
+    } catch (e, st) {
+      debugPrint('=== UPDATE PRODUCT ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      emit(ProductFailure('Failed to update product'));
+    }
+  }
+
   Future<void> _onUpdateProductEmbedding(
     UpdateProductEmbeddingEvent event,
     Emitter<ProductState> emit,
@@ -142,7 +188,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       );
       await productApiService.updateEmbedding(
         productId: event.productId,
-        imageUrl: event.imageUrl,
+        imageUrls: event.imageUrls,
       );
 
       debugPrint('[ProductBloc] _onUpdateProductEmbedding: success');
