@@ -82,6 +82,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
       description: descCtrl.text.trim(),
       categoryId: 2,
+      url: images[0].path,
     );
 
     // Gọi bloc

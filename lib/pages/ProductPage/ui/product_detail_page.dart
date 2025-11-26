@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
+import 'edit_product_page.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final Product product;
@@ -9,10 +10,6 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Debug: Check product data
-    print('Product description: ${product.description}');
-    print('Product category: ${product.category?.name}');
-
     return AppScaffold(
       backgroundColor: Colors.white,
       hasSafeArea: false,
@@ -208,9 +205,11 @@ class ProductDetailPage extends StatelessWidget {
               height: 48.h,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Handle edit product
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chức năng sửa sản phẩm')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProductPage(product: product),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
