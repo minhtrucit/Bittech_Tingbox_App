@@ -12,7 +12,7 @@ class ConfigService {
   Future<ConfigModel?> getConfig(int userId) async {
     try {
       final response = await api.get(
-        '',
+        'configs/$userId',
        
       );
 
