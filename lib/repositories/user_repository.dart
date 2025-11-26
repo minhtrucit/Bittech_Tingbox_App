@@ -52,7 +52,6 @@ class UserRepository {
   static Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyUser);
       await prefs.remove(keyToken);
     } catch (e, st) {
       print('UserRepository.clear error: $e\n$st');
