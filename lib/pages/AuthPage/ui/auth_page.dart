@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -30,26 +29,15 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.dark,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
-
     return AppScaffold(
       hasSafeArea: false,
       resizeToAvoidBottomInset: false,
-      body: Container(
-        decoration: BoxDecoration(color: Colors.white),
-        child: Column(
-          children: [
-            Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
-            _buildHotline(),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
+          _buildHotline(),
+        ],
       ),
     );
   }
@@ -116,7 +104,7 @@ class _AuthPageState extends State<AuthPage> {
                 'Login to continue',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 24.h),
               _buildTextField(
                 controller: widget.phoneController,
                 label: 'Tên đăng nhập',
@@ -141,7 +129,7 @@ class _AuthPageState extends State<AuthPage> {
                   child: Text(
                     'Quên mật khẩu?',
                     style: TextStyle(
-                      color: Color(0xFF3b82f6),
+                      color: AppColors.primaryBlue,
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -242,7 +230,7 @@ class _AuthPageState extends State<AuthPage> {
       child: ElevatedButton(
         onPressed: widget.onLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF3b82f6),
+          backgroundColor: AppColors.primaryBlue,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
@@ -288,7 +276,7 @@ class WavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Color(0xFF3b82f6)
+          ..color = AppColors.primaryBlue
           ..style = PaintingStyle.fill;
 
     final path = Path();
