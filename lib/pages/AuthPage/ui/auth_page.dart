@@ -1,6 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
+
 import '../../../ting_box.dart';
 
 class AuthPage extends StatefulWidget {
@@ -28,184 +30,293 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+
     return AppScaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        scrolledUnderElevation: 0,
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.center,
-          spacing: 8.w,
+      hasSafeArea: false,
+      resizeToAvoidBottomInset: false,
+      body: Container(
+        decoration: BoxDecoration(color: Colors.white),
+        child: Column(
           children: [
-            Icon(
-              CupertinoIcons.chart_bar_alt_fill,
-              size: 32,
-              color: AppColors.primaryBlue,
-            ),
-            TitleAppbarText(title: 'Sổ chi phí'),
+            Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
+            _buildHotline(),
           ],
         ),
       ),
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: SizedBox.expand(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: 28.h,
-                children: [
-                  buildMainTitle(context),
-                  buildLoginForm(context),
-                  buildButtonSubmit(),
-                ],
-              ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return SizedBox(
+      width: MediaQuery.of(context).size.width,
+      height: 325.h,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SvgPicture.asset(
+              'assets/icons/bg-login.svg',
+              width: MediaQuery.of(context).size.width,
+              fit: BoxFit.fitWidth,
             ),
+          ),
+          Center(
+            child: SvgPicture.asset(
+              'assets/icons/logo_bittech.svg',
+              width: 140.w,
+              height: 140.w,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return Positioned(
+      top: 250.h,
+      child: Container(
+        width: MediaQuery.of(context).size.width,
+        padding: EdgeInsets.symmetric(horizontal: 8.w),
+
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back!',
+                style: TextStyle(
+                  color: Color(0xFF3b82f6),
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Login to continue',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
+              ),
+              SizedBox(height: 8.h),
+              _buildTextField(
+                controller: widget.phoneController,
+                label: 'Tên đăng nhập',
+                hint: '',
+                onChanged: widget.onPhoneChanged,
+                errorText:
+                    widget.isPhoneValid ? null : 'Số điện thoại không hợp lệ',
+              ),
+              SizedBox(height: 16.h),
+              _buildTextField(
+                controller: widget.passwordController,
+                label: 'Mật khẩu',
+                hint: '',
+                isPassword: true,
+              ),
+              SizedBox(height: 32.h),
+              _buildLoginButton(),
+              SizedBox(height: 16.h),
+              Center(
+                child: TextButton(
+                  onPressed: () {},
+                  child: Text(
+                    'Quên mật khẩu?',
+                    style: TextStyle(
+                      color: Color(0xFF3b82f6),
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget buildButtonSubmit() {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    bool isPassword = false,
+    void Function(String)? onChanged,
+    String? errorText,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        TextField(
+          controller: controller,
+          obscureText: isPassword && !isShowPassword,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            suffixIcon:
+                isPassword
+                    ? IconButton(
+                      onPressed: () {
+                        setState(() {
+                          isShowPassword = !isShowPassword;
+                        });
+                      },
+                      icon: Icon(
+                        isShowPassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Colors.grey.shade400,
+                      ),
+                    )
+                    : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(
+                color: errorText != null ? Colors.red : Colors.grey.shade200,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(
+                color: errorText != null ? Colors.red : AppColors.primaryBlue,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.red, width: 2),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 16.h,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginButton() {
     return SizedBox(
       width: double.infinity,
-      height: 50,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
+      height: 50.h,
+      child: ElevatedButton(
+        onPressed: widget.onLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFF3b82f6),
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          'ĐĂNG NHẬP',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
           ),
         ),
-        onPressed: () {
-          debugPrint("Đăng nhập");
-          widget.onLogin();
-        },
-        child: const Text(
-          "Đăng nhập",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildHotline() {
+    return Stack(
+      children: [
+        CustomPaint(size: Size(double.infinity, 80.h), painter: WavePainter()),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'Hotline: 0939 46 7080',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
+}
 
-  Widget buildLoginForm(BuildContext context) {
-    return Expanded(
-      flex: 3,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Số điện thoại",
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            controller: widget.phoneController,
-            onChanged: widget.onPhoneChanged,
-            decoration: InputDecoration(
-              hintText: "Nhập sđt của bạn",
-              errorText:
-                  widget.isPhoneValid ? null : "Số điện thoại không hợp lệ",
-              prefixIcon: const Icon(Icons.phone),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(
-                  color:
-                      widget.isPhoneValid ? AppColors.primaryBlue : Colors.red,
-                  width: 2,
-                ),
-              ),
-            ),
-          ),
+class WavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = Color(0xFF3b82f6)
+          ..style = PaintingStyle.fill;
 
-          SizedBox(height: 28.h),
+    final path = Path();
 
-          Text(
-            "Mật khẩu",
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            obscureText: isShowPassword ? false : true,
-            controller: widget.passwordController,
-            decoration: InputDecoration(
-              hintText: "Nhập mật khẩu",
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                onPressed: () {
-                  setState(() {
-                    isShowPassword = !isShowPassword;
-                  });
-                },
-                icon: Icon(
-                  isShowPassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-              ),
+    // Start from bottom left
+    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0);
 
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              "Quên mật khẩu?",
-              style: TextStyle(
-                color: Colors.blue.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+    // Create wave curve at the top
+    path.quadraticBezierTo(
+      size.width * 0.75, // control point x
+      -20, // control point y (negative for upward curve)
+      size.width * 0.5, // end point x
+      0, // end point y
     );
+
+    path.quadraticBezierTo(
+      size.width * 0.25, // control point x
+      20, // control point y (positive for downward curve)
+      0, // end point x
+      0, // end point y
+    );
+
+    path.close();
+    canvas.drawPath(path, paint);
   }
 
-  Widget buildMainTitle(BuildContext context) {
-    return Flexible(
-      child: Column(
-        spacing: 8.h,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            "Chào mừng trở lại",
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 32.sp,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            "Đăng nhập để tiếp tục quản lý chi phí của bạn.",
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
