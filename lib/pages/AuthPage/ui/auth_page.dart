@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
@@ -12,6 +13,12 @@ class AuthPage extends StatefulWidget {
     required this.passwordController,
     required this.isPhoneValid,
     required this.onPhoneChanged,
+    required this.onPasswordChanged,
+    required this.onSwitchLoginMode,
+    this.phoneError,
+    this.passwordError,
+    this.savedUser,
+    this.isQuickLoginMode = false,
   });
 
   final VoidCallback onLogin;
@@ -19,6 +26,12 @@ class AuthPage extends StatefulWidget {
   final TextEditingController passwordController;
   final bool isPhoneValid;
   final void Function(String) onPhoneChanged;
+  final void Function(String) onPasswordChanged;
+  final VoidCallback onSwitchLoginMode;
+  final String? phoneError;
+  final String? passwordError;
+  final User? savedUser;
+  final bool isQuickLoginMode;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -45,7 +58,7 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildLogo() {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
-      height: 325.h,
+      height: 295.h,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -73,7 +86,7 @@ class _AuthPageState extends State<AuthPage> {
 
   Widget _buildLoginCard() {
     return Positioned(
-      top: 250.h,
+      top: 250.h - MediaQuery.of(context).viewInsets.bottom * 0.60,
       child: Container(
         width: MediaQuery.of(context).size.width,
         padding: EdgeInsets.symmetric(horizontal: 8.w),
@@ -94,7 +107,7 @@ class _AuthPageState extends State<AuthPage> {
               Text(
                 'Welcome back!',
                 style: TextStyle(
-                  color: Color(0xFF3b82f6),
+                  color: AppColors.primaryBlue,
                   fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -105,20 +118,77 @@ class _AuthPageState extends State<AuthPage> {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
               SizedBox(height: 24.h),
-              _buildTextField(
-                controller: widget.phoneController,
-                label: 'Tên đăng nhập',
-                hint: '',
-                onChanged: widget.onPhoneChanged,
-                errorText:
-                    widget.isPhoneValid ? null : 'Số điện thoại không hợp lệ',
-              ),
+              if (widget.isQuickLoginMode && widget.savedUser != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      spacing: 8.w,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 16.r,
+                          backgroundImage:
+                              widget.savedUser?.avatar != null
+                                  ? NetworkImage(widget.savedUser!.avatar ?? '')
+                                  : null,
+                          child:
+                              widget.savedUser?.avatar != null
+                                  ? null
+                                  : Icon(
+                                    Icons.person,
+                                    size: 24.r,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                        ),
+                        Text.rich(
+                          TextSpan(
+                            text: 'Xin chào, ',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.normal,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${widget.savedUser!.userName}!',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: widget.onSwitchLoginMode,
+                      child: Icon(
+                        CupertinoIcons.refresh_bold,
+                        color: Colors.grey,
+                        size: 24.r,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                _buildTextField(
+                  controller: widget.phoneController,
+                  label: 'Tên đăng nhập',
+                  hint: '',
+                  onChanged: widget.onPhoneChanged,
+                  errorText: widget.phoneError,
+                ),
               SizedBox(height: 16.h),
               _buildTextField(
                 controller: widget.passwordController,
                 label: 'Mật khẩu',
                 hint: '',
                 isPassword: true,
+                onChanged: widget.onPasswordChanged,
+                errorText: widget.passwordError,
               ),
               SizedBox(height: 32.h),
               _buildLoginButton(),
