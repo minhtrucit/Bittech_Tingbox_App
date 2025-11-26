@@ -14,20 +14,71 @@ class _AuthState extends State<Auth> {
   final TextEditingController passwordController = TextEditingController();
   late final AuthBloc authBloc;
   bool isPhoneValid = true;
-  bool _isLoadingOverlay = false; // để kiểm soát overlay
+  bool isPasswordValid = true;
+  String? phoneError;
+  String? passwordError;
+  bool _isLoadingOverlay = false;
   final String loginFailTitle = 'Đăng nhập thất bại';
+
+  // Remember me feature
+  User? savedUser;
+  bool isQuickLoginMode = false;
+
   @override
   void initState() {
     super.initState();
     authBloc = BlocProvider.of<AuthBloc>(context);
+    _loadSavedUser();
     debugPrint('[Auth] initState: AuthBloc initialized');
+  }
+
+  Future<void> _loadSavedUser() async {
+    final user = await UserRepository.getUser();
+    if (user != null) {
+      setState(() {
+        savedUser = user;
+        isQuickLoginMode = true;
+        phoneController.text = user.phone; // Pre-fill phone
+      });
+      debugPrint('[Auth] Loaded saved user: ${user.userName}');
+    }
+  }
+
+  void switchLoginMode() {
+    setState(() {
+      isQuickLoginMode = !isQuickLoginMode;
+      if (!isQuickLoginMode) {
+        // Switch to full login mode
+        phoneController.clear();
+        passwordController.clear();
+        phoneError = null;
+        passwordError = null;
+      } else {
+        // Switch back to quick login
+        if (savedUser != null) {
+          phoneController.text = savedUser!.phone;
+        }
+      }
+    });
   }
 
   void onPhoneChanged(String value) {
     setState(() {
       isPhoneValid = isValidPhone(value);
+      if (value.isNotEmpty) {
+        phoneError = null; // Clear error when user types
+      }
     });
     debugPrint('[Auth] onPhoneChanged: $value, isPhoneValid=$isPhoneValid');
+  }
+
+  void onPasswordChanged(String value) {
+    setState(() {
+      if (value.isNotEmpty) {
+        passwordError = null; // Clear error when user types
+        isPasswordValid = true;
+      }
+    });
   }
 
   bool isValidPhone(String phone) {
@@ -39,16 +90,34 @@ class _AuthState extends State<Auth> {
     final phone = phoneController.text.trim();
     final pass = passwordController.text.trim();
 
-    if (phone.isEmpty || pass.isEmpty) {
-      debugPrint('[Auth] handleSubmit: Missing phone or password');
-      DialogUtils.showAppDialog(
-        context: context,
-        title: loginFailTitle,
-        content: 'Vui lòng nhập đầy đủ số điện thoại và mật khẩu!',
-        onFirstAction: () => Navigator.of(context).pop(),
-        firstActionText: 'OK',
-      );
+    bool hasError = false;
 
+    // Validate phone
+    if (phone.isEmpty) {
+      setState(() {
+        phoneError = 'Vui lòng nhập số điện thoại';
+        isPhoneValid = false;
+      });
+      hasError = true;
+    } else if (!isValidPhone(phone)) {
+      setState(() {
+        phoneError = 'Số điện thoại không hợp lệ';
+        isPhoneValid = false;
+      });
+      hasError = true;
+    }
+
+    // Validate password
+    if (pass.isEmpty) {
+      setState(() {
+        passwordError = 'Vui lòng nhập mật khẩu';
+        isPasswordValid = false;
+      });
+      hasError = true;
+    }
+
+    if (hasError) {
+      debugPrint('[Auth] handleSubmit: Validation failed');
       return;
     }
 
@@ -98,10 +167,16 @@ class _AuthState extends State<Auth> {
             builder: (context, state) {
               return AuthPage(
                 onPhoneChanged: onPhoneChanged,
+                onPasswordChanged: onPasswordChanged,
                 onLogin: handleSubmit,
                 isPhoneValid: isPhoneValid,
+                phoneError: phoneError,
+                passwordError: passwordError,
                 phoneController: phoneController,
                 passwordController: passwordController,
+                savedUser: savedUser,
+                isQuickLoginMode: isQuickLoginMode,
+                onSwitchLoginMode: switchLoginMode,
               );
             },
           ),
