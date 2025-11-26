@@ -12,8 +12,8 @@ class ConfirmOrderDialog extends StatefulWidget {
   const ConfirmOrderDialog({
     required this.items,
     required this.parentContext,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<ConfirmOrderDialog> createState() => _ConfirmOrderDialogState();
@@ -85,14 +85,13 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
           final paymentInfo = state.paymentInfo;
 
           if (state.paymentMethod == PaymentMethod.BANK_TRANSFER) {
-            Future.delayed(Duration(seconds: 1), () {
-              Navigator.push(
-                widget.parentContext,
-                MaterialPageRoute(
-                  builder: (_) => QrPage(paymentInfo: paymentInfo!),
-                ),
-              );
-            });
+            Future.delayed(Duration(seconds: 1), () {});
+            Navigator.push(
+              widget.parentContext,
+              MaterialPageRoute(
+                builder: (_) => QrPage(paymentInfo: paymentInfo!),
+              ),
+            );
           } else {
             // Todo handle for cash method
           }
@@ -262,7 +261,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                     ],
                   ),
                 )
-                .toList(),
+                ,
           ],
         ),
       ),

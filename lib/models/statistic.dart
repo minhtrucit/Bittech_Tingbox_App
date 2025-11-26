@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'order.dart';
 
 class Statistic {
@@ -15,19 +17,19 @@ class Statistic {
             try {
               return Order.fromJson(item);
             } catch (e) {
-              print('Error parsing an Order: $e \nData: $item');
+              debugPrint('Error parsing an Order: $e \nData: $item');
               rethrow;
             }
           }).toList();
     } catch (e) {
-      print('Error parsing "recentOrders": $e');
+      debugPrint('Error parsing "recentOrders": $e');
     }
 
     Revenue parsedRevenue;
     try {
       parsedRevenue = Revenue.fromJson(json['revenue']);
     } catch (e) {
-      print('Error parsing "revenue": $e');
+      debugPrint('Error parsing "revenue": $e');
       rethrow;
     }
 
@@ -51,7 +53,7 @@ class Revenue {
       try {
         return RevenueItem.fromJson(itemJson);
       } catch (e) {
-        print('Error parsing RevenueItem "$name": $e \nData: $itemJson');
+        debugPrint('Error parsing RevenueItem "$name": $e \nData: $itemJson');
         rethrow;
       }
     }
@@ -83,10 +85,10 @@ class RevenueItem {
       try {
         if (value is String) return double.parse(value);
         if (value is num) return value.toDouble();
-        print('Warning: unexpected type for $fieldName -> $value');
+        debugPrint('Warning: unexpected type for $fieldName -> $value');
         return 0;
       } catch (e) {
-        print('Error parsing $fieldName: $value -> $e');
+        debugPrint('Error parsing $fieldName: $value -> $e');
         return 0;
       }
     }
@@ -95,10 +97,10 @@ class RevenueItem {
       try {
         if (value is String) return int.parse(value);
         if (value is num) return value.toInt();
-        print('Warning: unexpected type for $fieldName -> $value');
+        debugPrint('Warning: unexpected type for $fieldName -> $value');
         return 0;
       } catch (e) {
-        print('Error parsing $fieldName: $value -> $e');
+        debugPrint('Error parsing $fieldName: $value -> $e');
         return 0;
       }
     }

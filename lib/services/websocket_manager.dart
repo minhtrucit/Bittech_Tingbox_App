@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter/foundation.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
-/// WebSocket Manager chuyên xử lý Socket.IO
+/// WebSocket Manager chuyên xử lý Socket.io
 class WebSocketManager {
   static final WebSocketManager _instance = WebSocketManager._internal();
 
@@ -9,7 +10,7 @@ class WebSocketManager {
 
   WebSocketManager._internal();
 
-  IO.Socket? _socket;
+  io.Socket? _socket;
   bool _manuallyDisconnected = false;
 
   // Reconnect config
@@ -22,15 +23,15 @@ class WebSocketManager {
 
   bool get isConnected => _socket?.connected ?? false;
 
-  /// Connect to Socket.IO server
+  /// Connect to Socket.io server
   void connect(String baseUrl) {
     if (isConnected || _socket != null) return;
 
-    print("SocketIO: Connecting to $baseUrl");
+    debugPrint("Socketio: Connecting to $baseUrl");
 
-    _socket = IO.io(
+    _socket = io.io(
       baseUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket']) // bắt buộc
           .setPath('/socket.io') // backend đang dùng đường dẫn này
           .disableAutoConnect() // tự quản lý connect
@@ -45,7 +46,7 @@ class WebSocketManager {
   /// Attach all socket listeners
   void _attachListeners() {
     _socket!.onConnect((_) {
-      print("SocketIO: connected");
+      debugPrint("Socketio: connected");
       _retryCount = 0;
 
       // Bật heartbeat
@@ -53,7 +54,7 @@ class WebSocketManager {
     });
 
     _socket!.onDisconnect((_) {
-      print("SocketIO: disconnected");
+      debugPrint("Socketio: disconnected");
 
       _stopHeartbeat();
 
@@ -63,7 +64,7 @@ class WebSocketManager {
     });
 
     _socket!.onError((err) {
-      print("SocketIO: Error $err");
+      debugPrint("Socketio: Error $err");
 
       _stopHeartbeat();
 
@@ -71,7 +72,7 @@ class WebSocketManager {
     });
 
     _socket!.onReconnectAttempt((_) {
-      print("SocketIO: trying reconnect...");
+      debugPrint("Socketio: trying reconnect...");
     });
   }
 
@@ -80,7 +81,7 @@ class WebSocketManager {
     if (isConnected) {
       _socket?.emit(event, data);
     } else {
-      print("SocketIO: emit fail, socket not connected");
+      debugPrint("Socketio: emit fail, socket not connected");
     }
   }
 
@@ -97,12 +98,12 @@ class WebSocketManager {
   /// Retry reconnect with backoff
   void _retryReconnect() {
     if (_retryCount >= maxRetry) {
-      print("SocketIO: Max retry reached");
+      debugPrint("Socketio: Max retry reached");
       return;
     }
 
     final delay = Duration(seconds: 2 * _retryCount + 1);
-    print("SocketIO: retrying in ${delay.inSeconds}s (retry $_retryCount)");
+    debugPrint("Socketio: retrying in ${delay.inSeconds}s (retry $_retryCount)");
 
     Future.delayed(delay, () {
       if (!_manuallyDisconnected) {
@@ -114,25 +115,25 @@ class WebSocketManager {
 
   /// Heartbeat ping/pong
   void _startHeartbeat() {
-    print("SocketIO: Heartbeat started");
+    debugPrint("Socketio: Heartbeat started");
 
     _pingTimer?.cancel();
     _pingTimer = Timer.periodic(pingInterval, (_) {
       if (isConnected) {
-        print("SocketIO: ping");
+        debugPrint("Socketio: ping");
         _socket?.emit("ping", {"ts": DateTime.now().millisecondsSinceEpoch});
       }
     });
   }
 
   void _stopHeartbeat() {
-    print("SocketIO: Heartbeat stopped");
+    debugPrint("Socketio: Heartbeat stopped");
     _pingTimer?.cancel();
   }
 
   /// Manual disconnect
   void disconnect() {
-    print("SocketIO: manual disconnect");
+    debugPrint("Socketio: manual disconnect");
 
     _manuallyDisconnected = true;
     _stopHeartbeat();

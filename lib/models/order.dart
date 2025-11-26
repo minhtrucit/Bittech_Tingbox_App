@@ -1,4 +1,5 @@
 // order_model.dart
+import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/models/product.dart';
 
@@ -6,10 +7,10 @@ double parseDouble(dynamic value, String fieldName) {
   try {
     if (value is String) return double.parse(value);
     if (value is num) return value.toDouble();
-    print('Warning: unexpected type for $fieldName -> $value');
+    debugPrint('Warning: unexpected type for $fieldName -> $value');
     return 0;
   } catch (e) {
-    print('Error parsing $fieldName: $value -> $e');
+    debugPrint('Error parsing $fieldName: $value -> $e');
     return 0;
   }
 }
@@ -18,10 +19,10 @@ int parseInt(dynamic value, String fieldName) {
   try {
     if (value is String) return int.parse(value);
     if (value is num) return value.toInt();
-    print('Warning: unexpected type for $fieldName -> $value');
+    debugPrint('Warning: unexpected type for $fieldName -> $value');
     return 0;
   } catch (e) {
-    print('Error parsing $fieldName: $value -> $e');
+    debugPrint('Error parsing $fieldName: $value -> $e');
     return 0;
   }
 }
@@ -90,12 +91,12 @@ class Order {
             try {
               return OrderItem.fromJson(item);
             } catch (e) {
-              print('Error parsing an OrderItem: $e \nData: $item');
+              debugPrint('Error parsing an OrderItem: $e \nData: $item');
               rethrow;
             }
           }).toList();
     } catch (e) {
-      print('Error parsing "items": $e');
+      debugPrint('Error parsing "items": $e');
     }
 
     PaymentInfo? paymentInfo;
@@ -104,7 +105,7 @@ class Order {
         paymentInfo = PaymentInfo.fromJson(json['paymentInfo']);
       }
     } catch (e) {
-      print('Error parsing "paymentInfo": $e');
+      debugPrint('Error parsing "paymentInfo": $e');
     }
 
     return Order(
@@ -172,7 +173,7 @@ class OrderItem {
       try {
         product = Product.fromJson(json['product']);
       } catch (e) {
-        print('Error parsing product in OrderItem: $e');
+        debugPrint('Error parsing product in OrderItem: $e');
       }
     }
 

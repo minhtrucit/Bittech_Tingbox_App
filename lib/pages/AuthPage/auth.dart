@@ -59,7 +59,7 @@ class _AuthState extends State<Auth> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) async {
+      listener: (context, state) {
         debugPrint('[AuthListener] state changed: $state');
 
         if (state is AuthLoading) {
@@ -73,7 +73,7 @@ class _AuthState extends State<Auth> {
         if (state is AuthSuccess) {
           debugPrint('[AuthListener] AuthSuccess: Navigate to BasePage');
 
-          await Future.delayed(const Duration(milliseconds: 200));
+          Future.delayed(const Duration(milliseconds: 200));
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const BasePage()),

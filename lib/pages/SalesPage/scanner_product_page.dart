@@ -25,7 +25,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool _isFlashOn = false;
   bool isLoadingProducts = false;
 
-  ValueNotifier<bool> _isLoading = ValueNotifier(false);
+  final ValueNotifier<bool> _isLoading = ValueNotifier(false);
   List<Product> products = [];
   late OrderService orderService;
 
@@ -97,12 +97,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
     debugPrint('isLoading $_isLoading');
     try {
       final XFile file = await _camera!.takePicture();
-      print('Ảnh path: ${file.path}');
+      debugPrint('Ảnh path: ${file.path}');
       final product = await apiService.sendImage(file.path);
-      print('API response: $product');
+      debugPrint('API response: $product');
 
       if (product != null) {
-        print('Product match: ${product['name']} - ${product['price']}đ');
+        debugPrint('Product match: ${product['name']} - ${product['price']}đ');
         setState(() {
           final name = product['name'];
 

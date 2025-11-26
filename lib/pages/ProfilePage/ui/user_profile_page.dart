@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../ting_box.dart';
 import 'user_profile_skeleton.dart';
+import '../../ConfigPage/ui/config_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -85,10 +87,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: Column(
                       children: [
                         _buildUserInfoSection(user),
-                        const SizedBox(height: 16),
                         _buildInfoCard(user),
                         const Spacer(),
-                        const SizedBox(height: 64),
+                         SizedBox(height: 100.h),
                         _buildLogoutButton(context),
                         const Spacer(),
                       ],
@@ -183,6 +184,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
             icon: Icons.phone_in_talk_rounded,
             title: "Số điện thoại",
             subtitle: user.phone,
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ConfigPage()),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.settings,
+              title: "Cấu hình",
+              subtitle: "Thiết lập máy in, ngân hàng...",
+            ),
           ),
         ],
       ),

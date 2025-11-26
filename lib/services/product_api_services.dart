@@ -29,11 +29,11 @@ class ProductApiService {
         final data = json.decode(respStr);
         return data; // JSON product
       } else {
-        print('API Error: ${response.statusCode}');
+        debugPrint('API Error: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Error sending image: $e');
+      debugPrint('Error sending image: $e');
       rethrow;
     }
   }
@@ -44,7 +44,7 @@ class ProductApiService {
 
       if (response.statusCode == 200) {
         final data = response.data['data'];
-        debugPrint('API response123: ${data}');
+        debugPrint('API response123: $data');
 
         return data; // JSON product
       } else {
@@ -102,7 +102,7 @@ class ProductApiService {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        debugPrint('API response: ${data}');
+        debugPrint('API response: $data');
 
         return data;
       } else {

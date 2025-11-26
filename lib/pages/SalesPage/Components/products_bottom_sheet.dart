@@ -9,13 +9,13 @@ class ProductBottomSheet extends StatefulWidget {
   final Function(Product) onSelected;
 
   const ProductBottomSheet({
-    Key? key,
+    super.key,
     required this.products,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
-  _ProductBottomSheetState createState() => _ProductBottomSheetState();
+  State<ProductBottomSheet> createState() => _ProductBottomSheetState();
 }
 
 class _ProductBottomSheetState extends State<ProductBottomSheet> {

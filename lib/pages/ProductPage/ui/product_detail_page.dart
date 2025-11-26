@@ -9,10 +9,6 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Debug: Check product data
-    print('Product description: ${product.description}');
-    print('Product category: ${product.category?.name}');
-
     return AppScaffold(
       backgroundColor: Colors.white,
       hasSafeArea: false,
