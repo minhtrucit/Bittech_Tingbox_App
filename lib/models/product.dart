@@ -150,3 +150,31 @@ class ProductImage {
     };
   }
 }
+
+String getProductImage(dynamic product) {
+  // Backend trả thumbnailUrl
+  if (product.thumbnailUrl != null &&
+      product.thumbnailUrl!.toString().isNotEmpty) {
+    return product.thumbnailUrl!;
+  }
+
+  // Backend trả images = [url1, url2]
+  if (product.images != null && product.images!.isNotEmpty) {
+    final first = product.images!.first;
+
+    if (first is String) {
+      return first;
+    }
+
+    if (first is Map && first['url'] != null) {
+      return first['url'];
+    }
+  }
+
+  // AI model trả trực tiếp field url
+  if (product.url != null && product.url.toString().isNotEmpty) {
+    return product.url;
+  }
+
+  return ""; // fallback khi không có ảnh
+}

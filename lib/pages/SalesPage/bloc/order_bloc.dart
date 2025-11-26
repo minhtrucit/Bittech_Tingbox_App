@@ -14,6 +14,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderCreateOrderEvent>(_onCreateOrder);
     on<OrderPaymentSuccessEvent>(_onPaymentSuccess);
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
+    on<OrderGetAllOrdersEvent>(_onGetAllOrders);
     
   }
   Future<void> _onCreateOrder(
@@ -106,6 +107,34 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // Nếu có thêm field khác thì log thêm ở đây
 
       emit(OrderGetStatisticSuccess(statistic: result));
+
+      debugPrint("✅ [OrderBloc] Emit state thành công.");
+    } catch (e, stacktrace) {
+      debugPrint("❌ [OrderBloc] Lỗi lấy thống kê:");
+      debugPrint("Error: $e");
+      debugPrint("Stacktrace: $stacktrace");
+
+      emit(OrderFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onGetAllOrders(
+    OrderGetAllOrdersEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderLoading());
+
+    try {
+      debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
+
+      // Gọi API từ service
+      final result = await orderService.getAllOrders();
+
+      debugPrint("📌 [OrderBloc] API trả về Statistic:");
+      debugPrint("orders: ${result.length}");
+      // Nếu có thêm field khác thì log thêm ở đây
+
+      emit(OrderGetAllOrdersSuccess(orders: result));
 
       debugPrint("✅ [OrderBloc] Emit state thành công.");
     } catch (e, stacktrace) {

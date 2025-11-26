@@ -14,3 +14,5 @@ class OrderPaymentSuccessEvent extends OrderEvent {
 }
 
 class OrderGetStatisticsEvent extends OrderEvent {}
+
+class OrderGetAllOrdersEvent extends OrderEvent {}

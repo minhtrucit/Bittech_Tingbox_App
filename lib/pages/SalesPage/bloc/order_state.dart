@@ -40,3 +40,9 @@ final class OrderGetStatisticSuccess extends OrderState {
   final Statistic statistic;
   OrderGetStatisticSuccess({required this.statistic});
 }
+
+final class OrderGetAllOrdersSuccess extends OrderState {
+  final List<Order> orders;
+  OrderGetAllOrdersSuccess({required this.orders});
+}
+

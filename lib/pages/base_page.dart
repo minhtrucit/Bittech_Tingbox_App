@@ -25,7 +25,7 @@ class _BasePageState extends State<BasePage> {
 
   final _pages = const [
     HomePage(),
-    HomePage(),
+    OrdersListPage(),
     HomePage(),
     ProductsListPage(),
     UserProfilePage(),

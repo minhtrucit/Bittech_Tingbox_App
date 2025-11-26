@@ -1,5 +1,6 @@
 // order_model.dart
 import 'package:ting_box/models/payment_info.dart';
+import 'package:ting_box/models/product.dart';
 
 double parseDouble(dynamic value, String fieldName) {
   try {
@@ -26,6 +27,8 @@ int parseInt(dynamic value, String fieldName) {
 }
 
 class Order {
+  int? id;
+  String? code;
   final int userId;
   final int distributorId;
   final String customerName;
@@ -34,6 +37,7 @@ class Order {
   final String shippingAddress;
   final double discount;
   final String paymentMethod;
+  String? paymentStatus;
   final String? note;
   final List<OrderItem> items;
   final PaymentInfo? paymentInfo;
@@ -41,11 +45,14 @@ class Order {
   final String? createdAt;
 
   Order({
+    this.id,
     required this.userId,
     required this.distributorId,
+    this.code,
     required this.customerName,
     required this.customerPhone,
     required this.customerEmail,
+    this.paymentStatus,
     required this.shippingAddress,
     this.discount = 0,
     this.totalAmount,
@@ -57,11 +64,15 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
+    int id = parseInt(json['id'], 'id');
     int userId = parseInt(json['userId'], 'userId');
     int distributorId = parseInt(json['distributorId'], 'distributorId');
-
+    String code = json['code'] ?? '';
     double discount = parseDouble(json['discount'], 'discount');
-    double totalAmount = parseDouble(json['totalAmount'] ?? json['amount'], 'totalAmount');
+    double totalAmount = parseDouble(
+      json['totalAmount'] ?? json['amount'],
+      'totalAmount',
+    );
 
     String customerName = json['customerName'] ?? '';
     String customerPhone = json['customerPhone'] ?? '';
@@ -70,19 +81,19 @@ class Order {
     String paymentMethod = json['paymentMethod'] ?? '';
     String? note = json['note'];
     String? createdAt = json['createdAt'];
+    String? paymentStatus = json['paymentStatus'] ?? '';
 
     List<OrderItem> items = [];
     try {
-      items = (json['items'] as List)
-          .map((item) {
-        try {
-          return OrderItem.fromJson(item);
-        } catch (e) {
-          print('Error parsing an OrderItem: $e \nData: $item');
-          rethrow;
-        }
-      })
-          .toList();
+      items =
+          (json['items'] as List).map((item) {
+            try {
+              return OrderItem.fromJson(item);
+            } catch (e) {
+              print('Error parsing an OrderItem: $e \nData: $item');
+              rethrow;
+            }
+          }).toList();
     } catch (e) {
       print('Error parsing "items": $e');
     }
@@ -97,6 +108,8 @@ class Order {
     }
 
     return Order(
+      code: code,
+      id: id,
       userId: userId,
       distributorId: distributorId,
       customerName: customerName,
@@ -106,6 +119,7 @@ class Order {
       discount: discount,
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus,
       note: note,
       items: items,
       paymentInfo: paymentInfo,
@@ -116,6 +130,7 @@ class Order {
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
+      'code': code,
       'distributorId': distributorId,
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -123,10 +138,12 @@ class Order {
       'shippingAddress': shippingAddress,
       'discount': discount,
       'paymentMethod': paymentMethod,
+      'paymentStatus': paymentStatus,
       'note': note,
       'items': items.map((e) => e.toJson()).toList(),
       'totalAmount': totalAmount,
       'createdAt': createdAt,
+      'id': id,
     };
   }
 }
@@ -135,11 +152,13 @@ class OrderItem {
   final int productId;
   final int quantity;
   final double unitPrice;
+  final Product? product; // Optional product details
 
   OrderItem({
     required this.productId,
     required this.quantity,
     required this.unitPrice,
+    this.product,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -147,10 +166,21 @@ class OrderItem {
     int quantity = parseInt(json['quantity'], 'quantity');
     double unitPrice = parseDouble(json['unitPrice'], 'unitPrice');
 
+    // Parse product if available in response
+    Product? product;
+    if (json['product'] != null) {
+      try {
+        product = Product.fromJson(json['product']);
+      } catch (e) {
+        print('Error parsing product in OrderItem: $e');
+      }
+    }
+
     return OrderItem(
       productId: productId,
       quantity: quantity,
       unitPrice: unitPrice,
+      product: product,
     );
   }
 
@@ -159,6 +189,7 @@ class OrderItem {
       'productId': productId,
       'quantity': quantity,
       'unitPrice': unitPrice,
+      if (product != null) 'product': product!.toJson(),
     };
   }
 }

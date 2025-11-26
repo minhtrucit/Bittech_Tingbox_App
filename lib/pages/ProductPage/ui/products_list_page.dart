@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 import 'products_list_skeleton.dart';
-import 'product_detail_page.dart';
 
 class ProductsListPage extends StatefulWidget {
   const ProductsListPage({super.key});
