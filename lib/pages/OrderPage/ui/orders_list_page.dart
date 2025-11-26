@@ -391,6 +391,18 @@ class _OrdersListPageState extends State<OrdersListPage>
             'Chưa có đơn hàng nào',
             style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade600),
           ),
+          SizedBox(height: 16.h),
+
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+            },
+            child: const Text("Tải lại", style: TextStyle(fontSize: 16)),
+          ),
         ],
       ),
     );

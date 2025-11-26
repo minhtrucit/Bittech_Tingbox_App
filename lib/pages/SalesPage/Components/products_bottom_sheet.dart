@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:shimmer/shimmer.dart';
+
 import '../../../ting_box.dart';
 
 class ProductBottomSheet extends StatefulWidget {
@@ -39,8 +41,8 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      height: MediaQuery.of(context).size.height * 0.85,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Header
           Row(
@@ -83,7 +85,12 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
           BlocBuilder<ProductBloc, ProductState>(
             builder: (context, state) {
               if (state is ProductLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return Expanded(
+                  child: ListView.builder(
+                    itemCount: 10,
+                    itemBuilder: (context, index) => _buildSkeletonItem(),
+                  ),
+                );
               }
 
               List<Product> currentProducts = [];
@@ -112,80 +119,77 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
                 );
               }
 
-              return SizedBox(
-                height: 300,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 300),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      final isSelected = selectedProduct == product;
-                
-                      return DecoratedBox(
+              return Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = filteredProducts[index];
+                    final isSelected = selectedProduct == product;
+
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 0.5,
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                      ),
+                      child: Container(
                         decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              width: 0.5,
-                              color: Colors.grey.shade300,
-                            ),
-                          ),
+                          color:
+                              isSelected
+                                  ? Color(0xFFDFE8FA)
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color:
-                                isSelected
-                                    ? Color(0xFFDFE8FA)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: RadioListTile<Product>(
+                          activeColor: AppColors.primaryBlue,
+                          title: Text(
+                            product.name,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w500),
                           ),
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: RadioListTile<Product>(
-                            activeColor: AppColors.primaryBlue,
-                            title: Text(
-                              product.name,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                              '${formatMoney(product.price)}đ',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: Colors.grey),
-                            ),
-                            value: product,
-                            groupValue: selectedProduct,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedProduct = value;
-                              });
-                            },
-                            secondary: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                product.images!.isNotEmpty ?
-                                product.images!.first.url : '',
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                                    (context, error, stackTrace) => Container(
-                                      width: 50,
-                                      height: 50,
-                                      color: Colors.grey[200],
-                                      child: Icon(
-                                        Icons.image_not_supported,
-                                        size: 20,
-                                        color: Colors.grey,
-                                      ),
+                          subtitle: Text(
+                            '${formatMoney(product.price)}đ',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: Colors.grey),
+                          ),
+                          value: product,
+                          groupValue: selectedProduct,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedProduct = value;
+                            });
+                          },
+                          secondary: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              product.images!.isNotEmpty
+                                  ? product.images!.first.url
+                                  : '',
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (context, error, stackTrace) => Container(
+                                    width: 50,
+                                    height: 50,
+                                    color: Colors.grey[200],
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 20,
+                                      color: Colors.grey,
                                     ),
-                              ),
+                                  ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               );
             },
@@ -262,6 +266,43 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonItem() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 16,
+                    color: Colors.white,
+                  ),
+                  SizedBox(height: 8),
+                  Container(width: 100, height: 14, color: Colors.white),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

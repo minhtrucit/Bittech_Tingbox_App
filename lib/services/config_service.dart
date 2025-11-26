@@ -1,9 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ting_box/models/config_model.dart';
-import 'package:ting_box/repositories/user_repository.dart';
 
 import 'api_services.dart';
 

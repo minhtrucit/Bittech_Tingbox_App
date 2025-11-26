@@ -7,26 +7,24 @@ class ProductsListSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: GridView.builder(
-              padding: EdgeInsets.all(16.w),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 12.w,
-                mainAxisSpacing: 12.h,
-              ),
-              itemCount: 8,
-              itemBuilder: (context, index) {
-                return _buildProductCardSkeleton();
-              },
+    return Column(
+      children: [
+        Expanded(
+          child: GridView.builder(
+            padding: EdgeInsets.all(16.w),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.75,
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.h,
             ),
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return _buildProductCardSkeleton();
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

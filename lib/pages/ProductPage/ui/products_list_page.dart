@@ -114,7 +114,7 @@ class _ProductsListPageState extends State<ProductsListPage>
                   _buildSearchBar(),
                   _buildFilterRow(),
                   isLoading
-                      ? ProductsListSkeleton()
+                      ? const Expanded(child: ProductsListSkeleton())
                       : Expanded(
                         child: BlocBuilder<ProductBloc, ProductState>(
                           builder: (context, state) {

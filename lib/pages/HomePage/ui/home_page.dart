@@ -25,69 +25,63 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<OrderBloc, OrderState>(
-      listenWhen: (prev, curr) => prev != curr,
-      listener: (context, state) {
-        if (state is OrderFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Lỗi tải dữ liệu thống kê")),
-          );
-        }
-      },
-      child: AppScaffold(
-        hasSafeArea: false,
-        backgroundColor: Color(0xFFF4F7FC),
-        appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
-        body: BlocBuilder<OrderBloc, OrderState>(
-          builder: (context, state) {
-            if (state is OrderGetStatisticSuccess) {
-              statistic = state.statistic;
-              revenue = statistic?.revenue;
-            }
+    return AppScaffold(
+      hasSafeArea: false,
+      backgroundColor: Color(0xFFF4F7FC),
+      appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
+      body: BlocBuilder<OrderBloc, OrderState>(
+        builder: (context, state) {
+          if (state is OrderGetStatisticSuccess) {
+            statistic = state.statistic;
+            revenue = statistic?.revenue;
+          }
 
-            if (state is OrderLoading && statistic == null) {
-              return const HomeSkeleton();
-            }
+          if (state is OrderLoading && statistic == null) {
+            return const HomeSkeleton();
+          }
 
-            if (statistic != null && revenue != null) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: 64.h),
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    physics: BouncingScrollPhysics(),
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildRevenueSection(revenue!),
-                        SizedBox(height: 20.h),
-                        _buildExpenseSection(),
-                        SizedBox(height: 20.h),
-                        _buildRecentTransactionsSection(statistic!),
-                      ],
-                    ),
+          if (statistic != null && revenue != null) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: 64.h),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildRevenueSection(revenue!),
+                      SizedBox(height: 20.h),
+                      _buildExpenseSection(),
+                      SizedBox(height: 20.h),
+                      _buildRecentTransactionsSection(statistic!),
+                    ],
                   ),
                 ),
-              );
-            }
-
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Không có dữ liệu"),
-                  SizedBox(height: 16.h),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
-                    },
-                    child: const Text("Tải lại"),
-                  ),
-                ],
               ),
             );
-          },
-        ),
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Không có dữ liệu"),
+                SizedBox(height: 16.h),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+                  },
+                  child: const Text("Tải lại", style: TextStyle(fontSize: 16)),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -221,7 +215,7 @@ class _HomePageState extends State<HomePage> {
         SizedBox(height: 12.h),
 
         // Danh sách đơn hàng gần đây
-        ...statistic.recentOrders.map(_buildTransactionItem).toList(),
+        ...statistic.recentOrders.map(_buildTransactionItem),
       ],
     );
   }
