@@ -89,7 +89,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         _buildUserInfoSection(user),
                         _buildInfoCard(user),
                         const Spacer(),
-                         SizedBox(height: 100.h),
+                        SizedBox(height: 40.h),
                         _buildLogoutButton(context),
                         const Spacer(),
                       ],
