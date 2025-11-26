@@ -1,8 +1,12 @@
 flutter_native_splash:
-  color: "#111111"
-  image: assets/icons/icon.png
+  color: "#3b82f6"
+  image: assets/icons/LOGO_BITTECH.png
   ios: false
   android: true
+  android_12:
+    image: assets/icons/LOGO_BITTECH.png
+    color: "#3b82f6"
+    icon_background_color: "#3b82f6"
 
 
 
