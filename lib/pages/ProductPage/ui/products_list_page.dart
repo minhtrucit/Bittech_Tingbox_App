@@ -113,30 +113,31 @@ class _ProductsListPageState extends State<ProductsListPage>
                 children: [
                   _buildSearchBar(),
                   _buildFilterRow(),
-                  isLoading
-                      ? ProductsListSkeleton()
-                      : Expanded(
-                        child: BlocBuilder<ProductBloc, ProductState>(
-                          builder: (context, state) {
-                            // Show skeleton when loading or searching
-                            if (state is ProductLoading || isSearching) {
-                              return const ProductsListSkeleton();
-                            }
+                  Expanded(
+                    child:
+                        isLoading
+                            ? const ProductsListSkeleton()
+                            : BlocBuilder<ProductBloc, ProductState>(
+                              builder: (context, state) {
+                                // Show skeleton when loading or searching
+                                if (state is ProductLoading || isSearching) {
+                                  return const ProductsListSkeleton();
+                                }
 
-                            if (state is ProductLoadProductsSuccess) {
-                              final filteredProducts = _filterProducts(
-                                state.products,
-                              );
+                                if (state is ProductLoadProductsSuccess) {
+                                  final filteredProducts = _filterProducts(
+                                    state.products,
+                                  );
 
-                              return filteredProducts.isEmpty
-                                  ? _buildEmptyState()
-                                  : _buildProductGrid(filteredProducts);
-                            }
+                                  return filteredProducts.isEmpty
+                                      ? _buildEmptyState()
+                                      : _buildProductGrid(filteredProducts);
+                                }
 
-                            return _buildEmptyState();
-                          },
-                        ),
-                      ),
+                                return _buildEmptyState();
+                              },
+                            ),
+                  ),
                 ],
               ),
               _buildAddButton(context),
