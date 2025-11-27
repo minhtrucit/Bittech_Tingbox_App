@@ -29,6 +29,7 @@ class _ConfigPageState extends State<ConfigPage> {
   int _printModeGroupValue = 1; // 0: Tự động in, 1: Không in, 2: Mặc định
   late bool _isEditing;
   bool _useConfigBankList = true;
+  bool isAdmin = false;
 
   @override
   void initState() {
@@ -39,6 +40,15 @@ class _ConfigPageState extends State<ConfigPage> {
       _useConfigBankList = false;
       _getBankList();
     }
+
+    _getUserInfo();
+  }
+
+  Future<void> _getUserInfo() async {
+    final user = await UserRepository.getUser();
+    setState(() {
+      isAdmin = user?.roleId == 1;
+    });
   }
 
   void _populateFields() {
@@ -216,7 +226,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         controller: _sepayApiKeyController,
                         hintText: '....................',
                         obscureText: !_isApiKeyVisible,
-                        enabled: _isEditing,
+                        enabled: _isEditing && isAdmin,
                         suffixIcon: IconButton(
                           icon: Icon(
                             _isApiKeyVisible
