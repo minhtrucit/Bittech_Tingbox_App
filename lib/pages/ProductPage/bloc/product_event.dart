@@ -18,8 +18,17 @@ final class GetProductsEvent extends ProductEvent {
   GetProductsEvent();
 }
 
+final class UpdateProductEvent extends ProductEvent {
+  final Product productData;
+  final List<File>? newImages;
+  UpdateProductEvent({required this.productData, this.newImages});
+}
+
 final class UpdateProductEmbeddingEvent extends ProductEvent {
   final int productId;
-  final String imageUrl;
-  UpdateProductEmbeddingEvent({required this.productId, required this.imageUrl});
+  final List<String> imageUrls;
+  UpdateProductEmbeddingEvent({
+    required this.productId,
+    required this.imageUrls,
+  });
 }

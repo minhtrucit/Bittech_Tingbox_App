@@ -17,6 +17,7 @@ class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
   String _selectedTimeFilter = 'Hôm nay';
   String _selectedStatusFilter = 'Tất cả';
+  List<Order>? _orders;
 
   @override
   bool get wantKeepAlive => true;
@@ -191,35 +192,46 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   Widget _buildOrdersList() {
-    final state = context.watch<OrderBloc>().state;
+    return BlocBuilder<OrderBloc, OrderState>(
+      buildWhen: (previous, current) {
+        return current is OrderGetAllOrdersSuccess ||
+            current is OrderLoading ||
+            current is OrderFailure;
+      },
+      builder: (context, state) {
+        if (state is OrderGetAllOrdersSuccess) {
+          _orders = state.orders;
+        }
 
-    if (state is OrderLoading) {
-      return const OrdersListSkeleton();
-    }
+        if (state is OrderLoading && _orders == null) {
+          return const OrdersListSkeleton();
+        }
 
-    if (state is OrderGetAllOrdersSuccess) {
-      final filteredOrders = _filterOrders(state.orders);
+        if (_orders != null) {
+          final filteredOrders = _filterOrders(_orders!);
 
-      if (filteredOrders.isEmpty) {
+          if (filteredOrders.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.builder(
+            physics: BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              bottom: 64.h,
+              left: 16.w,
+              right: 16.w,
+              top: 16.h,
+            ),
+            itemCount: filteredOrders.length,
+            itemBuilder: (context, index) {
+              return _buildOrderCard(filteredOrders[index]);
+            },
+          );
+        }
+
         return _buildEmptyState();
-      }
-
-      return ListView.builder(
-        physics: BouncingScrollPhysics(),
-        padding: EdgeInsets.only(
-          bottom: 64.h,
-          left: 16.w,
-          right: 16.w,
-          top: 16.h,
-        ),
-        itemCount: filteredOrders.length,
-        itemBuilder: (context, index) {
-          return _buildOrderCard(filteredOrders[index]);
-        },
-      );
-    }
-
-    return _buildEmptyState();
+      },
+    );
   }
 
   List<Order> _filterOrders(List<Order> orders) {

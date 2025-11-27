@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
+import 'edit_product_page.dart';
 
-class ProductDetailPage extends StatelessWidget {
+class ProductDetailPage extends StatefulWidget {
   final Product product;
 
   const ProductDetailPage({super.key, required this.product});
 
   @override
-  Widget build(BuildContext context) {
-    // Debug: Check product data
-    print('Product description: ${product.description}');
-    print('Product category: ${product.category?.name}');
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
+}
 
+class _ProductDetailPageState extends State<ProductDetailPage> {
+  late Product currentProduct;
+
+  @override
+  void initState() {
+    super.initState();
+    currentProduct = widget.product;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AppScaffold(
       backgroundColor: Colors.white,
       hasSafeArea: false,
@@ -73,15 +83,15 @@ class ProductDetailPage extends StatelessWidget {
 
   Widget _buildProductImage() {
     return Hero(
-      tag: 'product_${product.id}',
+      tag: 'product_${currentProduct.id}',
       child: Container(
         width: double.infinity,
         height: 300.h,
         decoration: const BoxDecoration(color: Color(0xFF2C3E50)),
         child:
-            product.images != null && product.images!.isNotEmpty
+            currentProduct.images != null && currentProduct.images!.isNotEmpty
                 ? Image.network(
-                  product.images!.first.url,
+                  currentProduct.images!.first.url,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return _buildPlaceholderImage();
@@ -104,7 +114,7 @@ class ProductDetailPage extends StatelessWidget {
 
   Widget _buildProductName() {
     return Text(
-      product.name,
+      currentProduct.name,
       style: TextStyle(
         fontSize: 24.sp,
         fontWeight: FontWeight.bold,
@@ -115,7 +125,7 @@ class ProductDetailPage extends StatelessWidget {
 
   Widget _buildProductPrice() {
     return Text(
-      '${formatMoney(product.price)}đ',
+      '${formatMoney(currentProduct.price)}đ',
       style: TextStyle(
         fontSize: 20.sp,
         fontWeight: FontWeight.w600,
@@ -137,10 +147,10 @@ class ProductDetailPage extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8.h),
-        if (product.description != null)
+        if (currentProduct.description != null)
           Text(
-            product.description!.isNotEmpty
-                ? product.description!
+            currentProduct.description!.isNotEmpty
+                ? currentProduct.description!
                 : 'Không có mô tả',
             style: TextStyle(
               fontSize: 14.sp,
@@ -172,8 +182,9 @@ class ProductDetailPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: Text(
-            product.category != null && product.category!.name.isNotEmpty
-                ? product.category!.name
+            currentProduct.category != null &&
+                    currentProduct.category!.name.isNotEmpty
+                ? currentProduct.category!.name
                 : 'Không có danh mục',
             style: TextStyle(
               fontSize: 14.sp,
@@ -207,11 +218,21 @@ class ProductDetailPage extends StatelessWidget {
               width: double.infinity,
               height: 48.h,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Handle edit product
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chức năng sửa sản phẩm')),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => EditProductPage(product: currentProduct),
+                    ),
                   );
+
+                  // If product was updated, refresh the detail page
+                  if (result != null && result is Product && mounted) {
+                    setState(() {
+                      currentProduct = result;
+                    });
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
@@ -264,7 +285,7 @@ class ProductDetailPage extends StatelessWidget {
     DialogUtils.showAppDialog(
       context: context,
       title: 'Xác nhận xóa',
-      content: 'Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?',
+      content: 'Bạn có chắc chắn muốn xóa sản phẩm "${currentProduct.name}"?',
       firstActionText: 'Hủy',
       secondActionText: 'Xóa',
       onFirstAction: () {
