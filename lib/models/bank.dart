@@ -4,6 +4,7 @@ class Bank {
   final String code;
   final String shortName;
   final String logo;
+  final int transferSupported;
 
   Bank({
     required this.id,
@@ -11,6 +12,7 @@ class Bank {
     required this.code,
     required this.shortName,
     required this.logo,
+    required this.transferSupported,
   });
 
   factory Bank.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Bank {
       code: json['code'],
       shortName: json['shortName'],
       logo: json['logo'],
+      transferSupported: json['transferSupported'],
     );
   }
 
@@ -30,6 +33,22 @@ class Bank {
       'code': code,
       'shortName': shortName,
       'logo': logo,
+      'transferSupported': transferSupported,
     };
+  }
+
+  static String getTransferSupportedName(int value) {
+    switch (value) {
+      case 1:
+        return 'Có';
+      case 0:
+        return 'Không';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  static List<Bank> getTransferSupportedBanks(List<Bank> banks) {
+    return banks.where((bank) => bank.transferSupported == 1).toList();
   }
 }

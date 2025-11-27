@@ -13,3 +13,8 @@ final class SaveConfigEvent extends ConfigEvent {
 
   SaveConfigEvent({required this.config});
 }
+
+final class GetBankEvent extends ConfigEvent {
+  GetBankEvent();
+}
+

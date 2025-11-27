@@ -10,6 +10,7 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
   ConfigBloc({required this.configService}) : super(ConfigInitial()) {
     on<GetConfigEvent>(_onGetConfig);
     on<SaveConfigEvent>(_onSaveConfig);
+    on<GetBankEvent>(_onGetBank);
   }
 
   Future<void> _onGetConfig(
@@ -56,6 +57,19 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
       }
     } catch (e) {
       emit(ConfigFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onGetBank(
+    GetBankEvent event,
+    Emitter<ConfigState> emit,
+  ) async {
+    try {
+      final banks = await configService.getBanks();
+      debugPrint('[ConfigBloc] Banks: ${banks.map((e) => e.toJson()).toList()}');
+      emit(BankLoaded(banks: banks));
+    } catch (e) {
+      debugPrint('Error loading banks: $e');
     }
   }
 }

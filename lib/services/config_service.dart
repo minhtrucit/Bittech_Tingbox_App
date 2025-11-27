@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/config_model.dart';
+import 'package:ting_box/models/bank.dart';
 
 import 'api_services.dart';
 
@@ -8,6 +9,24 @@ class ConfigService {
   final ApiService api;
 
   ConfigService({required this.api});
+
+  Future<List<Bank>> getBanks() async {
+    try {
+      final response = await api.get('banks');
+
+      if (response.statusCode == 200) {
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        debugPrint('Banks: ${data['data']}');
+        if (data['status'] == 'success' && data['data'] != null) {
+          return (data['data'] as List).map((e) => Bank.fromJson(e)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading banks: $e');
+    }
+    return [];
+  }
 
   Future<ConfigModel?> getConfig(String userId) async {
     try {

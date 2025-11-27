@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/models/bank.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 
@@ -21,6 +22,7 @@ class UserProfilePage extends StatefulWidget {
 
 class _UserProfilePageState extends State<UserProfilePage> {
   ConfigModel? config;
+  List<Bank> bankList = [];
 
   @override
   void initState() {
@@ -81,7 +83,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
               debugPrint("👤 UserProfilePage: Config loaded: ${state.config}");
               config = state.config;
             } else {
-              debugPrint("👤 UserProfilePage: Config not loaded");
               config = null;
             }
           },

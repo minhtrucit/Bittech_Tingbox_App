@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import 'package:ting_box/ting_box.dart';
 import 'package:ting_box/models/config_model.dart';
+import 'package:ting_box/models/bank.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
@@ -21,17 +23,22 @@ class _ConfigPageState extends State<ConfigPage> {
       TextEditingController();
   final TextEditingController _accountNameController = TextEditingController();
   final TextEditingController _sepayApiKeyController = TextEditingController();
-
+  List<Bank> _bankList = [];
   bool _isApiKeyVisible = false;
   int? _selectedBankIndex;
   int _printModeGroupValue = 1; // 0: Tự động in, 1: Không in, 2: Mặc định
   late bool _isEditing;
+  bool _useConfigBankList = true;
 
   @override
   void initState() {
     super.initState();
     _isEditing = widget.config == null;
     _populateFields();
+    if (widget.config == null) {
+      _useConfigBankList = false;
+      _getBankList();
+    }
   }
 
   void _populateFields() {
@@ -56,6 +63,10 @@ class _ConfigPageState extends State<ConfigPage> {
           break;
       }
     }
+  }
+
+  void _getBankList() {
+    context.read<ConfigBloc>().add(GetBankEvent());
   }
 
   @override
@@ -125,103 +136,114 @@ class _ConfigPageState extends State<ConfigPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      backgroundColor: Colors.white,
-      appBar: AppAppBar(
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+    return BlocListener<ConfigBloc, ConfigState>(
+      listenWhen: (previous, current) => current is BankLoaded,
+      listener: (context, state) {
+        if (state is BankLoaded) {
+          _bankList = Bank.getTransferSupportedBanks(state.banks);
+          setState(() {});
+        }
+      },
+      child: AppScaffold(
+        backgroundColor: Colors.white,
+        appBar: AppAppBar(
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: TitleAppbarText(title: 'Cấu hình'),
+          centerTitle: true,
+          actions: [
+            if (!_isEditing)
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.black),
+                onPressed: () {
+                  _getBankList();
+                  setState(() {
+                    _isEditing = true;
+                    _useConfigBankList = false;
+                  });
+                },
+              ),
+          ],
         ),
-        title: TitleAppbarText(title: 'Cấu hình'),
-        centerTitle: true,
-        actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.black),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Tên đơn vị'),
-                    SizedBox(height: 8.h),
-                    _buildTextField(
-                      controller: _unitNameController,
-                      hintText: 'Nhập tên đơn vị',
-                      enabled: _isEditing,
-                    ),
-                    SizedBox(height: 24.h),
-
-                    _buildLabel('Ngân hàng'),
-                    SizedBox(height: 8.h),
-                    _buildBankGrid(),
-                    SizedBox(height: 24.h),
-
-                    _buildLabel('Số tài khoản'),
-                    SizedBox(height: 8.h),
-                    _buildTextField(
-                      controller: _accountNumberController,
-                      hintText: 'Nhập số tài khoản',
-                      keyboardType: TextInputType.number,
-                      enabled: _isEditing,
-                    ),
-                    SizedBox(height: 24.h),
-
-                    _buildLabel('Tên tài khoản'),
-                    SizedBox(height: 8.h),
-                    _buildTextField(
-                      controller: _accountNameController,
-                      hintText: 'Nhập tên tài khoản',
-                      enabled: _isEditing,
-                    ),
-                    SizedBox(height: 24.h),
-
-                    _buildLabel('Sepay API Key'),
-                    SizedBox(height: 8.h),
-                    _buildTextField(
-                      controller: _sepayApiKeyController,
-                      hintText: '....................',
-                      obscureText: !_isApiKeyVisible,
-                      enabled: _isEditing,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isApiKeyVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isApiKeyVisible = !_isApiKeyVisible;
-                          });
-                        },
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Tên đơn vị'),
+                      SizedBox(height: 8.h),
+                      _buildTextField(
+                        controller: _unitNameController,
+                        hintText: 'Nhập tên đơn vị',
+                        enabled: _isEditing,
                       ),
-                    ),
-                    SizedBox(height: 24.h),
+                      SizedBox(height: 24.h),
 
-                    _buildLabel('Chế độ in'),
-                    SizedBox(height: 8.h),
-                    _buildPrintModeSegmentedControl(),
-                    SizedBox(height: 32.h),
-                  ],
+                      _buildLabel('Ngân hàng'),
+                      SizedBox(height: 8.h),
+                      _buildBankGrid(),
+                      SizedBox(height: 24.h),
+
+                      _buildLabel('Số tài khoản'),
+                      SizedBox(height: 8.h),
+                      _buildTextField(
+                        controller: _accountNumberController,
+                        hintText: 'Nhập số tài khoản',
+                        keyboardType: TextInputType.number,
+                        enabled: _isEditing,
+                      ),
+                      SizedBox(height: 24.h),
+
+                      _buildLabel('Tên tài khoản'),
+                      SizedBox(height: 8.h),
+                      _buildTextField(
+                        controller: _accountNameController,
+                        hintText: 'Nhập tên tài khoản',
+                        enabled: _isEditing,
+                      ),
+                      SizedBox(height: 24.h),
+
+                      _buildLabel('Sepay API Key'),
+                      SizedBox(height: 8.h),
+                      _buildTextField(
+                        controller: _sepayApiKeyController,
+                        hintText: '....................',
+                        obscureText: !_isApiKeyVisible,
+                        enabled: _isEditing,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isApiKeyVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isApiKeyVisible = !_isApiKeyVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+
+                      _buildLabel('Chế độ in'),
+                      SizedBox(height: 8.h),
+                      _buildPrintModeSegmentedControl(),
+                      SizedBox(height: 32.h),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (_isEditing) _buildSaveButton(),
-          ],
+              if (_isEditing) _buildSaveButton(),
+            ],
+          ),
         ),
       ),
     );
@@ -279,6 +301,13 @@ class _ConfigPageState extends State<ConfigPage> {
   }
 
   Widget _buildBankGrid() {
+    final isUsingConfig = widget.config != null && _useConfigBankList;
+
+    final banks =
+        isUsingConfig
+            ? widget.config!.bankAccounts.map((e) => e.bank!).toList()
+            : _bankList;
+
     return AbsorbPointer(
       absorbing: !_isEditing,
       child: GridView.builder(
@@ -290,9 +319,10 @@ class _ConfigPageState extends State<ConfigPage> {
           mainAxisSpacing: 12.h,
           childAspectRatio: 1.0,
         ),
-        itemCount: 8, // Placeholder for 8 banks
+        itemCount: banks.length,
         itemBuilder: (context, index) {
           final isSelected = _selectedBankIndex == index;
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -306,12 +336,15 @@ class _ConfigPageState extends State<ConfigPage> {
                         ? Colors.blue.withValues(alpha: 0.1)
                         : Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
+                image: DecorationImage(
+                  image: NetworkImage(banks[index].logo),
+                  fit: BoxFit.contain,
+                ),
                 border: Border.all(
                   color: isSelected ? Colors.blue : Colors.grey[300]!,
                   width: isSelected ? 2 : 1,
                 ),
               ),
-              // Placeholder for bank logo
             ),
           );
         },

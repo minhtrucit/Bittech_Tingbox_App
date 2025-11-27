@@ -162,6 +162,7 @@ class ConfigBankAccount {
                 code: json['bank']['code'],
                 shortName: json['bank']['shortName'] ?? '',
                 logo: json['bank']['logo'],
+                transferSupported: json['bank']['transferSupported'] ?? 0,
               )
               : null,
     );
