@@ -10,9 +10,8 @@ final class GetConfigEvent extends ConfigEvent {
 
 final class UpdateConfigEvent extends ConfigEvent {
   final ConfigModel config;
-  final String userId;
 
-  UpdateConfigEvent({required this.config, required this.userId});
+  UpdateConfigEvent({required this.config});
 }
 
 final class GetBankEvent extends ConfigEvent {

@@ -25,14 +25,12 @@ class _ConfigPageState extends State<ConfigPage> {
   List<Bank> _bankList = [];
   bool _isApiKeyVisible = false;
   int _printModeGroupValue = 1;
-  late bool _isEditing;
+  bool _isEditing = false;
   bool isAdmin = false;
-  String userId = '';
 
   @override
   void initState() {
     super.initState();
-    _isEditing = widget.config == null;
     _populateFields();
     _getUserInfo();
     _getBankList();
@@ -45,8 +43,7 @@ class _ConfigPageState extends State<ConfigPage> {
   Future<void> _getUserInfo() async {
     final user = await UserRepository.getUser();
     setState(() {
-      isAdmin = user?.roleId == 1;
-      userId = user?.id.toString() ?? '';
+      isAdmin = user?.roleId == 1 || user?.roleId == 2;
     });
   }
 
@@ -80,46 +77,19 @@ class _ConfigPageState extends State<ConfigPage> {
       return;
     }
 
-    if (widget.config == null) {
-      // Create new config
-      final user = await UserRepository.getUser();
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy thông tin người dùng')),
-        );
-        return;
-      }
+    // Update existing config
+    final updatedConfig = ConfigModel(
+      id: widget.config!.id,
+      unitName: _unitNameController.text.trim(),
+      sepayApiKey: _sepayApiKeyController.text.trim(),
+      printMode: _getPrintModeFromValue(_printModeGroupValue),
+      createdAt: widget.config!.createdAt,
+      updatedAt: DateTime.now(),
+      configUsers: widget.config!.configUsers,
+      bankAccounts: widget.config!.bankAccounts,
+    );
 
-      final newConfig = ConfigModel(
-        unitName: _unitNameController.text.trim(),
-        sepayApiKey: _sepayApiKeyController.text.trim(),
-        printMode: _getPrintModeFromValue(_printModeGroupValue),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        configUsers: [],
-        bankAccounts: [],
-      );
-
-      if (mounted) {
-        context.read<ConfigBloc>().add(CreateConfigEvent(config: newConfig));
-      }
-    } else {
-      // Update existing config
-      final updatedConfig = ConfigModel(
-        id: widget.config!.id,
-        unitName: _unitNameController.text.trim(),
-        sepayApiKey: _sepayApiKeyController.text.trim(),
-        printMode: _getPrintModeFromValue(_printModeGroupValue),
-        createdAt: widget.config!.createdAt,
-        updatedAt: DateTime.now(),
-        configUsers: widget.config!.configUsers,
-        bankAccounts: widget.config!.bankAccounts, // Keep existing banks
-      );
-
-      context.read<ConfigBloc>().add(
-        UpdateConfigEvent(config: updatedConfig, userId: userId),
-      );
-    }
+    context.read<ConfigBloc>().add(UpdateConfigEvent(config: updatedConfig));
   }
 
   PrintMode _getPrintModeFromValue(int value) {
@@ -144,24 +114,12 @@ class _ConfigPageState extends State<ConfigPage> {
           // No setState needed as dialog uses stateful builder or reads from _bankList
         } else if (state is ConfigCreateSuccess ||
             state is ConfigUpdateSuccess) {
-          showDialog(
+          DialogUtils.showAppDialog(
+            onFirstAction: () => Navigator.pop(context),
+            firstActionText: 'Đóng',
             context: context,
-            builder:
-                (context) => AlertDialog(
-                  title: const Text('Thành công'),
-                  content: const Text('Lưu cấu hình thành công'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _isEditing = false;
-                        });
-                      },
-                      child: const Text('Đóng'),
-                    ),
-                  ],
-                ),
+            title: 'Thành công',
+            content: 'Lưu cấu hình thành công',
           );
         }
       },
@@ -240,21 +198,24 @@ class _ConfigPageState extends State<ConfigPage> {
                         SizedBox(height: 8.h),
                         _buildPrintModeSegmentedControl(),
                         SizedBox(height: 32.h),
+                        _buildLabel('Danh sách ngân hàng'),
 
                         // Existing Banks Section
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildLabel('Danh sách ngân hàng'),
-                            if (_isEditing)
-                              Flexible(
-                                child: IconButton(
-                                  onPressed: _showAddBankDialog,
-                                  icon: const Icon(Icons.add, size: 24),
-                                ),
-                              ),
-                          ],
-                        ),
+                        // Row(
+                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //   children: [
+                        //     _buildLabel('Danh sách ngân hàng'),
+                        //     if (_isEditing)
+                        //       IgnorePointer(
+                        //         child: Flexible(
+                        //           child: IconButton(
+                        //             onPressed: _showAddBankDialog,
+                        //             icon: const Icon(Icons.add, size: 24),
+                        //           ),
+                        //         ),
+                        //       ),
+                        //   ],
+                        // ),
                         SizedBox(height: 8.h),
                         _buildExistingBankList(),
                         SizedBox(height: 32.h),
@@ -289,66 +250,35 @@ class _ConfigPageState extends State<ConfigPage> {
       );
     }
 
-    return ListView.separated(
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 12.w,
+        mainAxisSpacing: 12.h,
+        childAspectRatio: 1.0,
+      ),
       itemCount: widget.config!.bankAccounts.length,
-      separatorBuilder: (context, index) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         final bankAccount = widget.config!.bankAccounts[index];
         return Container(
-          padding: EdgeInsets.all(12.w),
+          padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: Colors.grey[200]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: Row(
-            children: [
-              if (bankAccount.bank != null)
-                Container(
-                  width: 40.w,
-                  height: 40.w,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.r),
-                    image: DecorationImage(
-                      image: NetworkImage(bankAccount.bank!.logo),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      bankAccount.bank?.shortName ?? 'Ngân hàng',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '${bankAccount.accountNumber} - ${bankAccount.accountName}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          child: bankAccount.bank != null
+              ? Image.network(bankAccount.bank!.logo, fit: BoxFit.contain)
+              : const Icon(Icons.account_balance, color: Colors.grey),
         );
       },
     );

@@ -30,7 +30,7 @@ class ConfigService {
 
   Future<ConfigModel?> getConfig(String userId) async {
     try {
-      final response = await api.get('configs/$userId');
+      final response = await api.get('configs/user/$userId');
 
       if (response.statusCode == 200) {
         final data =
@@ -54,27 +54,6 @@ class ConfigService {
     return null;
   }
 
-  Future<Map<String, dynamic>> saveConfig(ConfigModel config) async {
-    try {
-      final response = await api.put(
-        'configs',
-        data: jsonEncode(config.toJson()),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data =
-            response.data is String ? jsonDecode(response.data) : response.data;
-        return data;
-      } else {
-        debugPrint('Failed to save config: ${response.statusCode}');
-        debugPrint('Body: ${response.data}');
-        throw Exception(response.data['message'] ?? 'Failed to save config');
-      }
-    } catch (e) {
-      debugPrint('Error saving config: ${e.toString()}');
-      throw Exception(e.toString());
-    }
-  }
 
   Future<Map<String, dynamic>> createConfig(ConfigModel config) async {
     try {
