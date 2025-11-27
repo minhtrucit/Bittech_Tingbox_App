@@ -56,7 +56,10 @@ class ConfigService {
 
   Future<Map<String, dynamic>> saveConfig(ConfigModel config) async {
     try {
-      final response = await api.post('', data: jsonEncode(config.toJson()));
+      final response = await api.put(
+        'configs',
+        data: jsonEncode(config.toJson()),
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data =
@@ -69,6 +72,88 @@ class ConfigService {
       }
     } catch (e) {
       debugPrint('Error saving config: ${e.toString()}');
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> createConfig(ConfigModel config) async {
+    try {
+      final response = await api.post('configs', data: config.toJson());
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        return data;
+      } else {
+        debugPrint('Failed to create config: ${response.statusCode}');
+        debugPrint('Body: ${response.data}');
+        throw Exception(response.data['message'] ?? 'Failed to create config');
+      }
+    } catch (e) {
+      debugPrint('Error creating config: ${e.toString()}');
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> updateConfig(ConfigModel config) async {
+    try {
+      final response = await api.put(
+        'configs/${config.id}',
+        data: config.toJson(),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        return data;
+      } else {
+        debugPrint('Failed to update config: ${response.statusCode}');
+        debugPrint('Body: ${response.data}');
+        throw Exception(response.data['message'] ?? 'Failed to update config');
+      }
+    } catch (e) {
+      debugPrint('Error updating config: ${e.toString()}');
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> createOrUpdateBankAccount({
+    required int configId,
+    required int bankId,
+    required String accountNumber,
+    required String accountName,
+    bool isDefault = true,
+    bool isActive = true,
+  }) async {
+    try {
+      final body = {
+        'configId': configId,
+        'bankId': bankId,
+        'accountNumber': accountNumber,
+        'accountName': accountName,
+        'isDefault': isDefault ? 1 : 0,
+        'isActive': isActive ? 1 : 0,
+      };
+
+      debugPrint('[ConfigService] Creating/Updating bank account: $body');
+
+      final response = await api.post('config-bank-accounts', data: body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        return data;
+      } else {
+        debugPrint(
+          'Failed to create/update bank account: ${response.statusCode}',
+        );
+        debugPrint('Body: ${response.data}');
+        throw Exception(
+          response.data['message'] ?? 'Failed to create/update bank account',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error creating/updating bank account: ${e.toString()}');
       throw Exception(e.toString());
     }
   }

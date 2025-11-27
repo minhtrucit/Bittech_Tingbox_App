@@ -64,9 +64,6 @@ class _HomePageState extends State<HomePage>
 
         if (state is OrderFailure) {
           setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Lỗi tải dữ liệu thống kê")),
-          );
         }
       },
       child: AppScaffold(

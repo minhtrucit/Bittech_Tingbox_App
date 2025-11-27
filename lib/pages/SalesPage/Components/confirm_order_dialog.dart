@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
+// ignore: constant_identifier_names
 enum PaymentMethod { BANK_TRANSFER, CASH }
 
 class ConfirmOrderDialog extends StatefulWidget {

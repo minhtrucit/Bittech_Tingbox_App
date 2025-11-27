@@ -60,8 +60,7 @@ class ConfigModel {
       'printMode': printMode.name.toUpperCase(),
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'configUsers': configUsers.map((e) => e.toJson()).toList(),
-      'bankAccounts': bankAccounts.map((e) => e.toJson()).toList(),
+      // Don't send bankAccounts and configUsers - they are handled separately
     };
   }
 }
@@ -111,7 +110,7 @@ class ConfigUser {
       'isActive': isActive,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'user': user?.toJson(),
+      // Don't send nested user object to API
     };
   }
 }
@@ -179,7 +178,7 @@ class ConfigBankAccount {
       'isActive': isActive,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'bank': bank?.toJson(),
+      // Don't send nested bank object to API
     };
   }
 }

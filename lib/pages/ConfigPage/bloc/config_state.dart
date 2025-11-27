@@ -20,10 +20,16 @@ final class ConfigFailure extends ConfigState {
   ConfigFailure({required this.message});
 }
 
-final class ConfigSaveSuccess extends ConfigState {
+final class ConfigUpdateSuccess extends ConfigState {
   final ConfigModel config;
   final String message;
-  ConfigSaveSuccess({required this.config, required this.message});
+  ConfigUpdateSuccess({required this.config, required this.message});
+}
+
+final class ConfigCreateSuccess extends ConfigState {
+  final ConfigModel config;
+  final String message;
+  ConfigCreateSuccess({required this.config, required this.message});
 }
 
 final class BankLoaded extends ConfigState {
@@ -32,3 +38,8 @@ final class BankLoaded extends ConfigState {
   BankLoaded({required this.banks});
 }
 
+final class BankAccountSuccess extends ConfigState {
+  final String message;
+
+  BankAccountSuccess({required this.message});
+}
