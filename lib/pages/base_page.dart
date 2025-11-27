@@ -15,7 +15,8 @@ class _BasePageState extends State<BasePage> {
   void initState() {
     final productBloc = BlocProvider.of<ProductBloc>(context);
 
-    productBloc.add(LoadCategoriesEvent());
+    productBloc.add(GetProductsEvent());
+
 
     final userProfileBloc = BlocProvider.of<UserProfileBloc>(context);
     userProfileBloc.add(GetUserEvent(userId: UserRepository.keyUserId));
