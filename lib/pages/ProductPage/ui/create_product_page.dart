@@ -419,6 +419,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
         _buildTitle("Giá tiền"),
         _buildInput(
           hint: "0đ",
+
           keyboard: TextInputType.number,
           controller: priceCtrl,
           isCurrency: true,

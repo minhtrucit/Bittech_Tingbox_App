@@ -115,25 +115,27 @@ class _ProductsListPageState extends State<ProductsListPage> {
                         child: BlocBuilder<ProductBloc, ProductState>(
                           builder: (context, state) {
                             // Show skeleton when loading or searching
-                            if (state is ProductLoading || isSearching ||state is ProductUpdateSuccess ||
-                                state is ProductCreateSuccess ) {
+                            if (state is ProductLoading ||
+                                isSearching ||
+                                state is ProductUpdateSuccess ||
+                                state is ProductCreateSuccess) {
                               return const ProductsListSkeleton();
                             }
 
-                                if (state is ProductLoadProductsSuccess) {
-                                  final filteredProducts = _filterProducts(
-                                    state.products,
-                                  );
+                            if (state is ProductLoadProductsSuccess) {
+                              final filteredProducts = _filterProducts(
+                                state.products,
+                              );
 
-                                  return filteredProducts.isEmpty
-                                      ? _buildEmptyState()
-                                      : _buildProductGrid(filteredProducts);
-                                }
+                              return filteredProducts.isEmpty
+                                  ? _buildEmptyState()
+                                  : _buildProductGrid(filteredProducts);
+                            }
 
-                                return _buildEmptyState();
-                              },
-                            ),
-                  ),
+                            return _buildEmptyState();
+                          },
+                        ),
+                      ),
                 ],
               ),
               _buildAddButton(context),
@@ -380,20 +382,19 @@ class _ProductsListPageState extends State<ProductsListPage> {
   Widget _buildAddButton(BuildContext context) {
     return Positioned(
       right: 16.w,
-      bottom: 100.h,
-      child: FloatingActionButton.extended(
+      bottom: 80.h,
+      child: IconButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CreateProductPage()),
           );
         },
-        backgroundColor: AppColors.primaryBlue,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Thêm',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          padding: EdgeInsets.all(16.r),
         ),
+        icon: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
