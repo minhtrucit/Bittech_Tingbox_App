@@ -1,10 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/models/bank.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 
+import '../../../models/config_model.dart';
 import '../../../ting_box.dart';
+import '../../ConfigPage/bloc/config_state.dart';
 import 'user_profile_skeleton.dart';
+import '../../ConfigPage/ui/config_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -14,6 +21,9 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
+  ConfigModel? config;
+  List<Bank> bankList = [];
+
   @override
   void initState() {
     super.initState();
@@ -33,8 +43,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
       final userId = prefs.getString(UserRepository.keyUserId);
       debugPrint("👤 UserProfilePage: userId from prefs: $userId");
 
-      if (userId != null && mounted) {
-        context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
+      if (userId != null) {
+        if (mounted) {
+          context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
+          context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
+        }
       } else {
         debugPrint("⚠️ UserProfilePage: userId is null");
       }
@@ -65,6 +78,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
             }
           },
         ),
+        BlocListener<ConfigBloc, ConfigState>(
+          listener: (context, state) {
+            debugPrint("👤 UserProfilePage: Config state: $state");
+            if (state is ConfigLoaded) {
+              debugPrint("👤 UserProfilePage: Config loaded: ${state.config}");
+              config = state.config;
+            } else {
+              config = null;
+            }
+          },
+        ),
       ],
       child: BlocBuilder<UserProfileBloc, UserProfileState>(
         builder: (context, state) {
@@ -85,10 +109,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: Column(
                       children: [
                         _buildUserInfoSection(user),
-                        const SizedBox(height: 16),
                         _buildInfoCard(user),
                         const Spacer(),
-                        const SizedBox(height: 64),
+                        SizedBox(height: 40.h),
                         _buildLogoutButton(context),
                         const Spacer(),
                       ],
@@ -183,6 +206,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
             icon: Icons.phone_in_talk_rounded,
             title: "Số điện thoại",
             subtitle: user.phone,
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.settings,
+              title: "Cấu hình",
+              subtitle: "Thiết lập máy in, ngân hàng...",
+            ),
           ),
         ],
       ),

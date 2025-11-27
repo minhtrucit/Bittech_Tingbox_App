@@ -64,9 +64,6 @@ class _HomePageState extends State<HomePage>
 
         if (state is OrderFailure) {
           setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Lỗi tải dữ liệu thống kê")),
-          );
         }
       },
       child: AppScaffold(
@@ -108,10 +105,17 @@ class _HomePageState extends State<HomePage>
                   const Text("Không có dữ liệu"),
                   SizedBox(height: 16.h),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: () {
                       context.read<OrderBloc>().add(OrderGetStatisticsEvent());
                     },
-                    child: const Text("Tải lại"),
+                    child: const Text(
+                      "Tải lại",
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
                 ],
               ),
@@ -251,7 +255,7 @@ class _HomePageState extends State<HomePage>
         SizedBox(height: 12.h),
 
         // Danh sách đơn hàng gần đây
-        ...statistic.recentOrders.map(_buildTransactionItem).toList(),
+        ...statistic.recentOrders.map(_buildTransactionItem),
       ],
     );
   }

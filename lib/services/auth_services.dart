@@ -19,7 +19,7 @@ class AuthService {
       final resp = await api.post(
         '/auth/login',
         data: {'phone': phone, 'password': password},
-      );
+      ).timeout(const Duration(seconds: 15));
       debugPrint(
         'API Response status: ${resp.statusCode} - ${resp.data['statusCode']}',
       );

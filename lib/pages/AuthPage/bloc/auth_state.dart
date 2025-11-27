@@ -20,3 +20,4 @@ final class AuthLogoutSuccess extends AuthState {
   final bool success;
   AuthLogoutSuccess({required this.success});
 }
+

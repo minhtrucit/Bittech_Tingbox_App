@@ -4,9 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
+import 'package:ting_box/services/config_service.dart';
 import 'package:ting_box/services/order_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
 import 'package:ting_box/ting_box.dart';
@@ -34,6 +36,7 @@ void main() async {
   );
   final userService = UserService(api: apiService);
   final orderService = OrderService(api: apiService);
+  final configService = ConfigService(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
@@ -68,6 +71,9 @@ void main() async {
         ),
         BlocProvider<UserProfileBloc>(
           create: (_) => UserProfileBloc(userService: userService),
+        ),
+        BlocProvider<ConfigBloc>(
+          create: (_) => ConfigBloc(configService: configService),
         ),
       ],
       child: const MyApp(),

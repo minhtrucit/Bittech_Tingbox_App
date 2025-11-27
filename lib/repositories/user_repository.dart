@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 
@@ -21,7 +22,7 @@ class UserRepository {
       await prefs.setString(keyRefreshToken, user.refreshToken);
     } catch (e, st) {
       // log error, but don't throw to UI (optionally rethrow)
-      print('UserRepository.saveUser error: $e\n$st');
+      debugPrint('UserRepository.saveUser error: $e\n$st');
       rethrow;
     }
   }
@@ -34,7 +35,7 @@ class UserRepository {
       final Map<String, dynamic> json = jsonDecode(raw);
       return User.fromJson(json);
     } catch (e, st) {
-      print('UserRepository.getUser error: $e\n$st');
+      debugPrint('UserRepository.getUser error: $e\n$st');
       return null;
     }
   }
@@ -44,7 +45,7 @@ class UserRepository {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(keyToken);
     } catch (e, st) {
-      print('UserRepository.getToken error: $e\n$st');
+      debugPrint('UserRepository.getToken error: $e\n$st');
       return null;
     }
   }
@@ -53,8 +54,9 @@ class UserRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(keyToken);
+      await prefs.remove('sepay_url');
     } catch (e, st) {
-      print('UserRepository.clear error: $e\n$st');
+      debugPrint('UserRepository.clear error: $e\n$st');
     }
   }
 

@@ -79,4 +79,5 @@ class CameraUtils {
     }
     return 0;
   }
+  
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 extension DateTimeFormatter on String {
@@ -8,7 +9,7 @@ extension DateTimeFormatter on String {
       final formatter = DateFormat('HH:mm:ss dd-MM-yyyy');
       return formatter.format(dateTime);
     } catch (e) {
-      print('Error formatting date: $e');
+      debugPrint('Error formatting date: $e');
       return this; // trả về nguyên chuỗi nếu parse lỗi
     }
   }
