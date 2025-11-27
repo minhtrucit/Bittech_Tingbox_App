@@ -9,17 +9,22 @@ class ConfigService {
 
   ConfigService({required this.api});
 
-  Future<ConfigModel?> getConfig(int userId) async {
+  Future<ConfigModel?> getConfig(String userId) async {
     try {
-      final response = await api.get(
-        'configs/$userId',
-       
-      );
+      final response = await api.get('configs/$userId');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.data);
-        if (data['status'] == 'success' && data['data'] != null) {
-          return ConfigModel.fromJson(data['data']);
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+
+        if (data['status'] == 'success' && data != null) {
+          if (data['data'] is List && (data['data'] as List).isNotEmpty) {
+            final config = ConfigModel.fromJson(data['data'][0]);
+            debugPrint('Config: ${config.toJson()}');
+            return config;
+          } else if (data['data'] is Map<String, dynamic>) {
+            return ConfigModel.fromJson(data['data']);
+          }
         }
       } else {
         debugPrint('Failed to load config: ${response.statusCode}');
@@ -32,13 +37,11 @@ class ConfigService {
 
   Future<Map<String, dynamic>> saveConfig(ConfigModel config) async {
     try {
-      final response = await api.post(
-        '',
-        data: jsonEncode(config.toJson()),
-      );
+      final response = await api.post('', data: jsonEncode(config.toJson()));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.data);
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
         return data;
       } else {
         debugPrint('Failed to save config: ${response.statusCode}');
@@ -49,6 +52,5 @@ class ConfigService {
       debugPrint('Error saving config: ${e.toString()}');
       throw Exception(e.toString());
     }
-    
   }
 }

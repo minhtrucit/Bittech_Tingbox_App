@@ -2,9 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/ting_box.dart';
+import 'package:ting_box/models/config_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 
 class ConfigPage extends StatefulWidget {
-  const ConfigPage({super.key});
+  const ConfigPage({super.key, this.config});
+  final ConfigModel? config;
 
   @override
   State<ConfigPage> createState() => _ConfigPageState();
@@ -20,6 +25,38 @@ class _ConfigPageState extends State<ConfigPage> {
   bool _isApiKeyVisible = false;
   int? _selectedBankIndex;
   int _printModeGroupValue = 1; // 0: Tự động in, 1: Không in, 2: Mặc định
+  late bool _isEditing;
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditing = widget.config == null;
+    _populateFields();
+  }
+
+  void _populateFields() {
+    if (widget.config != null) {
+      if (widget.config!.bankAccounts.isNotEmpty) {
+        final bankAccount = widget.config!.bankAccounts.first;
+        _accountNumberController.text = bankAccount.accountNumber;
+        _accountNameController.text = bankAccount.accountName;
+        // Note: Bank selection logic is limited as we don't have the full bank list here.
+        // We might need to fetch banks or just show the current one.
+      }
+
+      switch (widget.config!.printMode) {
+        case PrintMode.auto:
+          _printModeGroupValue = 0;
+          break;
+        case PrintMode.none:
+          _printModeGroupValue = 1;
+          break;
+        case PrintMode.manual:
+          _printModeGroupValue = 2;
+          break;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -28,6 +65,62 @@ class _ConfigPageState extends State<ConfigPage> {
     _accountNameController.dispose();
     _sepayApiKeyController.dispose();
     super.dispose();
+  }
+
+  void _onSave() {
+    if (widget.config == null) return;
+
+    final updatedConfig = ConfigModel(
+      id: widget.config!.id,
+      unitName: _unitNameController.text,
+      sepayApiKey: _sepayApiKeyController.text,
+      printMode: _getPrintModeFromValue(_printModeGroupValue),
+      createdAt: widget.config!.createdAt,
+      updatedAt: DateTime.now(),
+      configUsers: widget.config!.configUsers,
+      bankAccounts: _updateBankAccounts(widget.config!.bankAccounts),
+    );
+
+    context.read<ConfigBloc>().add(SaveConfigEvent(config: updatedConfig));
+    setState(() {
+      _isEditing = false;
+    });
+  }
+
+  List<ConfigBankAccount> _updateBankAccounts(
+    List<ConfigBankAccount> currentAccounts,
+  ) {
+    if (currentAccounts.isEmpty) {
+      return [];
+    }
+    final first = currentAccounts.first;
+    final updatedFirst = ConfigBankAccount(
+      id: first.id,
+      configId: first.configId,
+      bankId: first.bankId,
+      accountNumber: _accountNumberController.text,
+      accountName: _accountNameController.text,
+      isDefault: first.isDefault,
+      isActive: first.isActive,
+      createdAt: first.createdAt,
+      updatedAt: DateTime.now(),
+      bank: first.bank,
+    );
+
+    return [updatedFirst, ...currentAccounts.skip(1)];
+  }
+
+  PrintMode _getPrintModeFromValue(int value) {
+    switch (value) {
+      case 0:
+        return PrintMode.auto;
+      case 1:
+        return PrintMode.none;
+      case 2:
+        return PrintMode.manual;
+      default:
+        return PrintMode.none;
+    }
   }
 
   @override
@@ -42,6 +135,17 @@ class _ConfigPageState extends State<ConfigPage> {
         ),
         title: TitleAppbarText(title: 'Cấu hình'),
         centerTitle: true,
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.black),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
+              },
+            ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -57,37 +161,41 @@ class _ConfigPageState extends State<ConfigPage> {
                     _buildTextField(
                       controller: _unitNameController,
                       hintText: 'Nhập tên đơn vị',
+                      enabled: _isEditing,
                     ),
                     SizedBox(height: 24.h),
-        
+
                     _buildLabel('Ngân hàng'),
                     SizedBox(height: 8.h),
                     _buildBankGrid(),
                     SizedBox(height: 24.h),
-        
+
                     _buildLabel('Số tài khoản'),
                     SizedBox(height: 8.h),
                     _buildTextField(
                       controller: _accountNumberController,
                       hintText: 'Nhập số tài khoản',
                       keyboardType: TextInputType.number,
+                      enabled: _isEditing,
                     ),
                     SizedBox(height: 24.h),
-        
+
                     _buildLabel('Tên tài khoản'),
                     SizedBox(height: 8.h),
                     _buildTextField(
                       controller: _accountNameController,
                       hintText: 'Nhập tên tài khoản',
+                      enabled: _isEditing,
                     ),
                     SizedBox(height: 24.h),
-        
+
                     _buildLabel('Sepay API Key'),
                     SizedBox(height: 8.h),
                     _buildTextField(
                       controller: _sepayApiKeyController,
                       hintText: '....................',
                       obscureText: !_isApiKeyVisible,
+                      enabled: _isEditing,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isApiKeyVisible
@@ -103,7 +211,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       ),
                     ),
                     SizedBox(height: 24.h),
-        
+
                     _buildLabel('Chế độ in'),
                     SizedBox(height: 8.h),
                     _buildPrintModeSegmentedControl(),
@@ -112,7 +220,7 @@ class _ConfigPageState extends State<ConfigPage> {
                 ),
               ),
             ),
-            _buildSaveButton(),
+            if (_isEditing) _buildSaveButton(),
           ],
         ),
       ),
@@ -136,11 +244,13 @@ class _ConfigPageState extends State<ConfigPage> {
     bool obscureText = false,
     Widget? suffixIcon,
     TextInputType? keyboardType,
+    bool enabled = true,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      enabled: enabled,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14.sp),
@@ -157,95 +267,110 @@ class _ConfigPageState extends State<ConfigPage> {
           borderRadius: BorderRadius.circular(12.r),
           borderSide: const BorderSide(color: Colors.blue),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        filled: !enabled,
+        fillColor: !enabled ? Colors.grey[100] : null,
         suffixIcon: suffixIcon,
       ),
     );
   }
 
   Widget _buildBankGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 12.w,
-        mainAxisSpacing: 12.h,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: 8, // Placeholder for 8 banks
-      itemBuilder: (context, index) {
-        final isSelected = _selectedBankIndex == index;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedBankIndex = index;
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: isSelected ? Colors.blue : Colors.grey[300]!,
-                width: isSelected ? 2 : 1,
+    return AbsorbPointer(
+      absorbing: !_isEditing,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 12.w,
+          mainAxisSpacing: 12.h,
+          childAspectRatio: 1.0,
+        ),
+        itemCount: 8, // Placeholder for 8 banks
+        itemBuilder: (context, index) {
+          final isSelected = _selectedBankIndex == index;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedBankIndex = index;
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? Colors.blue.withValues(alpha: 0.1)
+                        : Colors.white,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: isSelected ? Colors.blue : Colors.grey[300]!,
+                  width: isSelected ? 2 : 1,
+                ),
               ),
+              // Placeholder for bank logo
             ),
-            // Placeholder for bank logo
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildPrintModeSegmentedControl() {
-    return SizedBox(
-      width: double.infinity,
-      child: CupertinoSlidingSegmentedControl<int>(
-        groupValue: _printModeGroupValue,
-        children: {
-          0: Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            child: Text(
-              'Tự động in',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color:
-                    _printModeGroupValue == 0 ? Colors.white : Colors.black54,
+    return AbsorbPointer(
+      absorbing: !_isEditing,
+      child: SizedBox(
+        width: double.infinity,
+        child: CupertinoSlidingSegmentedControl<int>(
+          groupValue: _printModeGroupValue,
+          children: {
+            0: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Text(
+                'Tự động in',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color:
+                      _printModeGroupValue == 0 ? Colors.white : Colors.black54,
+                ),
               ),
             ),
-          ),
-          1: Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            child: Text(
-              'Không in',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color:
-                    _printModeGroupValue == 1 ? Colors.white : Colors.black54,
+            1: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Text(
+                'Không in',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color:
+                      _printModeGroupValue == 1 ? Colors.white : Colors.black54,
+                ),
               ),
             ),
-          ),
-          2: Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            child: Text(
-              'Mặc định',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color:
-                    _printModeGroupValue == 2 ? Colors.white : Colors.black54,
+            2: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Text(
+                'Mặc định',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color:
+                      _printModeGroupValue == 2 ? Colors.white : Colors.black54,
+                ),
               ),
             ),
-          ),
-        },
-        onValueChanged: (int? value) {
-          if (value != null) {
-            setState(() {
-              _printModeGroupValue = value;
-            });
-          }
-        },
-        thumbColor: Colors.blue,
-        backgroundColor: Colors.grey[100]!,
+          },
+          onValueChanged: (int? value) {
+            if (value != null) {
+              setState(() {
+                _printModeGroupValue = value;
+              });
+            }
+          },
+          thumbColor: _isEditing ? Colors.blue : Colors.grey,
+          backgroundColor: Colors.grey[100]!,
+        ),
       ),
     );
   }
@@ -261,9 +386,7 @@ class _ConfigPageState extends State<ConfigPage> {
         width: double.infinity,
         height: 50.h,
         child: ElevatedButton(
-          onPressed: () {
-            // TODO: Implement save logic
-          },
+          onPressed: _onSave,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             shape: RoundedRectangleBorder(

@@ -44,7 +44,7 @@ class ProductApiService {
 
       if (response.statusCode == 200) {
         final data = response.data['data'];
-        debugPrint('API response Get Categories: ${data}');
+        debugPrint('API response Get Categories: $data');
 
         return data; // JSON product
       } else {

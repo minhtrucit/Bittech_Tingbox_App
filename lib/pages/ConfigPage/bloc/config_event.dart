@@ -3,7 +3,7 @@ import 'package:ting_box/models/config_model.dart';
 sealed class ConfigEvent {}
 
 final class GetConfigEvent extends ConfigEvent {
-  final int userId;
+  final String userId;
 
   GetConfigEvent({required this.userId});
 }

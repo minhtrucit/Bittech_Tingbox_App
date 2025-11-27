@@ -5,41 +5,30 @@ enum PrintMode { none, auto, manual }
 
 class ConfigModel {
   final int? id;
-  final int userId;
   final String? unitName;
-  final String bankAccount;
-  final String accountName;
-  final String sepayApiKey;
-  final PrintMode printMode; // 0: KHONG_IN, 1: TU_DONG
+  final String? sepayApiKey;
+  final PrintMode printMode;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final User? user;
-  final int bankId;
-  final Bank? bank;
+  final List<ConfigUser> configUsers;
+  final List<ConfigBankAccount> bankAccounts;
 
   ConfigModel({
     this.id,
-    required this.userId,
     this.unitName,
-    required this.bankAccount,
-    required this.accountName,
-    required this.sepayApiKey,
+    this.sepayApiKey,
     required this.printMode,
     this.createdAt,
     this.updatedAt,
-    this.user,
-    required this.bankId,
-    this.bank,
+    this.configUsers = const [],
+    this.bankAccounts = const [],
   });
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     return ConfigModel(
       id: json['id'],
-      userId: json['userId'] ?? 0,
-      unitName: json['unitName']?.toString() ?? '',
-      bankAccount: json['bankAccount']?.toString() ?? '',
-      accountName: json['accountName']?.toString() ?? '',
-      sepayApiKey: json['sepayApiKey']?.toString() ?? '',
+      unitName: json['unitName']?.toString(),
+      sepayApiKey: json['sepayApiKey']?.toString(),
       printMode: PrintMode.values.firstWhere(
         (e) =>
             e.name.toUpperCase() ==
@@ -50,24 +39,146 @@ class ConfigModel {
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt:
           json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      user: json['user'] != null ? User.fromJson(json['user']) : null,
-      bankId: json['bankId'] ?? 0,
-      bank: json['bank'] != null ? Bank.fromJson(json['bank']) : null,
+      configUsers:
+          (json['configUsers'] as List<dynamic>?)
+              ?.map((e) => ConfigUser.fromJson(e))
+              .toList() ??
+          [],
+      bankAccounts:
+          (json['bankAccounts'] as List<dynamic>?)
+              ?.map((e) => ConfigBankAccount.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'userId': userId,
+      'id': id,
       'unitName': unitName,
-      'bankAccount': bankAccount,
-      'accountName': accountName,
       'sepayApiKey': sepayApiKey,
       'printMode': printMode.name.toUpperCase(),
-      'bankId': bankId,
-      'bank': bank?.toJson(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'configUsers': configUsers.map((e) => e.toJson()).toList(),
+      'bankAccounts': bankAccounts.map((e) => e.toJson()).toList(),
     };
   }
 }
 
+class ConfigUser {
+  final int id;
+  final int configId;
+  final int userId;
+  final String role;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final User? user;
 
+  ConfigUser({
+    required this.id,
+    required this.configId,
+    required this.userId,
+    required this.role,
+    required this.isActive,
+    this.createdAt,
+    this.updatedAt,
+    this.user,
+  });
+
+  factory ConfigUser.fromJson(Map<String, dynamic> json) {
+    return ConfigUser(
+      id: json['id'] ?? 0,
+      configId: json['configId'] ?? 0,
+      userId: json['userId'] ?? 0,
+      role: json['role'] ?? '',
+      isActive: json['isActive'] ?? false,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      user: json['user'] != null ? User.fromJson(json['user']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'configId': configId,
+      'userId': userId,
+      'role': role,
+      'isActive': isActive,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user': user?.toJson(),
+    };
+  }
+}
+
+class ConfigBankAccount {
+  final int id;
+  final int configId;
+  final int bankId;
+  final String accountNumber;
+  final String accountName;
+  final bool isDefault;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final Bank? bank;
+
+  ConfigBankAccount({
+    required this.id,
+    required this.configId,
+    required this.bankId,
+    required this.accountNumber,
+    required this.accountName,
+    required this.isDefault,
+    required this.isActive,
+    this.createdAt,
+    this.updatedAt,
+    this.bank,
+  });
+
+  factory ConfigBankAccount.fromJson(Map<String, dynamic> json) {
+    return ConfigBankAccount(
+      id: json['id'] ?? 0,
+      configId: json['configId'] ?? 0,
+      bankId: json['bankId'] ?? 0,
+      accountNumber: json['accountNumber'] ?? '',
+      accountName: json['accountName'] ?? '',
+      isDefault: json['isDefault'] ?? false,
+      isActive: json['isActive'] ?? false,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      bank:
+          json['bank'] != null
+              ? Bank(
+                id: json['bank']['id'],
+                name: json['bank']['name'],
+                code: json['bank']['code'],
+                shortName: json['bank']['shortName'] ?? '',
+                logo: json['bank']['logo'],
+              )
+              : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'configId': configId,
+      'bankId': bankId,
+      'accountNumber': accountNumber,
+      'accountName': accountName,
+      'isDefault': isDefault,
+      'isActive': isActive,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'bank': bank?.toJson(),
+    };
+  }
+}

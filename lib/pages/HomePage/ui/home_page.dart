@@ -79,48 +79,52 @@ class _HomePageState extends State<HomePage>
               return const HomeSkeleton();
             }
 
-          if (statistic != null && revenue != null) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: 64.h),
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildRevenueSection(revenue!),
-                      SizedBox(height: 20.h),
-                      _buildExpenseSection(),
-                      SizedBox(height: 20.h),
-                      _buildRecentTransactionsSection(statistic!),
-                    ],
+            if (statistic != null && revenue != null) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 64.h),
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    physics: BouncingScrollPhysics(),
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRevenueSection(revenue!),
+                        SizedBox(height: 20.h),
+                        _buildExpenseSection(),
+                        SizedBox(height: 20.h),
+                        _buildRecentTransactionsSection(statistic!),
+                      ],
+                    ),
                   ),
                 ),
+              );
+            }
+
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Không có dữ liệu"),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+                    },
+                    child: const Text(
+                      "Tải lại",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ],
               ),
             );
-          }
-
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Không có dữ liệu"),
-                SizedBox(height: 16.h),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
-                  },
-                  child: const Text("Tải lại", style: TextStyle(fontSize: 16)),
-                ),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

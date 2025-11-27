@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 
+import '../../../models/config_model.dart';
 import '../../../ting_box.dart';
+import '../../ConfigPage/bloc/config_state.dart';
 import 'user_profile_skeleton.dart';
 import '../../ConfigPage/ui/config_page.dart';
 
@@ -16,6 +20,8 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
+  ConfigModel? config;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +43,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
       if (userId != null && mounted) {
         context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
+        context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
       } else {
         debugPrint("⚠️ UserProfilePage: userId is null");
       }
@@ -64,6 +71,18 @@ class _UserProfilePageState extends State<UserProfilePage> {
               setState(() => _isLoadingOverlay = true);
             } else {
               setState(() => _isLoadingOverlay = false);
+            }
+          },
+        ),
+        BlocListener<ConfigBloc, ConfigState>(
+          listener: (context, state) {
+            debugPrint("👤 UserProfilePage: Config state: $state");
+            if (state is ConfigLoaded) {
+              debugPrint("👤 UserProfilePage: Config loaded: ${state.config}");
+              config = state.config;
+            } else {
+              debugPrint("👤 UserProfilePage: Config not loaded");
+              config = null;
             }
           },
         ),
@@ -190,7 +209,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ConfigPage()),
+                MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
               );
             },
             child: _buildInfoTile(

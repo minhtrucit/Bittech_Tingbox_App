@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/services/config_service.dart';
 import 'config_event.dart';
@@ -19,6 +20,7 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
     try {
       final config = await configService.getConfig(event.userId);
       if (config != null) {
+        debugPrint('[ConfigBloc] Config: ${config.toJson()}');
         emit(ConfigLoaded(config: config));
       } else {
         // If no config found, maybe emit initial or empty loaded state?
@@ -42,7 +44,13 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
           ConfigSaveSuccess(config: event.config, message: result['message']),
         );
         // Optionally reload config after save
-        add(GetConfigEvent(userId: event.config.userId));
+        if (event.config.configUsers.isNotEmpty) {
+          add(
+            GetConfigEvent(
+              userId: event.config.configUsers.first.userId.toString(),
+            ),
+          );
+        }
       } else {
         emit(ConfigFailure(message: result['message']));
       }
