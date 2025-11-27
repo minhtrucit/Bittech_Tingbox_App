@@ -4,11 +4,14 @@ import 'package:ting_box/models/config_model.dart';
 import 'package:ting_box/models/bank.dart';
 
 import 'api_services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConfigService {
   final ApiService api;
 
   ConfigService({required this.api});
+
+  static const String _keySepayUrl = 'sepay_url';
 
   Future<List<Bank>> getBanks() async {
     try {
@@ -26,6 +29,43 @@ class ConfigService {
       debugPrint('Error loading banks: $e');
     }
     return [];
+  }
+
+  Future<void> saveSepayUrl(String url) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySepayUrl, url);
+    } catch (e) {
+      debugPrint('Error saving sepay url: $e');
+    }
+  }
+
+  Future<String?> getSepayUrlFromLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keySepayUrl);
+    } catch (e) {
+      debugPrint('Error getting sepay url from local: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> getSepayInfo() async {
+    try {
+      final response = await api.get('configs/url-sepay');
+      if (response.statusCode == 200) {
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        final url = data['data']['url'];
+        if (url != null) {
+          await saveSepayUrl(url);
+        }
+        return data['data'];
+      }
+      throw Exception('Error getting sepay info: ${response.data['message']}');
+    } catch (e) {
+      throw Exception('Error getting sepay info: ${e.toString()}');
+    }
   }
 
   Future<ConfigModel?> getConfig(String userId) async {
@@ -53,7 +93,6 @@ class ConfigService {
     }
     return null;
   }
-
 
   Future<Map<String, dynamic>> createConfig(ConfigModel config) async {
     try {

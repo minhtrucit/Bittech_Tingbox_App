@@ -21,6 +21,14 @@ final class GetBankEvent extends ConfigEvent {
   GetBankEvent();
 }
 
+final class GetSepayInfoEvent extends ConfigEvent {
+  GetSepayInfoEvent();
+}
+
+final class LoadSepayInfoFromLocalEvent extends ConfigEvent {
+  LoadSepayInfoFromLocalEvent();
+}
+
 final class CreateConfigEvent extends ConfigEvent {
   final ConfigModel config;
 

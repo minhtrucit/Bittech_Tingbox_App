@@ -14,6 +14,38 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
     on<CreateConfigEvent>(_onCreateConfig);
     on<GetBankEvent>(_onGetBank);
     on<CreateOrUpdateBankAccountEvent>(_onCreateOrUpdateBankAccount);
+    on<GetSepayInfoEvent>(_onGetSepayInfo);
+    on<LoadSepayInfoFromLocalEvent>(_onLoadSepayInfoFromLocal);
+  }
+
+  Future<void> _onLoadSepayInfoFromLocal(
+    LoadSepayInfoFromLocalEvent event,
+    Emitter<ConfigState> emit,
+  ) async {
+    try {
+      final url = await configService.getSepayUrlFromLocal();
+      if (url != null && url.isNotEmpty) {
+        emit(SepayInfoLoaded(url: url));
+      }
+    } catch (e) {
+      debugPrint('Error loading sepay info from local: $e');
+    }
+  }
+
+  Future<void> _onGetSepayInfo(
+    GetSepayInfoEvent event,
+    Emitter<ConfigState> emit,
+  ) async {
+    try {
+      final data = await configService.getSepayInfo();
+      if (data.isNotEmpty) {
+        emit(SepayInfoLoaded(url: data['url'] ?? ''));
+      } else {
+        emit(ConfigFailure(message: 'Không lấy được thông tin Sepay'));
+      }
+    } catch (e) {
+      emit(ConfigFailure(message: e.toString()));
+    }
   }
 
   Future<void> _onGetConfig(

@@ -11,6 +11,7 @@ import 'package:ting_box/models/bank.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
+import 'package:flutter/services.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key, this.config});
@@ -23,12 +24,11 @@ class ConfigPage extends StatefulWidget {
 class _ConfigPageState extends State<ConfigPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _unitNameController = TextEditingController();
-  final TextEditingController _sepayApiKeyController = TextEditingController();
+  final TextEditingController _sepayUrlController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
   List<Bank> _bankList = [];
-  bool _isApiKeyVisible = false;
   int _printModeGroupValue = 1;
   bool _isEditing = false;
   bool isAdmin = false;
@@ -48,6 +48,7 @@ class _ConfigPageState extends State<ConfigPage> {
 
   void _getBankList() {
     context.read<ConfigBloc>().add(GetBankEvent());
+    context.read<ConfigBloc>().add(LoadSepayInfoFromLocalEvent());
   }
 
   Future<void> _getUserInfo() async {
@@ -60,7 +61,8 @@ class _ConfigPageState extends State<ConfigPage> {
   void _populateFields() {
     if (widget.config != null) {
       _unitNameController.text = widget.config!.unitName ?? '';
-      _sepayApiKeyController.text = widget.config!.sepayApiKey ?? '';
+      _phoneController.text = widget.config!.phone ?? '';
+      _addressController.text = widget.config!.address ?? '';
       switch (widget.config!.printMode) {
         case PrintMode.auto:
           _printModeGroupValue = 0;
@@ -106,7 +108,9 @@ class _ConfigPageState extends State<ConfigPage> {
   @override
   void dispose() {
     _unitNameController.dispose();
-    _sepayApiKeyController.dispose();
+    _sepayUrlController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -119,7 +123,7 @@ class _ConfigPageState extends State<ConfigPage> {
     final updatedConfig = ConfigModel(
       id: widget.config!.id,
       unitName: _unitNameController.text.trim(),
-      sepayApiKey: _sepayApiKeyController.text.trim(),
+      sepayApiKey: widget.config!.sepayApiKey,
       printMode: _getPrintModeFromValue(_printModeGroupValue),
       createdAt: widget.config!.createdAt,
       updatedAt: DateTime.now(),
@@ -190,7 +194,7 @@ class _ConfigPageState extends State<ConfigPage> {
     );
   }
 
-  Widget _buildPhotoContent({bool isEdit = false }) {
+  Widget _buildPhotoContent({bool isEdit = false}) {
     // Ưu tiên ảnh người dùng chọn
     if (_logoFile != null) {
       return _buildImageWithRemove(
@@ -224,10 +228,17 @@ class _ConfigPageState extends State<ConfigPage> {
     // Nếu không có ảnh → hiển thị nút thêm
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children:  [
-        Icon(Icons.add_photo_alternate_outlined, size: 40, color: isEdit ?Colors.blue : Colors.grey),
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 40,
+          color: isEdit ? Colors.blue : Colors.grey,
+        ),
         SizedBox(height: 8),
-        Text("Thêm hình ảnh", style: TextStyle(color: isEdit ?Colors.blue : Colors.grey)),
+        Text(
+          "Thêm hình ảnh",
+          style: TextStyle(color: isEdit ? Colors.blue : Colors.grey),
+        ),
         SizedBox(height: 4),
         Text(
           "Chọn Logo cho doanh nghiệp của bạn",
@@ -293,6 +304,17 @@ class _ConfigPageState extends State<ConfigPage> {
     );
   }
 
+  void _copyToClipboard(String text) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.green,
+        content: Text('Đã sao chép vào bộ nhớ tạm'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ConfigBloc, ConfigState>(
@@ -309,6 +331,8 @@ class _ConfigPageState extends State<ConfigPage> {
             title: 'Thành công',
             content: 'Lưu cấu hình thành công',
           );
+        } else if (state is SepayInfoLoaded) {
+          _sepayUrlController.text = state.url;
         }
       },
       child: AppScaffold(
@@ -388,25 +412,50 @@ class _ConfigPageState extends State<ConfigPage> {
                         SizedBox(height: 24.h),
                         _buildPhotoSection(),
                         SizedBox(height: 24.h),
-                        _buildLabel('Sepay API Key'),
+                        _buildLabel('Cấu hình Sepay'),
+                        SizedBox(height: 8.h),
+                        IgnorePointer(
+                          ignoring: !_isEditing,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                context.read<ConfigBloc>().add(
+                                  GetSepayInfoEvent(),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.download,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Lấy thông tin Sepay',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    _isEditing
+                                        ? AppColors.primaryBlue
+                                        : Colors.grey,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildLabel('URL'),
                         SizedBox(height: 8.h),
                         _buildTextField(
-                          controller: _sepayApiKeyController,
-                          hintText: '....................',
-                          obscureText: !_isApiKeyVisible,
-                          enabled: _isEditing && isAdmin,
+                          controller: _sepayUrlController,
+                          hintText: 'URL',
+                          readOnly: true,
                           suffixIcon: IconButton(
-                            icon: Icon(
-                              _isApiKeyVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: Colors.grey,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isApiKeyVisible = !_isApiKeyVisible;
-                              });
-                            },
+                            icon: const Icon(Icons.copy, color: Colors.grey),
+                            onPressed:
+                                () =>
+                                    _copyToClipboard(_sepayUrlController.text),
                           ),
                         ),
                         SizedBox(height: 24.h),
@@ -683,12 +732,14 @@ class _ConfigPageState extends State<ConfigPage> {
     TextInputType? keyboardType,
     bool enabled = true,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       enabled: enabled,
+      readOnly: readOnly,
       validator: validator,
       decoration: InputDecoration(
         hintText: hintText,

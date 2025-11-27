@@ -54,6 +54,7 @@ class UserRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(keyToken);
+      await prefs.remove('sepay_url');
     } catch (e, st) {
       debugPrint('UserRepository.clear error: $e\n$st');
     }
