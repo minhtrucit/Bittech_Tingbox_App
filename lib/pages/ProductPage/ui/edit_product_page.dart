@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
+import '../../../utils/currency_input_formatter.dart';
 
 class EditProductPage extends StatefulWidget {
   final Product product;
@@ -33,7 +34,10 @@ class _EditProductPageState extends State<EditProductPage> {
     super.initState();
     // Initialize controllers with product data
     nameCtrl = TextEditingController(text: widget.product.name);
-    priceCtrl = TextEditingController(text: widget.product.price.toString());
+    // Format initial price with commas
+    priceCtrl = TextEditingController(
+      text: CurrencyInputFormatter.formatValue(widget.product.price),
+    );
     descCtrl = TextEditingController(text: widget.product.description ?? '');
 
     // Initialize category
@@ -109,11 +113,27 @@ class _EditProductPageState extends State<EditProductPage> {
       return;
     }
 
-    if (existingImages.isEmpty && pickedImages.isEmpty) {
+    // Parse price from formatted text (remove commas)
+    final price =
+        CurrencyInputFormatter.parseValue(priceCtrl.text.trim()) ?? 0.0;
+
+    // Check if anything has changed
+    final hasNameChanged = nameCtrl.text.trim() != widget.product.name;
+    final hasPriceChanged = price != widget.product.price;
+    final hasDescriptionChanged =
+        descCtrl.text.trim() != (widget.product.description ?? '');
+    final hasNewImages = pickedImages.isNotEmpty;
+
+    // If nothing changed, show message and return
+    if (!hasNameChanged &&
+        !hasPriceChanged &&
+        !hasDescriptionChanged &&
+        !hasNewImages) {
       DialogUtils.showAppDialog(
         context: context,
-        title: 'Thiếu hình ảnh',
-        content: 'Vui lòng chọn ít nhất 1 hình ảnh.',
+        title: 'Không có thay đổi',
+        content:
+            'Bạn chưa thay đổi thông tin nào. Vui lòng chỉnh sửa trước khi lưu.',
         onFirstAction: () => Navigator.pop(context),
         firstActionText: 'OK',
       );
@@ -130,7 +150,7 @@ class _EditProductPageState extends State<EditProductPage> {
     Product updatedProduct = Product(
       id: widget.product.id,
       name: nameCtrl.text.trim(),
-      price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
+      price: price,
       description: descCtrl.text.trim(),
       categoryId: widget.product.categoryId,
       distributorId: widget.product.distributorId,
@@ -247,9 +267,10 @@ class _EditProductPageState extends State<EditProductPage> {
       children: [
         _buildTitle("Giá tiền"),
         _buildInput(
-          hint: "0.00đ",
+          hint: "0đ",
           keyboard: TextInputType.number,
           controller: priceCtrl,
+          isCurrency: true,
         ),
       ],
     );
@@ -462,6 +483,7 @@ class _EditProductPageState extends State<EditProductPage> {
     TextInputType keyboard = TextInputType.text,
     TextEditingController? controller,
     int maxLines = 1,
+    bool isCurrency = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(top: 6),
@@ -471,6 +493,7 @@ class _EditProductPageState extends State<EditProductPage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboard,
+        inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
         decoration: InputDecoration(hintText: hint, border: InputBorder.none),
       ),
     );
