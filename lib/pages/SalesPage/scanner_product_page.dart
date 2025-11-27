@@ -137,7 +137,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 url: product['url'],
                 isEmbedded: product['is_embedded'],
                 embeddingUrl: file.path,
-                
               ),
             );
           }
@@ -169,6 +168,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   Widget _buildDialogConfirmWidget() {
     return AlertDialog(
+      backgroundColor: AppColors.white,
       title: const Text("Xác nhận thoát"),
       content: const Text(
         "Bạn có sản phẩm trong danh sách.\nBạn có chắc chắn muốn thoát không?",
@@ -363,9 +363,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                           },
                           name: product.name,
                           imageUrl:
-                              product.url ??
-                              product.images?.first.url ??
-                              '',
+                              product.url ?? product.images?.first.url ?? '',
                           price: product.price,
                           quantity: product.quantity,
                           onIncrease: () {

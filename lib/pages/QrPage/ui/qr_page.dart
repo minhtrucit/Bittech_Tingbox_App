@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
+import 'package:ting_box/models/config_model.dart';
 
 import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
@@ -139,7 +142,21 @@ class _QrPageState extends State<QrPage> {
     return BlocListener<OrderBloc, OrderState>(
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
-          showSuccessDialog();
+          final configState = context.read<ConfigBloc>().state;
+          ConfigModel? currentConfig;
+
+          if (configState is ConfigLoaded) {
+            currentConfig = configState.config;
+          } else if (configState is ConfigUpdateSuccess) {
+            currentConfig = configState.config;
+          } else if (configState is ConfigCreateSuccess) {
+            currentConfig = configState.config;
+          }
+
+          if (currentConfig != null &&
+              currentConfig.printMode == PrintMode.manual) {
+            showSuccessDialog();
+          }
         }
       },
       child: AppScaffold(
