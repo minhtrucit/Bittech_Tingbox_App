@@ -8,6 +8,9 @@ class ConfigModel {
   final String? unitName;
   final String? sepayApiKey;
   final PrintMode printMode;
+  final String? logo;
+  final String? phone;
+  final String? address;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final List<ConfigUser> configUsers;
@@ -18,6 +21,9 @@ class ConfigModel {
     this.unitName,
     this.sepayApiKey,
     required this.printMode,
+    this.logo,
+    this.phone,
+    this.address,
     this.createdAt,
     this.updatedAt,
     this.configUsers = const [],
@@ -35,6 +41,9 @@ class ConfigModel {
             (json['printMode']?.toString() ?? 'NONE').toUpperCase(),
         orElse: () => PrintMode.none,
       ),
+      logo: json['logo']?.toString(),
+      phone: json['phone']?.toString(),
+      address: json['address']?.toString(),
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt:
@@ -58,6 +67,9 @@ class ConfigModel {
       'unitName': unitName,
       'sepayApiKey': sepayApiKey,
       'printMode': printMode.name.toUpperCase(),
+      'logo': logo,
+      'phone': phone,
+      'address': address,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       // Don't send bankAccounts and configUsers - they are handled separately

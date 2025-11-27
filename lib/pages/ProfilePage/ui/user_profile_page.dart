@@ -43,9 +43,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
       final userId = prefs.getString(UserRepository.keyUserId);
       debugPrint("👤 UserProfilePage: userId from prefs: $userId");
 
-      if (userId != null && mounted) {
-        context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
-        context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
+      if (userId != null) {
+        if (mounted) {
+          context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
+          context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
+        }
       } else {
         debugPrint("⚠️ UserProfilePage: userId is null");
       }

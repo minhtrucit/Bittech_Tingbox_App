@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import 'package:ting_box/ting_box.dart';
 import 'package:ting_box/models/config_model.dart';
@@ -21,12 +24,16 @@ class _ConfigPageState extends State<ConfigPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _unitNameController = TextEditingController();
   final TextEditingController _sepayApiKeyController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
 
   List<Bank> _bankList = [];
   bool _isApiKeyVisible = false;
   int _printModeGroupValue = 1;
   bool _isEditing = false;
   bool isAdmin = false;
+  File? _logoFile;
+  String? existingLogo;
 
   @override
   void initState() {
@@ -34,6 +41,9 @@ class _ConfigPageState extends State<ConfigPage> {
     _populateFields();
     _getUserInfo();
     _getBankList();
+    if (widget.config != null && widget.config!.logo?.isNotEmpty == true) {
+      existingLogo = widget.config!.logo;
+    }
   }
 
   void _getBankList() {
@@ -65,6 +75,34 @@ class _ConfigPageState extends State<ConfigPage> {
     }
   }
 
+  Future<void> pickImageFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image != null) {
+      setState(() {
+        _logoFile = File(image.path);
+      });
+    }
+  }
+
+  Future<void> pickImageFromCamera() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
+    if (image != null) {
+      setState(() {
+        _logoFile = File(image.path);
+      });
+    }
+  }
+
   @override
   void dispose() {
     _unitNameController.dispose();
@@ -87,6 +125,9 @@ class _ConfigPageState extends State<ConfigPage> {
       updatedAt: DateTime.now(),
       configUsers: widget.config!.configUsers,
       bankAccounts: widget.config!.bankAccounts,
+      logo: _logoFile != null ? _logoFile!.path : widget.config!.logo,
+      phone: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
     );
 
     context.read<ConfigBloc>().add(UpdateConfigEvent(config: updatedConfig));
@@ -103,6 +144,153 @@ class _ConfigPageState extends State<ConfigPage> {
       default:
         return PrintMode.none;
     }
+  }
+
+  Widget _buildPhotoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildLabel("Hình ảnh Logo"),
+            Text(
+              _logoFile != null || existingLogo != null ? "1/1" : "0/1",
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          "Chọn 1 ảnh",
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+
+        GestureDetector(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.white,
+              builder: (context) => _buildImagePickerSheet(),
+            );
+          },
+
+          child: IgnorePointer(
+            ignoring: !_isEditing,
+            child: Container(
+              height: 130,
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              decoration: _boxDecoration(),
+              child: Center(child: _buildPhotoContent(isEdit: _isEditing)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoContent({bool isEdit = false }) {
+    // Ưu tiên ảnh người dùng chọn
+    if (_logoFile != null) {
+      return _buildImageWithRemove(
+        Image.file(
+          File(_logoFile!.path),
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+        ),
+        () {
+          setState(() => _logoFile = null);
+        },
+      );
+    }
+
+    // Nếu không có ảnh mới nhưng có logo từ API
+    if (existingLogo != null) {
+      return _buildImageWithRemove(
+        Image.network(
+          existingLogo!,
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+        ),
+        () {
+          setState(() => existingLogo = null);
+        },
+      );
+    }
+
+    // Nếu không có ảnh → hiển thị nút thêm
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children:  [
+        Icon(Icons.add_photo_alternate_outlined, size: 40, color: isEdit ?Colors.blue : Colors.grey),
+        SizedBox(height: 8),
+        Text("Thêm hình ảnh", style: TextStyle(color: isEdit ?Colors.blue : Colors.grey)),
+        SizedBox(height: 4),
+        Text(
+          "Chọn Logo cho doanh nghiệp của bạn",
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageWithRemove(Widget imageWidget, VoidCallback onRemove) {
+    return Stack(
+      children: [
+        ClipRRect(borderRadius: BorderRadius.circular(8), child: imageWidget),
+        Positioned(
+          top: 2,
+          right: 2,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 20, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImagePickerSheet() {
+    return SizedBox(
+      height: 120,
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text("Chọn từ thư viện"),
+            onTap: () {
+              Navigator.pop(context);
+              pickImageFromGallery();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text("Chụp ảnh"),
+            onTap: () {
+              Navigator.pop(context);
+              pickImageFromCamera();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  BoxDecoration _boxDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.grey.shade300),
+    );
   }
 
   @override
@@ -170,7 +358,36 @@ class _ConfigPageState extends State<ConfigPage> {
                           },
                         ),
                         SizedBox(height: 24.h),
-
+                        _buildLabel('Số điện thoại'),
+                        SizedBox(height: 8.h),
+                        _buildTextField(
+                          controller: _phoneController,
+                          hintText: 'Nhập số điện thoại',
+                          enabled: _isEditing,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Vui lòng nhập số điện thoại';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 24.h),
+                        _buildLabel('Địa chỉ'),
+                        SizedBox(height: 8.h),
+                        _buildTextField(
+                          controller: _addressController,
+                          hintText: 'Nhập địa chỉ',
+                          enabled: _isEditing,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Vui lòng nhập địa chỉ';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 24.h),
+                        _buildPhotoSection(),
+                        SizedBox(height: 24.h),
                         _buildLabel('Sepay API Key'),
                         SizedBox(height: 8.h),
                         _buildTextField(
@@ -276,9 +493,10 @@ class _ConfigPageState extends State<ConfigPage> {
               ),
             ],
           ),
-          child: bankAccount.bank != null
-              ? Image.network(bankAccount.bank!.logo, fit: BoxFit.contain)
-              : const Icon(Icons.account_balance, color: Colors.grey),
+          child:
+              bankAccount.bank != null
+                  ? Image.network(bankAccount.bank!.logo, fit: BoxFit.contain)
+                  : const Icon(Icons.account_balance, color: Colors.grey),
         );
       },
     );

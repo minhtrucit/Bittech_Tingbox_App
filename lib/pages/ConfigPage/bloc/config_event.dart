@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ting_box/models/config_model.dart';
 
 sealed class ConfigEvent {}
@@ -10,8 +12,9 @@ final class GetConfigEvent extends ConfigEvent {
 
 final class UpdateConfigEvent extends ConfigEvent {
   final ConfigModel config;
+  final File? logoFile;
 
-  UpdateConfigEvent({required this.config});
+  UpdateConfigEvent({required this.config, this.logoFile});
 }
 
 final class GetBankEvent extends ConfigEvent {
