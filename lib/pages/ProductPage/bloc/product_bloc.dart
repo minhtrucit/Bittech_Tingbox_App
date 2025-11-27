@@ -180,8 +180,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     UpdateProductEmbeddingEvent event,
     Emitter<ProductState> emit,
   ) async {
-    emit(ProductLoading());
-
     try {
       debugPrint(
         '[ProductBloc] _onUpdateProductEmbedding: calling productApiService.updateEmbedding...',
@@ -192,11 +190,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       );
 
       debugPrint('[ProductBloc] _onUpdateProductEmbedding: success');
-      emit(ProductUpdateEmbeddingSuccess());
     } catch (e, st) {
       debugPrint('[ProductBloc] _onUpdateProductEmbedding: error -> $e');
       debugPrint('Stack trace: $st');
-      emit(ProductFailure('Failed to update product embedding'));
     }
   }
 }

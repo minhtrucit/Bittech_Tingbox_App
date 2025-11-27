@@ -163,7 +163,7 @@ class _EditProductPageState extends State<EditProductPage> {
             content: 'Đã cập nhật sản phẩm: ${state.product.name}',
             onFirstAction: () {
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context, true); // Return to previous page
+              Navigator.pop(context, state.product); // Return updated product
             },
             firstActionText: 'OK',
           );

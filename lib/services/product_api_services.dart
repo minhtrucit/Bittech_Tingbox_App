@@ -143,7 +143,7 @@ class ProductApiService {
 
       final resp = await api.put('/products/$productId', data: formData);
 
-      debugPrint("📩 API Response: ${resp.data}");
+      debugPrint("📩 API Update Product Response: ${resp.data}");
 
       final ok = resp.statusCode == 200;
 
@@ -180,7 +180,7 @@ class ProductApiService {
       );
 
       final response = await request.send().timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 60),
       );
 
       if (response.statusCode == 200) {
