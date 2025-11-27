@@ -26,6 +26,11 @@ final class ProductLoadProductsSuccess extends ProductState {
   ProductLoadProductsSuccess({required this.products});
 }
 
+final class ProductUpdateSuccess extends ProductState {
+  final Product product;
+  ProductUpdateSuccess({required this.product});
+}
+
 final class ProductUpdateEmbeddingSuccess extends ProductState {
   ProductUpdateEmbeddingSuccess();
 }

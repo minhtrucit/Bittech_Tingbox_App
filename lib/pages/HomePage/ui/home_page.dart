@@ -13,32 +13,71 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with AutomaticKeepAliveClientMixin {
   Statistic? statistic;
   Revenue? revenue;
+  bool isLoading = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
-    context.read<OrderBloc>().add(OrderGetStatisticsEvent());
     super.initState();
+    // Check if we need to load data
+    final currentState = context.read<OrderBloc>().state;
+    if (currentState is! OrderGetStatisticSuccess) {
+      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+    } else {
+      // If already loaded, sync local state
+      statistic = currentState.statistic;
+      revenue = statistic?.revenue;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      hasSafeArea: false,
-      backgroundColor: Color(0xFFF4F7FC),
-      appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
-      body: BlocBuilder<OrderBloc, OrderState>(
-        builder: (context, state) {
-          if (state is OrderGetStatisticSuccess) {
+    super.build(context);
+
+    return BlocListener<OrderBloc, OrderState>(
+      listenWhen: (prev, curr) {
+        // Ignore loading if we already have data to prevent skeleton flicker from other tabs
+        if (statistic != null && curr is OrderLoading) return false;
+
+        return curr is OrderGetStatisticSuccess ||
+            curr is OrderLoading ||
+            curr is OrderFailure;
+      },
+      listener: (context, state) {
+        if (state is OrderLoading) {
+          setState(() => isLoading = true);
+        }
+
+        if (state is OrderGetStatisticSuccess) {
+          setState(() {
+            isLoading = false;
             statistic = state.statistic;
             revenue = statistic?.revenue;
-          }
+          });
+        }
 
-          if (state is OrderLoading && statistic == null) {
-            return const HomeSkeleton();
-          }
+        if (state is OrderFailure) {
+          setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi tải dữ liệu thống kê")),
+          );
+        }
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        backgroundColor: Color(0xFFF4F7FC),
+        appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
+        body: Builder(
+          builder: (context) {
+            if (isLoading && statistic == null) {
+              return const HomeSkeleton();
+            }
 
           if (statistic != null && revenue != null) {
             return Padding(

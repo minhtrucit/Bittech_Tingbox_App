@@ -72,7 +72,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
               context.read<ProductBloc>().add(
                 UpdateProductEmbeddingEvent(
                   productId: item.id,
-                  imageUrl: item.embeddingUrl,
+                  imageUrls: [item.embeddingUrl],
                 ),
               );
             }

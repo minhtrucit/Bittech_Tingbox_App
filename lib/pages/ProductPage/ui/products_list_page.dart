@@ -13,8 +13,7 @@ class ProductsListPage extends StatefulWidget {
   State<ProductsListPage> createState() => _ProductsListPageState();
 }
 
-class _ProductsListPageState extends State<ProductsListPage>
-    with AutomaticKeepAliveClientMixin {
+class _ProductsListPageState extends State<ProductsListPage> {
   final TextEditingController _searchController = TextEditingController();
   bool isLoading = false;
   bool isSearching = false;
@@ -22,17 +21,12 @@ class _ProductsListPageState extends State<ProductsListPage>
   Timer? _debounceTimer;
 
   @override
-  bool get wantKeepAlive => true;
-
-  @override
   void initState() {
     super.initState();
 
     // Only load products if not already loaded
-    final currentState = context.read<ProductBloc>().state;
-    if (currentState is! ProductLoadProductsSuccess) {
-      context.read<ProductBloc>().add(GetProductsEvent());
-    }
+
+    context.read<ProductBloc>().add(GetProductsEvent());
 
     // Listen to search input changes with debounce
     _searchController.addListener(() {
@@ -86,18 +80,20 @@ class _ProductsListPageState extends State<ProductsListPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-
     return BlocListener<ProductBloc, ProductState>(
       listenWhen: (prev, curr) => prev != curr,
       listener: (context, state) {
-        if (state is ProductLoading || state is ProductFailure) {
+        if (state is ProductLoading) {
           setState(() {
             isLoading = true;
           });
         }
 
-        if (state is ProductLoadProductsSuccess) {
+        if (state is ProductLoadProductsSuccess ||
+            state is ProductUpdateSuccess ||
+            state is ProductCreateSuccess ||
+            state is ProductFailure ||
+            state is ProductLoadCategoriesSuccess) {
           setState(() {
             isLoading = false;
           });
@@ -119,24 +115,25 @@ class _ProductsListPageState extends State<ProductsListPage>
                         child: BlocBuilder<ProductBloc, ProductState>(
                           builder: (context, state) {
                             // Show skeleton when loading or searching
-                            if (state is ProductLoading || isSearching) {
+                            if (state is ProductLoading || isSearching ||state is ProductUpdateSuccess ||
+                                state is ProductCreateSuccess ) {
                               return const ProductsListSkeleton();
                             }
 
-                            if (state is ProductLoadProductsSuccess) {
-                              final filteredProducts = _filterProducts(
-                                state.products,
-                              );
+                                if (state is ProductLoadProductsSuccess) {
+                                  final filteredProducts = _filterProducts(
+                                    state.products,
+                                  );
 
-                              return filteredProducts.isEmpty
-                                  ? _buildEmptyState()
-                                  : _buildProductGrid(filteredProducts);
-                            }
+                                  return filteredProducts.isEmpty
+                                      ? _buildEmptyState()
+                                      : _buildProductGrid(filteredProducts);
+                                }
 
-                            return _buildEmptyState();
-                          },
-                        ),
-                      ),
+                                return _buildEmptyState();
+                              },
+                            ),
+                  ),
                 ],
               ),
               _buildAddButton(context),
@@ -248,8 +245,8 @@ class _ProductsListPageState extends State<ProductsListPage>
 
   Widget _buildProductCard(Product product) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 500),
@@ -261,6 +258,11 @@ class _ProductsListPageState extends State<ProductsListPage>
             },
           ),
         );
+
+        // Reload list when returning
+        if (mounted) {
+          context.read<ProductBloc>().add(GetProductsEvent());
+        }
       },
       child: Container(
         decoration: BoxDecoration(

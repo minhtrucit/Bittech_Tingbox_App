@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
+import '../../../utils/currency_input_formatter.dart';
 
 class CreateProductPage extends StatefulWidget {
   const CreateProductPage({super.key});
@@ -76,12 +77,17 @@ class _CreateProductPageState extends State<CreateProductPage> {
     final List<File> images = pickedImages.map((e) => File(e.path)).toList();
 
     // Tạo payload
+    // Parse price from formatted text (remove commas)
+    final price =
+        CurrencyInputFormatter.parseValue(priceCtrl.text.trim()) ?? 0.0;
+
     Product productData = Product(
       id: 1,
       name: nameCtrl.text.trim(),
-      price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
+      price: price,
       description: descCtrl.text.trim(),
       categoryId: 2,
+      url: images[0].path,
     );
 
     // Gọi bloc
@@ -412,9 +418,10 @@ class _CreateProductPageState extends State<CreateProductPage> {
       children: [
         _buildTitle("Giá tiền"),
         _buildInput(
-          hint: "0.00đ",
+          hint: "0đ",
           keyboard: TextInputType.number,
           controller: priceCtrl,
+          isCurrency: true,
         ),
       ],
     );
@@ -610,6 +617,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
     TextInputType keyboard = TextInputType.text,
     TextEditingController? controller,
     int maxLines = 1,
+    bool isCurrency = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(top: 6),
@@ -619,6 +627,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboard,
+        inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
         decoration: InputDecoration(hintText: hint, border: InputBorder.none),
       ),
     );

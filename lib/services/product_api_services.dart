@@ -44,7 +44,7 @@ class ProductApiService {
 
       if (response.statusCode == 200) {
         final data = response.data['data'];
-        debugPrint('API response123: $data');
+        debugPrint('API response Get Categories: ${data}');
 
         return data; // JSON product
       } else {
@@ -115,9 +115,54 @@ class ProductApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateProduct({
+    required int productId,
+    required Map<String, dynamic> body,
+    List<File>? newImages,
+  }) async {
+    try {
+      // Prepare FormData
+      final Map<String, dynamic> formDataMap = {...body};
+
+      // Add new images if provided
+      if (newImages != null && newImages.isNotEmpty) {
+        formDataMap["images"] = [
+          for (final f in newImages)
+            await MultipartFile.fromFile(
+              f.path,
+              filename: f.path.split('/').last,
+            ),
+        ];
+      }
+
+      final formData = FormData.fromMap(formDataMap);
+
+      debugPrint("📤 Updating product ID: $productId");
+      debugPrint("📤 Update data: $body");
+      debugPrint("📤 New images count: ${newImages?.length ?? 0}");
+
+      final resp = await api.put('/products/$productId', data: formData);
+
+      debugPrint("📩 API Update Product Response: ${resp.data}");
+
+      final ok = resp.statusCode == 200;
+
+      if (!ok) {
+        throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
+      }
+
+      return resp.data as Map<String, dynamic>;
+    } catch (e, st) {
+      debugPrint("❌ updateProduct error: $e");
+      debugPrint("STACK: $st");
+
+      throw Exception("Không thể cập nhật sản phẩm. Lỗi: $e");
+    }
+  }
+
   Future<void> updateEmbedding({
     required int productId,
-    required String imageUrl,
+    required List<String> imageUrls,
   }) async {
     final uri = Uri.parse('$baseUrl/product/update_embedding');
     debugPrint("🌐 Full URL: $uri");
@@ -125,17 +170,17 @@ class ProductApiService {
     final request = http.MultipartRequest('POST', uri);
 
     request.fields['product_id'] = productId.toString();
-    request.files.add(
-      await http.MultipartFile.fromPath('image_file', imageUrl),
-    );
+    for (final url in imageUrls) {
+      request.files.add(await http.MultipartFile.fromPath('image_files', url));
+    }
 
     try {
       debugPrint(
-        "📤 Updating embedding for product: $productId, image: $imageUrl",
+        "📤 Updating embedding for product: $productId, images count: ${imageUrls.length}",
       );
 
       final response = await request.send().timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 60),
       );
 
       if (response.statusCode == 200) {
