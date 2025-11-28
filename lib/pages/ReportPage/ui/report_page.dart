@@ -76,22 +76,19 @@ class _ReportPageState extends State<ReportPage>
             }
 
             if (statistic != null && revenue != null) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: 64.h),
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    physics: BouncingScrollPhysics(),
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildRevenueSection(revenue!),
-                        SizedBox(height: 20.h),
-                        _buildExpenseSection(),
-                        SizedBox(height: 20.h),
-                        _buildRecentTransactionsSection(statistic!),
-                      ],
-                    ),
+              return SafeArea(
+                child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildRevenueSection(revenue!),
+                      SizedBox(height: 20.h),
+                      _buildExpenseSection(),
+                      SizedBox(height: 20.h),
+                      _buildRecentTransactionsSection(statistic!),
+                    ],
                   ),
                 ),
               );
