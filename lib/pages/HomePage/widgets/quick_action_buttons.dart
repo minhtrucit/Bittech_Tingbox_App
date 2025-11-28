@@ -37,7 +37,12 @@ class QuickActionButtons extends StatelessWidget {
         _buildActionButton(
           icon: Icons.receipt_long_rounded,
           label: 'Nhập Chi phí',
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ExpensePage()),
+            );
+          },
         ),
       ],
     );

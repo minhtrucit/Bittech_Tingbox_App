@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: AppColors.white,
         elevation: 0,
         centerTitle: true,
-        title: TitleAppbarText(title: 'Thống kê'),
+        title: const TitleAppbarText(title: 'Thống kê'),
         actions: [
           IconButton(
             icon: const Icon(
@@ -101,8 +101,15 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   AppTextButton(
-                    onPressed: () {},
-                    label: const Text('Xem tất cả'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TransactionsPage(),
+                        ),
+                      );
+                    },
+                    label: const Text('Xem tất cả'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primaryBlue,
                     ),

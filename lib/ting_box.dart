@@ -37,6 +37,8 @@ export 'pages/ReportPage/ui/report_page.dart';
 export 'pages/ReportPage/ui/report_page_skeleton.dart';
 export 'pages/HomePage/home_page.dart';
 export 'pages/StartingBalancePage/ui/starting_balance_page.dart';
+export 'pages/ExpensePage/expense_page.dart';
+export 'pages/TransactionsPage/transactions_page.dart';
 export 'pages/base_page.dart';
 export 'utils/camera_utils.dart';
 export 'utils/dialog_utils.dart';
