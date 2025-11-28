@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _selectedFilter = 'Hôm nay';
+  String? _selectedFilter = 'Hôm nay';
   DateTimeRange? _selectedDateRange;
   String _configId = '';
 
@@ -83,7 +83,7 @@ class _HomePageState extends State<HomePage> {
     if (picked != null) {
       setState(() {
         _selectedDateRange = picked;
-        _selectedFilter = 'Tùy chọn';
+        _selectedFilter = null; // Set to null to deselect all filters
       });
       _fetchStatistics(startDate: picked.start, endDate: picked.end);
     }
@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
     } else if (filter == 'Hôm qua') {
       startDate = now.subtract(const Duration(days: 1));
       endDate = now.subtract(const Duration(days: 1));
-    } else if (filter == 'Tuần này') {
+    } else if (filter == 'Tuần này') {
       // Logic for this week if needed, for now just today or implement later
       // Assuming Monday is start of week
       startDate = now.subtract(Duration(days: now.weekday - 1));

@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
 class ReportFilterBar extends StatelessWidget {
-  final String selectedFilter;
+  final String? selectedFilter;
   final Function(String) onFilterChanged;
 
   const ReportFilterBar({
@@ -16,7 +16,7 @@ class ReportFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filters = ['Hôm nay', 'Hôm qua', 'Tuần này'];
+    final filters = ['Hôm nay', 'Hôm qua', 'Tuần này'];
 
     return SizedBox(
       width: double.infinity,
