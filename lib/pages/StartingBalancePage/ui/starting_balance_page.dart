@@ -35,7 +35,8 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
   }
 
   void _saveStartingBalance() {
-    final amount = double.tryParse(_amountController.text);
+    final amountText = _amountController.text.replaceAll(',', '');
+    final amount = double.tryParse(amountText);
 
     if (amount == null || amount <= 0) {
       setState(() {
@@ -43,6 +44,18 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
       });
       return;
     }
+
+    // Create fund entry data
+    final fundEntry = {
+      "name": "Sổ ngày ${DateFormat('dd/MM/yyyy').format(_currentDate)}",
+      "date": DateFormat('yyyy-MM-dd').format(_currentDate),
+      "openingAmount": amount,
+      "configId": 1,
+      "type": _selectedType == 'cash' ? 'cash' : 'bank',
+    };
+
+    // TODO: Send to backend API
+    debugPrint('Fund Entry: $fundEntry');
 
     setState(() {
       _hasError = false;
@@ -57,35 +70,11 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Đã lưu ${_selectedType == 'cash' ? 'tiền mặt' : 'tài khoản'} thành công',
+          'Đã thêm sổ quỹ ${_selectedType == 'cash' ? 'tiền mặt' : 'tài khoản'} thành công',
         ),
         backgroundColor: Colors.green,
       ),
     );
-  }
-
-  void _finishAndSave() {
-    if (_cashBalance == 0 && _bankBalance == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập ít nhất một số dư'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // TODO: Save to backend or local storage
-    debugPrint('Cash: $_cashBalance, Bank: $_bankBalance, Date: $_currentDate');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã lưu quỹ đầu kỳ thành công'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.pop(context);
   }
 
   @override
@@ -124,7 +113,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                 padding: EdgeInsets.all(20.w),
                 decoration: BoxDecoration(
                   color: AppColors.primaryBlue.withAlpha(25),
-                  borderRadius: BorderRadius.circular(20.r),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +240,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.primaryBlue, width: 1.5),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25.r),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
                   ),
                   child: Text(
@@ -260,31 +249,6 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryBlue,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 40.h),
-
-              // Save & Start Day Button
-              SizedBox(
-                width: double.infinity,
-                height: 56.h,
-                child: ElevatedButton(
-                  onPressed: _finishAndSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Save & Start Day',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -313,7 +277,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryBlue : Colors.white,
-          borderRadius: BorderRadius.circular(25.r),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected ? AppColors.primaryBlue : Colors.grey[300]!,
             width: 1.5,
@@ -346,7 +310,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28.r),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: _hasError ? Colors.red : Colors.transparent,
           width: 1.5,
@@ -380,7 +344,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
             size: 24.sp,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28.r),
+            borderRadius: BorderRadius.circular(12.r),
             borderSide: BorderSide.none,
           ),
           contentPadding: EdgeInsets.symmetric(
