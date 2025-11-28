@@ -20,31 +20,18 @@ class RevenueSummarySkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 120.w,
-                  height: 14.sp,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-                Container(
-                  width: 80.w,
-                  height: 12.sp,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-              ],
+            Container(
+              width: 120.w,
+              height: 14.sp,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
             ),
             SizedBox(height: 16.h),
             Container(
               width: 200.w,
-              height: 32.sp,
+              height: 44.sp,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(4.r),
