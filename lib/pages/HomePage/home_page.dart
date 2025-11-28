@@ -197,10 +197,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                   AppTextButton(
                     onPressed: () {
+                      final state = context.read<StatisticsBloc>().state;
+                      List<StatisticTransaction> transactions = [];
+                      if (state is StatisticsLoaded) {
+                        transactions = state.statistic.transactions;
+                      }
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const TransactionsPage(),
+                          builder:
+                              (context) =>
+                                  TransactionsPage(transactions: transactions),
                         ),
                       );
                     },

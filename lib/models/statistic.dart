@@ -129,29 +129,41 @@ class IncomeSource {
 }
 
 class StatisticTransaction {
-  final String? id;
+  final int? id;
   final String? type;
+  final String? subject;
   final double? amount;
   final DateTime? date;
-  final String? description;
+  final String? time;
+  final String? cashbook;
+  final int? cashbookType;
+  final String? note;
 
   StatisticTransaction({
     this.id,
     this.type,
+    this.subject,
     this.amount,
     this.date,
-    this.description,
+    this.time,
+    this.cashbook,
+    this.cashbookType,
+    this.note,
   });
 
   factory StatisticTransaction.fromJson(Map<String, dynamic> json) {
     return StatisticTransaction(
-      id: json['id']?.toString(),
+      id: json['id'] as int?,
       type: json['type'] as String?,
+      subject: json['subject'] as String?,
       amount:
           json['amount'] != null ? (json['amount'] as num).toDouble() : null,
       date:
           json['date'] != null ? DateTime.parse(json['date'] as String) : null,
-      description: json['description'] as String?,
+      time: json['time'] as String?,
+      cashbook: json['cashbook'] as String?,
+      cashbookType: json['cashbookType'] as int?,
+      note: json['note'] as String?,
     );
   }
 
@@ -159,9 +171,13 @@ class StatisticTransaction {
     return {
       'id': id,
       'type': type,
+      'subject': subject,
       'amount': amount,
       'date': date?.toIso8601String(),
-      'description': description,
+      'time': time,
+      'cashbook': cashbook,
+      'cashbookType': cashbookType,
+      'note': note,
     };
   }
 }

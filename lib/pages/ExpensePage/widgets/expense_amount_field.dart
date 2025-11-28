@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/common/app_colors.dart';
 import 'package:ting_box/utils/currency_input_formatter.dart';
 
 class ExpenseAmountField extends StatelessWidget {
@@ -42,7 +43,7 @@ class ExpenseAmountField extends StatelessWidget {
             keyboardType: TextInputType.number,
             inputFormatters: [CurrencyInputFormatter()],
             style: TextStyle(
-              fontSize: 32.sp,
+              fontSize: 28.sp,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
@@ -50,12 +51,16 @@ class ExpenseAmountField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: '0',
               hintStyle: TextStyle(
-                fontSize: 32.sp,
+                fontSize: 28.sp,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[400],
               ),
               suffixText: 'VND',
               suffixStyle: TextStyle(fontSize: 16.sp, color: Colors.grey[400]),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: AppColors.primaryBlue),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),

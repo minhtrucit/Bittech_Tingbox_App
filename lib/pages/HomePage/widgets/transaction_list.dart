@@ -56,7 +56,7 @@ class TransactionList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tx.description ?? 'Giao dịch',
+                            tx.subject ?? 'Giao dịch',
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,

@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../../ting_box.dart';
 
 class TransactionsPage extends StatefulWidget {
-  const TransactionsPage({super.key});
+  final List<StatisticTransaction> transactions;
+
+  const TransactionsPage({super.key, required this.transactions});
 
   @override
   State<TransactionsPage> createState() => _TransactionsPageState();
@@ -12,7 +14,13 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   String _selectedFilter = 'all'; // 'all', 'income', 'expense'
-  DateTimeRange? _selectedDateRange;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,23 +36,50 @@ class _TransactionsPageState extends State<TransactionsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.calendar_today_outlined,
-              color: Colors.black,
-            ),
-            onPressed: _showDateRangePicker,
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
+            // Search Bar
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm theo nội dung...',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14.sp,
+                    ),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 14.h,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
+              ),
+            ),
+
             // Filter Tabs
             Container(
-              color: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               child: Row(
                 children: [
                   Expanded(
@@ -62,58 +97,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
             ),
 
-            // Date Range Display
-            if (_selectedDateRange != null)
-              Container(
-                color: Colors.white,
-                padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 12.h),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.date_range,
-                            color: AppColors.primaryBlue,
-                            size: 18.sp,
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            '${DateFormat('dd/MM/yyyy').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM/yyyy').format(_selectedDateRange!.end)}',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedDateRange = null;
-                          });
-                        },
-                        child: Icon(
-                          Icons.close,
-                          color: AppColors.primaryBlue,
-                          size: 18.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
             // Transactions List
             Expanded(
               child: ListView(
@@ -127,33 +110,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Future<void> _showDateRangePicker() async {
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: _selectedDateRange,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primaryBlue,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _selectedDateRange = picked;
-      });
-    }
-  }
-
   Widget _buildFilterTab({required String label, required String value}) {
     final isSelected = _selectedFilter == value;
     return GestureDetector(
@@ -165,12 +121,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+          color: isSelected ? AppColors.primaryBlue : Colors.white,
           borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
-            color: isSelected ? AppColors.primaryBlue : Colors.grey[300]!,
+            color: isSelected ? AppColors.primaryBlue : Colors.transparent,
             width: 1,
           ),
+          boxShadow:
+              isSelected
+                  ? []
+                  : [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(5),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
         ),
         child: Center(
           child: Text(
@@ -187,97 +153,72 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   List<Widget> _getFilteredTransactions() {
-    // Sample transaction data
-    final allTransactions = [
-      {
-        'title': 'Bán hàng #001',
-        'time': '10:30 AM',
-        'amount': '+500.000đ',
-        'isIncome': true,
-        'icon': Icons.shopping_bag,
-        'color': Colors.green.withAlpha(25),
-        'iconColor': Colors.green,
-      },
-      {
-        'title': 'Chi phí vận chuyển',
-        'time': '09:15 AM',
-        'amount': '-50.000đ',
-        'isIncome': false,
-        'icon': Icons.local_shipping,
-        'color': Colors.red.withAlpha(25),
-        'iconColor': Colors.red,
-      },
-      {
-        'title': 'Bán hàng #002',
-        'time': '08:45 AM',
-        'amount': '+1.200.000đ',
-        'isIncome': true,
-        'icon': Icons.shopping_bag,
-        'color': Colors.green.withAlpha(25),
-        'iconColor': Colors.green,
-      },
-      {
-        'title': 'Chi phí điện nước',
-        'time': '08:00 AM',
-        'amount': '-200.000đ',
-        'isIncome': false,
-        'icon': Icons.receipt_long,
-        'color': Colors.red.withAlpha(25),
-        'iconColor': Colors.red,
-      },
-      {
-        'title': 'Bán hàng #003',
-        'time': 'Hôm qua',
-        'amount': '+750.000đ',
-        'isIncome': true,
-        'icon': Icons.shopping_bag,
-        'color': Colors.green.withAlpha(25),
-        'iconColor': Colors.green,
-      },
-      {
-        'title': 'Chi phí thuê mặt bằng',
-        'time': 'Hôm qua',
-        'amount': '-2.000.000đ',
-        'isIncome': false,
-        'icon': Icons.home,
-        'color': Colors.red.withAlpha(25),
-        'iconColor': Colors.red,
-      },
-    ];
+    final filtered =
+        widget.transactions.where((tx) {
+          // Filter by type
+          final isIncome = (tx.amount ?? 0) >= 0;
+          if (_selectedFilter == 'income' && !isIncome) return false;
+          if (_selectedFilter == 'expense' && isIncome) return false;
 
-    // Filter transactions based on selected filter
-    final filteredTransactions =
-        allTransactions.where((tx) {
-          if (_selectedFilter == 'all') return true;
-          if (_selectedFilter == 'income') return tx['isIncome'] == true;
-          if (_selectedFilter == 'expense') return tx['isIncome'] == false;
+          // Filter by search text (title/subject)
+          if (_searchController.text.isNotEmpty) {
+            final query = _searchController.text.toLowerCase();
+            final desc = (tx.subject ?? '').toLowerCase();
+            if (!desc.contains(query)) return false;
+          }
+
           return true;
         }).toList();
 
-    return filteredTransactions.map((tx) => _buildTransactionItem(tx)).toList();
+    if (filtered.isEmpty) {
+      return [
+        Padding(
+          padding: EdgeInsets.only(top: 40.h),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.search_off, size: 48.sp, color: Colors.grey[400]),
+                SizedBox(height: 16.h),
+                Text(
+                  'Không tìm thấy giao dịch nào',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return filtered.map((tx) => _buildTransactionItem(tx)).toList();
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> transaction) {
+  Widget _buildTransactionItem(StatisticTransaction tx) {
+    final isIncome = (tx.amount ?? 0) >= 0;
+    final color = isIncome ? Colors.green : Colors.red;
+    final icon = isIncome ? Icons.arrow_downward : Icons.arrow_upward;
+    final bgColor = isIncome ? Colors.green[50] : Colors.red[50];
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              color: transaction['color'] as Color,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              transaction['icon'] as IconData,
-              color: transaction['iconColor'] as Color,
-              size: 24.sp,
-            ),
+            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 24.sp),
           ),
           SizedBox(width: 16.w),
           Expanded(
@@ -285,7 +226,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction['title'] as String,
+                  tx.subject ?? 'Giao dịch',
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -294,19 +235,20 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  transaction['time'] as String,
+                  tx.date != null
+                      ? DateFormat('HH:mm dd/MM/yyyy').format(tx.date!)
+                      : '',
                   style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                 ),
               ],
             ),
           ),
           Text(
-            transaction['amount'] as String,
+            (tx.amount ?? 0).formatMoney(),
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
-              color:
-                  (transaction['isIncome'] as bool) ? Colors.green : Colors.red,
+              color: color,
             ),
           ),
         ],

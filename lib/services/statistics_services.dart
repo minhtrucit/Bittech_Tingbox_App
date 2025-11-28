@@ -110,4 +110,60 @@ class StatisticServices {
       rethrow;
     }
   }
+
+  Future<int> getCashBookIdByDate(String date) async {
+    try {
+      // API: cashbooks/date/2025-11-27
+      final response = await api.get('/cashbooks/date/$date');
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        // Handle if data is list or object
+        if (data is List && data.isNotEmpty) {
+          return data[0]['id'];
+        } else if (data is Map) {
+          return data['id'];
+        }
+      }
+      throw Exception('Cashbook not found for date $date');
+    } catch (e) {
+      debugPrint("❌ Error getting cashbook id: $e");
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createPayment({
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final response = await api.post('/payments', data: data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Payment created successfully: ${response.data}");
+        return {
+          'status': 'success',
+          'message': response.data['message'] ?? 'Tạo phiếu chi thành công',
+          'data': response.data['data'],
+        };
+      }
+
+      return {
+        'status': 'error',
+        'message': response.data['message'] ?? 'Tạo phiếu chi thất bại',
+      };
+    } on DioException catch (err) {
+      debugPrint(
+        "❌ DioException creating payment: ${err.response?.statusCode}",
+      );
+      debugPrint("❌ Error data: ${err.response?.data}");
+      return {
+        'status': 'error',
+        'message': err.response?.data['message'] ?? 'Tạo phiếu chi thất bại',
+        'statusCode': err.response?.statusCode,
+      };
+    } catch (e) {
+      debugPrint("❌ Unexpected error creating payment: $e");
+      return {'status': 'error', 'message': 'Đã xảy ra lỗi không mong muốn'};
+    }
+  }
 }
