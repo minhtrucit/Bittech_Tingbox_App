@@ -37,6 +37,7 @@ void main() async {
   final userService = UserService(api: apiService);
   final orderService = OrderService(api: apiService);
   final configService = ConfigService(api: apiService);
+  final statisticServices = StatisticServices(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
@@ -74,6 +75,9 @@ void main() async {
         ),
         BlocProvider<ConfigBloc>(
           create: (_) => ConfigBloc(configService: configService),
+        ),
+        BlocProvider<StatisticsBloc>(
+          create: (_) => StatisticsBloc(statisticServices: statisticServices),
         ),
       ],
       child: const MyApp(),

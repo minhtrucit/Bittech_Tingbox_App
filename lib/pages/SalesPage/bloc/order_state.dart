@@ -37,7 +37,7 @@ class OrderPaymentFailed extends OrderState {
 }
 
 final class OrderGetStatisticSuccess extends OrderState {
-  final Statistic statistic;
+  final StatisticOrder statistic;
   OrderGetStatisticSuccess({required this.statistic});
 }
 

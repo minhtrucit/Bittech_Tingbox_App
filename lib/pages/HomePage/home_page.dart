@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:ting_box/pages/HomePage/widgets/quick_action_buttons.dart';
 import 'package:ting_box/pages/HomePage/widgets/report_filter_bar.dart';
 import 'package:ting_box/pages/HomePage/widgets/revenue_pie_chart.dart';
@@ -18,6 +20,42 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _selectedFilter = 'Hôm nay';
   DateTimeRange? _selectedDateRange;
+  String _configId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfigId();
+  }
+
+  Future<void> _loadConfigId() async {
+    _configId = await UserRepository.getConfigId() ?? '';
+    // Fetch default statistics (Today) after loading configId
+    final now = DateTime.now();
+    _fetchStatistics(startDate: now, endDate: now);
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  void _fetchStatistics({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    if (!mounted) return;
+
+    final configId = int.tryParse(_configId) ?? 0;
+    if (configId > 0) {
+      context.read<StatisticsBloc>().add(
+        GetStatisticsEvent(
+          startDate: _formatDate(startDate),
+          endDate: _formatDate(endDate),
+          configId: configId,
+        ),
+      );
+    }
+  }
 
   Future<void> _showDateRangePicker() async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -45,8 +83,36 @@ class _HomePageState extends State<HomePage> {
     if (picked != null) {
       setState(() {
         _selectedDateRange = picked;
+        _selectedFilter = 'Tùy chọn';
       });
+      _fetchStatistics(startDate: picked.start, endDate: picked.end);
     }
+  }
+
+  void _handleFilterChanged(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+      _selectedDateRange = null; // Clear custom range when using presets
+    });
+
+    final now = DateTime.now();
+    DateTime startDate = now;
+    DateTime endDate = now;
+
+    if (filter == 'Hôm nay') {
+      startDate = now;
+      endDate = now;
+    } else if (filter == 'Hôm qua') {
+      startDate = now.subtract(const Duration(days: 1));
+      endDate = now.subtract(const Duration(days: 1));
+    } else if (filter == 'Tuần này') {
+      // Logic for this week if needed, for now just today or implement later
+      // Assuming Monday is start of week
+      startDate = now.subtract(Duration(days: now.weekday - 1));
+      endDate = now;
+    }
+
+    _fetchStatistics(startDate: startDate, endDate: endDate);
   }
 
   @override
@@ -67,11 +133,7 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: ReportFilterBar(
                       selectedFilter: _selectedFilter,
-                      onFilterChanged: (filter) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                      },
+                      onFilterChanged: _handleFilterChanged,
                     ),
                   ),
                   IconButton(
@@ -79,16 +141,25 @@ class _HomePageState extends State<HomePage> {
                       Icons.calendar_today_outlined,
                       color: Colors.black,
                     ),
-                    onPressed: () {
-                      // Show date picker
-                      _showDateRangePicker();
-                    },
+                    onPressed: _showDateRangePicker,
                   ),
                 ],
               ),
 
               SizedBox(height: 20.h),
-              const RevenueSummaryCard(),
+
+              BlocBuilder<StatisticsBloc, StatisticsState>(
+                builder: (context, state) {
+                  if (state is StatisticsLoading) {
+                    return const RevenueSummarySkeleton();
+                  } else if (state is StatisticsLoaded) {
+                    return RevenueSummaryCard(revenue: state.statistic.revenue);
+                  } else if (state is StatisticsError) {
+                    return Text('Error: ${state.message}');
+                  }
+                  return const RevenueSummaryCard();
+                },
+              ),
 
               SizedBox(height: 20.h),
               const QuickActionButtons(),

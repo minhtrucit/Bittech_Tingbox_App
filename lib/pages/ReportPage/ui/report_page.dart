@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 
 import '../../../ting_box.dart';
-import 'report_page_skeleton.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});
@@ -15,7 +14,7 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage>
     with AutomaticKeepAliveClientMixin {
-  Statistic? statistic;
+  StatisticOrder? statistic;
   Revenue? revenue;
   bool isLoading = false;
 
@@ -234,7 +233,7 @@ class _ReportPageState extends State<ReportPage>
   // -------------------------------
   // SECTION: Giao Dịch Gần Đây
   // -------------------------------
-  Widget _buildRecentTransactionsSection(Statistic statistic) {
+  Widget _buildRecentTransactionsSection(StatisticOrder statistic) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

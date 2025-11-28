@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/order.dart';
-import '../models/statistic.dart';
+import '../models/statistic_order.dart';
 import 'api_services.dart';
 
 class OrderService {
@@ -32,7 +32,7 @@ class OrderService {
     }
   }
 
-  Future<Statistic> getStatisticsOverview() async {
+  Future<StatisticOrder> getStatisticsOverview() async {
     try {
       final resp = await api.get('/orders/statistics/overview');
 
@@ -41,7 +41,7 @@ class OrderService {
       if (resp.statusCode == 200) {
         debugPrint("📌 DATA PARSED: ${resp.data['data']}");
 
-        return Statistic.fromJson(resp.data['data']);
+        return StatisticOrder.fromJson(resp.data['data']);
       }
 
       throw Exception('Failed to load dashboard statistic');

@@ -1,117 +1,167 @@
-import 'package:flutter/foundation.dart';
-
-import 'order.dart';
-
 class Statistic {
-  final List<Order> recentOrders;
-  final Revenue revenue;
+  final DateTime startDate;
+  final DateTime endDate;
+  final StatisticRevenue revenue;
+  final IncomeSources incomeSources;
+  final List<StatisticTransaction> transactions;
 
-  Statistic({required this.recentOrders, required this.revenue});
-
-  factory Statistic.fromJson(Map<String, dynamic> json) {
-    List<Order> parsedOrders = [];
-
-    try {
-      parsedOrders =
-          (json['recentOrders'] as List).map((item) {
-            try {
-              return Order.fromJson(item);
-            } catch (e) {
-              debugPrint('Error parsing an Order: $e \nData: $item');
-              rethrow;
-            }
-          }).toList();
-    } catch (e) {
-      debugPrint('Error parsing "recentOrders": $e');
-    }
-
-    Revenue parsedRevenue;
-    try {
-      parsedRevenue = Revenue.fromJson(json['revenue']);
-    } catch (e) {
-      debugPrint('Error parsing "revenue": $e');
-      rethrow;
-    }
-
-    return Statistic(recentOrders: parsedOrders, revenue: parsedRevenue);
-  }
-}
-
-class Revenue {
-  final RevenueItem total;
-  final RevenueItem cash;
-  final RevenueItem bankTransfer;
-
-  Revenue({
-    required this.total,
-    required this.cash,
-    required this.bankTransfer,
+  Statistic({
+    required this.startDate,
+    required this.endDate,
+    required this.revenue,
+    required this.incomeSources,
+    required this.transactions,
   });
 
-  factory Revenue.fromJson(Map<String, dynamic> json) {
-    RevenueItem parseItem(Map<String, dynamic> itemJson, String name) {
-      try {
-        return RevenueItem.fromJson(itemJson);
-      } catch (e) {
-        debugPrint('Error parsing RevenueItem "$name": $e \nData: $itemJson');
-        rethrow;
-      }
-    }
-
-    return Revenue(
-      total: parseItem(json['total'], 'total'),
-      cash: parseItem(json['cash'], 'cash'),
-      bankTransfer: parseItem(json['bankTransfer'], 'bankTransfer'),
+  factory Statistic.fromJson(Map<String, dynamic> json) {
+    return Statistic(
+      startDate: DateTime.parse(json['startDate'] as String),
+      endDate: DateTime.parse(json['endDate'] as String),
+      revenue: StatisticRevenue.fromJson(
+        json['revenue'] as Map<String, dynamic>,
+      ),
+      incomeSources: IncomeSources.fromJson(
+        json['incomeSources'] as Map<String, dynamic>,
+      ),
+      transactions:
+          (json['transactions'] as List<dynamic>)
+              .map(
+                (e) => StatisticTransaction.fromJson(e as Map<String, dynamic>),
+              )
+              .toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'total': total.toJson(),
-      'cash': cash.toJson(),
-      'bankTransfer': bankTransfer.toJson(),
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'revenue': revenue.toJson(),
+      'incomeSources': incomeSources.toJson(),
+      'transactions': transactions.map((e) => e.toJson()).toList(),
     };
   }
 }
 
-class RevenueItem {
-  final double amount;
-  final int count;
+class StatisticRevenue {
+  final double total;
+  final double previous;
+  final double difference;
+  final double percentageChange;
 
-  RevenueItem({required this.amount, required this.count});
+  StatisticRevenue({
+    required this.total,
+    required this.previous,
+    required this.difference,
+    required this.percentageChange,
+  });
 
-  factory RevenueItem.fromJson(Map<String, dynamic> json) {
-    double parseAmount(dynamic value, String fieldName) {
-      try {
-        if (value is String) return double.parse(value);
-        if (value is num) return value.toDouble();
-        debugPrint('Warning: unexpected type for $fieldName -> $value');
-        return 0;
-      } catch (e) {
-        debugPrint('Error parsing $fieldName: $value -> $e');
-        return 0;
-      }
-    }
-
-    int parseCount(dynamic value, String fieldName) {
-      try {
-        if (value is String) return int.parse(value);
-        if (value is num) return value.toInt();
-        debugPrint('Warning: unexpected type for $fieldName -> $value');
-        return 0;
-      } catch (e) {
-        debugPrint('Error parsing $fieldName: $value -> $e');
-        return 0;
-      }
-    }
-
-    return RevenueItem(
-      amount: parseAmount(json['amount'], 'amount'),
-      count: parseCount(json['count'], 'count'),
+  factory StatisticRevenue.fromJson(Map<String, dynamic> json) {
+    return StatisticRevenue(
+      total: (json['total'] as num).toDouble(),
+      previous: (json['previous'] as num).toDouble(),
+      difference: (json['difference'] as num).toDouble(),
+      percentageChange: (json['percentageChange'] as num).toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'amount': amount, 'count': count};
+    return {
+      'total': total,
+      'previous': previous,
+      'difference': difference,
+      'percentageChange': percentageChange,
+    };
+  }
+}
+
+class IncomeSources {
+  final double total;
+  final List<IncomeSource> sources;
+
+  IncomeSources({required this.total, required this.sources});
+
+  factory IncomeSources.fromJson(Map<String, dynamic> json) {
+    return IncomeSources(
+      total: (json['total'] as num).toDouble(),
+      sources:
+          (json['sources'] as List<dynamic>)
+              .map((e) => IncomeSource.fromJson(e as Map<String, dynamic>))
+              .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'total': total, 'sources': sources.map((e) => e.toJson()).toList()};
+  }
+}
+
+class IncomeSource {
+  final String name;
+  final String type;
+  final double amount;
+  final double percentage;
+
+  IncomeSource({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required this.percentage,
+  });
+
+  factory IncomeSource.fromJson(Map<String, dynamic> json) {
+    return IncomeSource(
+      name: json['name'] as String,
+      type: json['type'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      percentage: (json['percentage'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'type': type,
+      'amount': amount,
+      'percentage': percentage,
+    };
+  }
+}
+
+class StatisticTransaction {
+  final String? id;
+  final String? type;
+  final double? amount;
+  final DateTime? date;
+  final String? description;
+
+  StatisticTransaction({
+    this.id,
+    this.type,
+    this.amount,
+    this.date,
+    this.description,
+  });
+
+  factory StatisticTransaction.fromJson(Map<String, dynamic> json) {
+    return StatisticTransaction(
+      id: json['id']?.toString(),
+      type: json['type'] as String?,
+      amount:
+          json['amount'] != null ? (json['amount'] as num).toDouble() : null,
+      date:
+          json['date'] != null ? DateTime.parse(json['date'] as String) : null,
+      description: json['description'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'amount': amount,
+      'date': date?.toIso8601String(),
+      'description': description,
+    };
   }
 }

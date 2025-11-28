@@ -7,6 +7,7 @@ class UserRepository {
   static const String _keyUser = 'current_user';
   static const String keyToken = 'auth_token';
   static const String keyRefreshToken = 'refresh_token';
+  static const String keyConfigId = 'config_id';
   static const String keyUserId = 'user_id';
 
   // Save user object (json) + token
@@ -73,5 +74,20 @@ class UserRepository {
   static Future<void> saveRefreshToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyRefreshToken, token);
+  }
+
+  static Future<void> saveConfigId(String configId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyConfigId, configId);
+  }
+
+  static Future<String?> getConfigId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(keyConfigId);
+    } catch (e, st) {
+      debugPrint('UserRepository.getConfigId error: $e\n$st');
+      return null;
+    }
   }
 }
