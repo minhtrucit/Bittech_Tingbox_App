@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../ting_box.dart';
+
 class ExpenseNoteField extends StatelessWidget {
   final TextEditingController controller;
 
@@ -34,6 +36,10 @@ class ExpenseNoteField extends StatelessWidget {
               hintStyle: TextStyle(fontSize: 16.sp, color: Colors.grey[400]),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: AppColors.primaryBlue),
               ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 20.w,
