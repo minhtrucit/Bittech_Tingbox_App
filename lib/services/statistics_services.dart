@@ -56,7 +56,7 @@ class StatisticServices {
     required Map<String, dynamic> data,
   }) async {
     try {
-      final response = await api.post('/cash-books', data: data);
+      final response = await api.post('/cashbooks', data: data);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint("✅ Cash book created successfully: ${response.data}");

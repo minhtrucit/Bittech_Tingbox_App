@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
-import '../../../services/statistics_services.dart';
-import '../../../services/api_services.dart';
-import '../../StartingBalancePage/bloc/cash_book_bloc.dart';
 
 class QuickActionButtons extends StatelessWidget {
-  const QuickActionButtons({super.key});
+  const QuickActionButtons({super.key, required this.configId});
+
+  final int configId;
 
   @override
   Widget build(BuildContext context) {
@@ -29,19 +28,20 @@ class QuickActionButtons extends StatelessWidget {
           icon: Icons.account_balance_wallet_outlined,
           label: 'Nhập thu',
           onTap: () {
+            // Get yesterday's statistic from StatisticsBloc
+            final statisticsState = context.read<StatisticsBloc>().state;
+            Statistic? yesterdayStatistic;
+
+            if (statisticsState is StatisticsLoaded) {
+              yesterdayStatistic = statisticsState.statistic;
+            }
+
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder:
-                    (context) => BlocProvider(
-                      create:
-                          (context) => CashBookBloc(
-                            statisticServices: StatisticServices(
-                              api: ApiService(),
-                            ),
-                          ),
-                      child: const StartingBalancePage(),
-                    ),
+                    (context) =>
+                        StartingBalancePage(configId: configId),
               ),
             );
           },

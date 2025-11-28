@@ -10,7 +10,9 @@ import '../bloc/cash_book_event.dart';
 import '../bloc/cash_book_state.dart';
 
 class StartingBalancePage extends StatefulWidget {
-  const StartingBalancePage({super.key});
+  const StartingBalancePage({super.key, required this.configId});
+
+  final int configId;
 
   @override
   State<StartingBalancePage> createState() => _StartingBalancePageState();
@@ -40,6 +42,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
   }
 
   void _saveStartingBalance() {
+    debugPrint('configId: ${widget.configId}');
     final amountText = _amountController.text.replaceAll(',', '');
     final amount = double.tryParse(amountText);
 
@@ -56,7 +59,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
         name: "Sổ ngày ${DateFormat('dd/MM/yyyy').format(_currentDate)}",
         date: DateFormat('yyyy-MM-dd').format(_currentDate),
         openingAmount: amount,
-        configId: 1,
+        configId: widget.configId,
         type: _selectedType == 'cash' ? 'cash' : 'bank_transfer',
       ),
     );
@@ -149,7 +152,8 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                       ),
                       SizedBox(height: 8.h),
                       Text(
-                        lastTotalBalance.formatMoney(),
+                        // lastTotalBalance.formatMoney(),
+                        '0',
                         style: TextStyle(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
@@ -172,7 +176,9 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                               ),
                               SizedBox(height: 4.h),
                               Text(
-                                _cashBalance.formatMoney(),
+                                // _cashBalance.formatMoney(),
+                                '0',
+
                                 style: TextStyle(
                                   fontSize: 16.sp,
                                   fontWeight: FontWeight.w600,
@@ -193,7 +199,8 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                               ),
                               SizedBox(height: 4.h),
                               Text(
-                                _bankBalance.formatMoney(),
+                                // _bankBalance.formatMoney(),
+                                '0',
                                 style: TextStyle(
                                   fontSize: 16.sp,
                                   fontWeight: FontWeight.w600,

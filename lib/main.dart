@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/StartingBalancePage/bloc/cash_book_bloc.dart';
 
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
@@ -78,6 +79,9 @@ void main() async {
         ),
         BlocProvider<StatisticsBloc>(
           create: (_) => StatisticsBloc(statisticServices: statisticServices),
+        ),
+        BlocProvider<CashBookBloc>(
+          create: (_) => CashBookBloc(statisticServices: statisticServices),
         ),
       ],
       child: const MyApp(),
