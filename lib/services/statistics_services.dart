@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/statistic.dart';
@@ -50,5 +51,63 @@ class StatisticServices {
       endDate: formatDateForApi(dateRange.end),
       configId: configId,
     );
+  }
+
+  Future<Map<String, dynamic>> createCashBook({
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final response = await api.post('/cashbooks', data: data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Cash book created successfully: ${response.data}");
+        return {
+          'status': 'success',
+          'message': response.data['message'] ?? 'Tạo sổ quỹ thành công',
+          'data': response.data['data'],
+        };
+      }
+
+      return {
+        'status': 'error',
+        'message': response.data['message'] ?? 'Tạo sổ quỹ thất bại',
+      };
+    } on DioException catch (err) {
+      // Xử lý các lỗi HTTP như 409 (Conflict), 400 (Bad Request), etc.
+      debugPrint(
+        "❌ DioException creating cash book: ${err.response?.statusCode}",
+      );
+      debugPrint("❌ Error data: ${err.response?.data}");
+
+      return {
+        'status': 'error',
+        'message': err.response?.data['message'] ?? 'Tạo sổ quỹ thất bại',
+        'statusCode': err.response?.statusCode,
+      };
+    } catch (e) {
+      debugPrint("❌ Unexpected error creating cash book: $e");
+      return {'status': 'error', 'message': 'Đã xảy ra lỗi không mong muốn'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getConfigBankAccountId({
+    required int configId,
+  }) async {
+    try {
+      final response = await api.get(
+        '/config-bank-accounts',
+        queryParameters: {'configId': configId},
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ Config data: ${response.data}");
+        return response.data['data'][0];
+      }
+
+      throw Exception('Failed to load config data');
+    } catch (e) {
+      debugPrint("❌ Error getting config data: $e");
+      rethrow;
+    }
   }
 }

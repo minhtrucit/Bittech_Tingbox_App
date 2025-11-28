@@ -162,7 +162,7 @@ class _HomePageState extends State<HomePage> {
               ),
 
               SizedBox(height: 20.h),
-              const QuickActionButtons(),
+              QuickActionButtons(configId: int.tryParse(_configId) ?? 0),
               SizedBox(height: 24.h),
               Text(
                 'Nguồn Thu',

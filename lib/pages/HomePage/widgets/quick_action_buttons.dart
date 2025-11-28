@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
 class QuickActionButtons extends StatelessWidget {
-  const QuickActionButtons({super.key});
+  const QuickActionButtons({super.key, required this.configId});
+
+  final int configId;
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +26,20 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.account_balance_wallet_outlined,
-          label: 'Nhập thu',
+          label: 'Nhập thu',
           onTap: () {
+            // Get yesterday's statistic from StatisticsBloc
+            final statisticsState = context.read<StatisticsBloc>().state;
+            Statistic? yesterdayStatistic;
+
+            if (statisticsState is StatisticsLoaded) {
+              yesterdayStatistic = statisticsState.statistic;
+            }
+
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StartingBalancePage(),
+                builder: (context) => StartingBalancePage(configId: configId),
               ),
             );
           },
@@ -36,7 +47,7 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.receipt_long_rounded,
-          label: 'Nhập chi',
+          label: 'Tạo phiếu chi',
           onTap: () {
             Navigator.push(
               context,
