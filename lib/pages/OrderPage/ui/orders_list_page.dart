@@ -15,7 +15,7 @@ class OrdersListPage extends StatefulWidget {
 
 class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
-  String _selectedTimeFilter = 'Hôm nay';
+  final String _selectedTimeFilter = 'Hôm nay';
   String _selectedStatusFilter = 'Tất cả';
   List<Order>? _orders;
 
@@ -43,7 +43,7 @@ class _OrdersListPageState extends State<OrdersListPage>
       body: SafeArea(
         child: Column(
           children: [
-            _buildTimeFilterTabs(),
+            // _buildTimeFilterTabs(),
             _buildStatusFilterChips(),
             Expanded(child: _buildOrdersList()),
           ],
@@ -66,72 +66,72 @@ class _OrdersListPageState extends State<OrdersListPage>
     );
   }
 
-  Widget _buildTimeFilterTabs() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      child: CupertinoSlidingSegmentedControl<String>(
-        groupValue: _selectedTimeFilter,
-        onValueChanged: (value) {
-          if (value != null) {
-            setState(() {
-              _selectedTimeFilter = value;
-            });
-          }
-        },
-        backgroundColor: Colors.grey.shade100,
-        thumbColor: AppColors.white,
-        children: {
-          'Hôm nay': Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: Text(
-              'Hôm nay',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color:
-                    _selectedTimeFilter == 'Hôm nay'
-                        ? AppColors.primaryBlue
-                        : Colors.grey.shade700,
-              ),
-            ),
-          ),
-          'Tuần này': Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: Text(
-              'Tuần này',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color:
-                    _selectedTimeFilter == 'Tuần này'
-                        ? AppColors.primaryBlue
-                        : Colors.grey.shade700,
-              ),
-            ),
-          ),
-          'Tháng này': Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: Text(
-              'Tháng này',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color:
-                    _selectedTimeFilter == 'Tháng này'
-                        ? AppColors.primaryBlue
-                        : Colors.grey.shade700,
-              ),
-            ),
-          ),
-        },
-      ),
-    );
-  }
+  // Widget _buildTimeFilterTabs() {
+  //   return Container(
+  //     width: double.infinity,
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+  //     ),
+  //     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+  //     child: CupertinoSlidingSegmentedControl<String>(
+  //       groupValue: _selectedTimeFilter,
+  //       onValueChanged: (value) {
+  //         if (value != null) {
+  //           setState(() {
+  //             _selectedTimeFilter = value;
+  //           });
+  //         }
+  //       },
+  //       backgroundColor: Colors.grey.shade100,
+  //       thumbColor: AppColors.white,
+  //       children: {
+  //         'Hôm nay': Padding(
+  //           padding: EdgeInsets.symmetric(vertical: 8.h),
+  //           child: Text(
+  //             'Hôm nay',
+  //             style: TextStyle(
+  //               fontSize: 14.sp,
+  //               fontWeight: FontWeight.w500,
+  //               color:
+  //                   _selectedTimeFilter == 'Hôm nay'
+  //                       ? AppColors.primaryBlue
+  //                       : Colors.grey.shade700,
+  //             ),
+  //           ),
+  //         ),
+  //         'Tuần này': Padding(
+  //           padding: EdgeInsets.symmetric(vertical: 8.h),
+  //           child: Text(
+  //             'Tuần này',
+  //             style: TextStyle(
+  //               fontSize: 14.sp,
+  //               fontWeight: FontWeight.w500,
+  //               color:
+  //                   _selectedTimeFilter == 'Tuần này'
+  //                       ? AppColors.primaryBlue
+  //                       : Colors.grey.shade700,
+  //             ),
+  //           ),
+  //         ),
+  //         'Tháng này': Padding(
+  //           padding: EdgeInsets.symmetric(vertical: 8.h),
+  //           child: Text(
+  //             'Tháng này',
+  //             style: TextStyle(
+  //               fontSize: 14.sp,
+  //               fontWeight: FontWeight.w500,
+  //               color:
+  //                   _selectedTimeFilter == 'Tháng này'
+  //                       ? AppColors.primaryBlue
+  //                       : Colors.grey.shade700,
+  //             ),
+  //           ),
+  //         ),
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget _buildStatusFilterChips() {
     final statuses = ['Tất cả', 'Đã thanh toán', 'Chưa thanh toán'];
