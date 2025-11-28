@@ -25,10 +25,6 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
   String _selectedType = 'cash'; // 'cash' or 'bank'
   bool _hasError = false;
 
-  double _cashBalance = 1250000; // Sample data
-  double _bankBalance = 0;
-  double lastTotalBalance = 1250000;
-
   @override
   void initState() {
     super.initState();
@@ -73,11 +69,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
           // Update local state
           setState(() {
             _hasError = false;
-            if (_selectedType == 'cash') {
-              _cashBalance += state.cashBook.openingAmount;
-            } else {
-              _bankBalance += state.cashBook.openingAmount;
-            }
+
             _amountController.clear();
           });
 
@@ -111,7 +103,7 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
           backgroundColor: AppColors.white,
           elevation: 0,
           centerTitle: true,
-          title: const TitleAppbarText(title: 'Nhập Quỹ Đầu Kỳ'),
+          title: const TitleAppbarText(title: 'Nhập quỹ đầu ngày'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () => Navigator.pop(context),

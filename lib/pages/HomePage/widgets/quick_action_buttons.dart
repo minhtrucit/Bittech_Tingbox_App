@@ -39,9 +39,7 @@ class QuickActionButtons extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder:
-                    (context) =>
-                        StartingBalancePage(configId: configId),
+                builder: (context) => StartingBalancePage(configId: configId),
               ),
             );
           },
@@ -49,7 +47,7 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.receipt_long_rounded,
-          label: 'Nhập chi',
+          label: 'Tạo phiếu chi',
           onTap: () {
             Navigator.push(
               context,

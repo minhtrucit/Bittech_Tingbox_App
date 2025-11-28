@@ -18,12 +18,20 @@ class CashBookBloc extends Bloc<CashBookEvent, CashBookState> {
   ) async {
     emit(CashBookLoading());
     try {
+      int? configBankAccountId;
+      if (event.type == 'bank_transfer') {
+        final configBankAccountIdResponse = await statisticServices
+            .getConfigBankAccountId(configId: event.configId);
+        configBankAccountId = configBankAccountIdResponse['id'];
+      }
+
       final data = {
         'name': event.name,
         'date': event.date,
         'openingAmount': event.openingAmount,
         'configId': event.configId,
         'type': event.type,
+        'configBankAccountId': configBankAccountId,
       };
 
       final result = await statisticServices.createCashBook(data: data);
@@ -71,7 +79,7 @@ class CashBookBloc extends Bloc<CashBookEvent, CashBookState> {
             message: result['message'] ?? 'Tạo sổ quỹ thành công',
           ),
         );
-      } else {
+      } else if (result['status'] == 'error') {
         emit(
           CashBookFailure(message: result['message'] ?? 'Tạo sổ quỹ thất bại'),
         );
