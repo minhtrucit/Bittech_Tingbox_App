@@ -23,18 +23,12 @@ class AppNavigationBar extends StatelessWidget {
       unselectedItemColor: Colors.grey,
       onTap: onTap,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.money_dollar_circle),
-          label: "Quỹ",
-        ),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: "Home"),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.doc_text),
           label: "Đơn hàng",
         ),
-        BottomNavigationBarItem(
-          icon: SizedBox(width: 40),
-          label: '',
-        ),
+        BottomNavigationBarItem(icon: SizedBox(width: 40), label: ''),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.cart_fill),
           label: "Sản phẩm",

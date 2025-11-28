@@ -4,16 +4,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 
 import '../../../ting_box.dart';
-import 'home_skeleton.dart';
+import 'report_page_skeleton.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class ReportPage extends StatefulWidget {
+  const ReportPage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<ReportPage> createState() => _ReportPageState();
 }
 
-class _HomePageState extends State<HomePage>
+class _ReportPageState extends State<ReportPage>
     with AutomaticKeepAliveClientMixin {
   Statistic? statistic;
   Revenue? revenue;
@@ -73,7 +73,7 @@ class _HomePageState extends State<HomePage>
         body: Builder(
           builder: (context) {
             if (isLoading && statistic == null) {
-              return const HomeSkeleton();
+              return const ReportPageSkeleton();
             }
 
             if (statistic != null && revenue != null) {
