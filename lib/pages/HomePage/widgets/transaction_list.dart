@@ -27,7 +27,7 @@ class TransactionList extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 64.h),
       child: Column(
         children:
-            txList.map((tx) {
+            txList.take(5).map((tx) {
               final isIncome = (tx.amount ?? 0) >= 0;
               final color = isIncome ? Colors.green : Colors.red;
               final icon = isIncome ? Icons.arrow_downward : Icons.arrow_upward;
