@@ -28,7 +28,7 @@ class ReportFilterBar extends StatelessWidget {
         children: {
           for (var filter in filters)
             filter: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
+              padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
               child: Text(
                 filter,
                 style: TextStyle(

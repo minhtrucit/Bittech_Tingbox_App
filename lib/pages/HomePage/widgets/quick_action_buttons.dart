@@ -23,7 +23,7 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.account_balance_wallet_outlined,
-          label: 'Nhập Quỹ Đầu\nkỳ',
+          label: 'Nhập thu',
           onTap: () {
             Navigator.push(
               context,
@@ -36,7 +36,7 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.receipt_long_rounded,
-          label: 'Nhập Chi phí',
+          label: 'Nhập chi',
           onTap: () {
             Navigator.push(
               context,

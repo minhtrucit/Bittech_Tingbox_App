@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import '../../ting_box.dart';
 
 class TransactionsPage extends StatefulWidget {
@@ -11,6 +12,7 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   String _selectedFilter = 'all'; // 'all', 'income', 'expense'
+  DateTimeRange? _selectedDateRange;
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +30,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search_rounded, color: Colors.black),
-            onPressed: () {
-              // Show add transaction dialog
-            },
+            icon: const Icon(
+              Icons.calendar_today_outlined,
+              color: Colors.black,
+            ),
+            onPressed: _showDateRangePicker,
           ),
         ],
       ),
@@ -59,6 +62,58 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
             ),
 
+            // Date Range Display
+            if (_selectedDateRange != null)
+              Container(
+                color: Colors.white,
+                padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 12.h),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.date_range,
+                            color: AppColors.primaryBlue,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            '${DateFormat('dd/MM/yyyy').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM/yyyy').format(_selectedDateRange!.end)}',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedDateRange = null;
+                          });
+                        },
+                        child: Icon(
+                          Icons.close,
+                          color: AppColors.primaryBlue,
+                          size: 18.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Transactions List
             Expanded(
               child: ListView(
@@ -70,6 +125,33 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+    }
   }
 
   Widget _buildFilterTab({required String label, required String value}) {

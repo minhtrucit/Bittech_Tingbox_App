@@ -17,47 +17,43 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String _selectedFilter = 'Hôm nay';
+  DateTimeRange? _selectedDateRange;
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: AppColors.white,
+            ),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       hasSafeArea: false,
       backgroundColor: AppColors.bgLightGrey,
-      appBar: AppAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const TitleAppbarText(title: 'Thống kê'),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.calendar_today_outlined,
-              color: Colors.black,
-            ),
-            onPressed: () {
-              // Show date picker
-              showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: AppColors.primaryBlue,
-                        onPrimary: Colors.white,
-                        onSurface: Colors.black,
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -65,16 +61,35 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ReportFilterBar(
-                selectedFilter: _selectedFilter,
-                onFilterChanged: (filter) {
-                  setState(() {
-                    _selectedFilter = filter;
-                  });
-                },
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: ReportFilterBar(
+                      selectedFilter: _selectedFilter,
+                      onFilterChanged: (filter) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.calendar_today_outlined,
+                      color: Colors.black,
+                    ),
+                    onPressed: () {
+                      // Show date picker
+                      _showDateRangePicker();
+                    },
+                  ),
+                ],
               ),
+
               SizedBox(height: 20.h),
               const RevenueSummaryCard(),
+
               SizedBox(height: 20.h),
               const QuickActionButtons(),
               SizedBox(height: 24.h),
