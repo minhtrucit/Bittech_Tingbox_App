@@ -78,7 +78,7 @@ class ConfigService {
 
         if (data['status'] == 'success' && data != null) {
           if (data['data'] is List && (data['data'] as List).isNotEmpty) {
-            final config = ConfigModel.fromJson(data['data'][0]);
+            final config = ConfigModel.fromJson(data['data'][0]); // Lấy config đầu tiên
             debugPrint('Config: ${config.toJson()}');
             return config;
           } else if (data['data'] is Map<String, dynamic>) {

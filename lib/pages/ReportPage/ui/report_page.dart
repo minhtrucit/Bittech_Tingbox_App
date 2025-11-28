@@ -4,18 +4,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 
 import '../../../ting_box.dart';
-import 'home_skeleton.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class ReportPage extends StatefulWidget {
+  const ReportPage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<ReportPage> createState() => _ReportPageState();
 }
 
-class _HomePageState extends State<HomePage>
+class _ReportPageState extends State<ReportPage>
     with AutomaticKeepAliveClientMixin {
-  Statistic? statistic;
+  StatisticOrder? statistic;
   Revenue? revenue;
   bool isLoading = false;
 
@@ -73,26 +72,23 @@ class _HomePageState extends State<HomePage>
         body: Builder(
           builder: (context) {
             if (isLoading && statistic == null) {
-              return const HomeSkeleton();
+              return const ReportPageSkeleton();
             }
 
             if (statistic != null && revenue != null) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: 64.h),
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    physics: BouncingScrollPhysics(),
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildRevenueSection(revenue!),
-                        SizedBox(height: 20.h),
-                        _buildExpenseSection(),
-                        SizedBox(height: 20.h),
-                        _buildRecentTransactionsSection(statistic!),
-                      ],
-                    ),
+              return SafeArea(
+                child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildRevenueSection(revenue!),
+                      SizedBox(height: 20.h),
+                      _buildExpenseSection(),
+                      SizedBox(height: 20.h),
+                      _buildRecentTransactionsSection(statistic!),
+                    ],
                   ),
                 ),
               );
@@ -234,7 +230,7 @@ class _HomePageState extends State<HomePage>
   // -------------------------------
   // SECTION: Giao Dịch Gần Đây
   // -------------------------------
-  Widget _buildRecentTransactionsSection(Statistic statistic) {
+  Widget _buildRecentTransactionsSection(StatisticOrder statistic) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

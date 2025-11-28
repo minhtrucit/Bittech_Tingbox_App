@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/ting_box.dart';
+
+import 'ConfigPage/bloc/config_bloc.dart';
+import 'ConfigPage/bloc/config_event.dart';
 
 class BasePage extends StatefulWidget {
   const BasePage({super.key});
@@ -11,23 +15,31 @@ class BasePage extends StatefulWidget {
 
 class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
+
   @override
   void initState() {
-    final productBloc = BlocProvider.of<ProductBloc>(context);
+    super.initState();
+    _initData();
+  }
 
+  Future<void> _initData() async {
+    final productBloc = BlocProvider.of<ProductBloc>(context);
     productBloc.add(GetProductsEvent());
 
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(UserRepository.keyUserId);
 
-    final userProfileBloc = BlocProvider.of<UserProfileBloc>(context);
-    userProfileBloc.add(GetUserEvent(userId: UserRepository.keyUserId));
-
-    super.initState();
+    if (userId != null && mounted) {
+      final userProfileBloc = BlocProvider.of<UserProfileBloc>(context);
+      userProfileBloc.add(GetUserEvent(userId: userId));
+      context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
+    }
   }
 
   final _pages = const [
     HomePage(),
     OrdersListPage(),
-    HomePage(),
+    HomePage(), // Placeholder for center button if needed, or just use index mapping
     ProductsListPage(),
     UserProfilePage(),
   ];

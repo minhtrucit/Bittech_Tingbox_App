@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
-class HomeSkeleton extends StatelessWidget {
-  const HomeSkeleton({super.key});
+class ReportPageSkeleton extends StatelessWidget {
+  const ReportPageSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {

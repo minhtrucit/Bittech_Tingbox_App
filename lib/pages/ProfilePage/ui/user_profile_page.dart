@@ -33,11 +33,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> _loadUser() async {
     try {
       // Check if data is already loaded
-      final currentState = context.read<UserProfileBloc>().state;
-      if (currentState is UserProfileSuccess) {
-        debugPrint("👤 UserProfilePage: User already loaded, skipping fetch.");
-        return;
-      }
+      // final currentState = context.read<UserProfileBloc>().state;
+      // if (currentState is UserProfileSuccess) {
+      //   debugPrint("👤 UserProfilePage: User already loaded, skipping fetch.");
+      //   return;
+      // }
 
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString(UserRepository.keyUserId);
