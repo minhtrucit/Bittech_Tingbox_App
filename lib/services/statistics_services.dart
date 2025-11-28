@@ -51,4 +51,29 @@ class StatisticServices {
       configId: configId,
     );
   }
+
+  Future<Map<String, dynamic>> createCashBook({
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final response = await api.post('/cash-books', data: data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Cash book created successfully: ${response.data}");
+        return {
+          'status': 'success',
+          'message': response.data['message'] ?? 'Tạo sổ quỹ thành công',
+          'data': response.data['data'],
+        };
+      }
+
+      return {
+        'status': 'error',
+        'message': response.data['message'] ?? 'Tạo sổ quỹ thất bại',
+      };
+    } catch (e) {
+      debugPrint("❌ Error creating cash books: $e");
+      rethrow;
+    }
+  }
 }

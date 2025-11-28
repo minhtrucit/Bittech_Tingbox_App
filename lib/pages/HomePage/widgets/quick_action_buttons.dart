@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
+import '../../../services/statistics_services.dart';
+import '../../../services/api_services.dart';
+import '../../StartingBalancePage/bloc/cash_book_bloc.dart';
 
 class QuickActionButtons extends StatelessWidget {
   const QuickActionButtons({super.key});
@@ -23,12 +27,21 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.account_balance_wallet_outlined,
-          label: 'Nhập thu',
+          label: 'Nhập thu',
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StartingBalancePage(),
+                builder:
+                    (context) => BlocProvider(
+                      create:
+                          (context) => CashBookBloc(
+                            statisticServices: StatisticServices(
+                              api: ApiService(),
+                            ),
+                          ),
+                      child: const StartingBalancePage(),
+                    ),
               ),
             );
           },
