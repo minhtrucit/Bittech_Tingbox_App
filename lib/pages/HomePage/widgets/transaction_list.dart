@@ -1,56 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
+import '../../../ting_box.dart';
 
 class TransactionList extends StatelessWidget {
-  const TransactionList({super.key});
+  final List<StatisticTransaction>? transactions;
+  const TransactionList({super.key, this.transactions});
 
   @override
   Widget build(BuildContext context) {
-    // Mock data
-    final transactions = [
-      {
-        'icon': Icons.coffee,
-        'title': 'Cà phê sữa',
-        'time': '10:30 AM',
-        'amount': '+35.000đ',
-        'isIncome': true,
-        'color': Colors.blue[100],
-        'iconColor': Colors.blue,
-      },
-      {
-        'icon': Icons.receipt_long,
-        'title': 'Chi tiền điện',
-        'time': '09:15 AM',
-        'amount': '-500.000đ',
-        'isIncome': false,
-        'color': Colors.red[100],
-        'iconColor': Colors.red,
-      },
-      {
-        'icon': Icons.credit_card,
-        'title': 'Bán 2 Bạc xỉu',
-        'time': '08:45 AM',
-        'amount': '+70.000đ',
-        'isIncome': true,
-        'color': Colors.green[100],
-        'iconColor': Colors.green,
-      },
-      {
-        'icon': Icons.qr_code,
-        'title': 'Trà đào cam sả',
-        'time': '08:30 AM',
-        'amount': '+45.000đ',
-        'isIncome': true,
-        'color': Colors.amber[100],
-        'iconColor': Colors.amber,
-      },
-    ];
+    final txList = transactions ?? [];
+
+    if (txList.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: 64.h),
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Text('Chưa có giao dịch nào'),
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: 64.h),
       child: Column(
         children:
-            transactions.map((tx) {
+            txList.map((tx) {
+              final isIncome = (tx.amount ?? 0) >= 0;
+              final color = isIncome ? Colors.green : Colors.red;
+              final icon = isIncome ? Icons.arrow_downward : Icons.arrow_upward;
+              final bgColor = isIncome ? Colors.green[100] : Colors.red[100];
+
               return Container(
                 margin: EdgeInsets.only(bottom: 12.h),
                 padding: EdgeInsets.all(16.w),
@@ -63,14 +45,10 @@ class TransactionList extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
-                        color: tx['color'] as Color,
+                        color: bgColor,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        tx['icon'] as IconData,
-                        color: tx['iconColor'] as Color,
-                        size: 24.sp,
-                      ),
+                      child: Icon(icon, color: color, size: 24.sp),
                     ),
                     SizedBox(width: 16.w),
                     Expanded(
@@ -78,7 +56,7 @@ class TransactionList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tx['title'] as String,
+                            tx.description ?? 'Giao dịch',
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -87,7 +65,11 @@ class TransactionList extends StatelessWidget {
                           ),
                           SizedBox(height: 4.h),
                           Text(
-                            tx['time'] as String,
+                            tx.date != null
+                                ? DateFormat(
+                                  'HH:mm dd/MM/yyyy',
+                                ).format(tx.date!)
+                                : '',
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: Colors.grey,
@@ -97,14 +79,11 @@ class TransactionList extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      tx['amount'] as String,
+                      (tx.amount ?? 0).formatMoney(),
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
-                        color:
-                            (tx['isIncome'] as bool)
-                                ? Colors.green
-                                : Colors.red,
+                        color: color,
                       ),
                     ),
                   ],

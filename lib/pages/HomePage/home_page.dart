@@ -173,7 +173,16 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SizedBox(height: 16.h),
-              const RevenuePieChart(),
+              BlocBuilder<StatisticsBloc, StatisticsState>(
+                builder: (context, state) {
+                  return RevenuePieChart(
+                    incomeSources:
+                        state is StatisticsLoaded
+                            ? state.statistic.incomeSources
+                            : null,
+                  );
+                },
+              ),
               SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -203,7 +212,16 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               SizedBox(height: 12.h),
-              const TransactionList(),
+              BlocBuilder<StatisticsBloc, StatisticsState>(
+                builder: (context, state) {
+                  return TransactionList(
+                    transactions:
+                        state is StatisticsLoaded
+                            ? state.statistic.transactions
+                            : null,
+                  );
+                },
+              ),
             ],
           ),
         ),
