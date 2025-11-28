@@ -130,90 +130,90 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
                     style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                   ),
                 ),
-                SizedBox(height: 24.h),
+                // SizedBox(height: 24.h),
 
-                // Balance Summary Card
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Số dư cuối ngày hôm qua',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        // lastTotalBalance.formatMoney(),
-                        '0',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tiền mặt',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                // _cashBalance.formatMoney(),
-                                '0',
+                // // Balance Summary Card
+                // Container(
+                //   width: double.infinity,
+                //   padding: EdgeInsets.all(20.w),
+                //   decoration: BoxDecoration(
+                //     color: AppColors.primaryBlue.withAlpha(25),
+                //     borderRadius: BorderRadius.circular(12.r),
+                //   ),
+                //   child: Column(
+                //     crossAxisAlignment: CrossAxisAlignment.start,
+                //     children: [
+                //       Text(
+                //         'Số dư cuối ngày hôm qua',
+                //         style: TextStyle(
+                //           fontSize: 14.sp,
+                //           color: Colors.grey[600],
+                //         ),
+                //       ),
+                //       SizedBox(height: 8.h),
+                //       Text(
+                //         // lastTotalBalance.formatMoney(),
+                //         '0',
+                //         style: TextStyle(
+                //           fontSize: 24.sp,
+                //           fontWeight: FontWeight.bold,
+                //           color: AppColors.primaryBlue,
+                //         ),
+                //       ),
+                //       SizedBox(height: 16.h),
+                //       Row(
+                //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //         children: [
+                //           Column(
+                //             crossAxisAlignment: CrossAxisAlignment.start,
+                //             children: [
+                //               Text(
+                //                 'Tiền mặt',
+                //                 style: TextStyle(
+                //                   fontSize: 12.sp,
+                //                   color: Colors.grey[600],
+                //                 ),
+                //               ),
+                //               SizedBox(height: 4.h),
+                //               Text(
+                //                 // _cashBalance.formatMoney(),
+                //                 '0',
 
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Tài khoản',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                // _bankBalance.formatMoney(),
-                                '0',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                //                 style: TextStyle(
+                //                   fontSize: 16.sp,
+                //                   fontWeight: FontWeight.w600,
+                //                   color: Colors.black,
+                //                 ),
+                //               ),
+                //             ],
+                //           ),
+                //           Column(
+                //             crossAxisAlignment: CrossAxisAlignment.end,
+                //             children: [
+                //               Text(
+                //                 'Tài khoản',
+                //                 style: TextStyle(
+                //                   fontSize: 12.sp,
+                //                   color: Colors.grey[600],
+                //                 ),
+                //               ),
+                //               SizedBox(height: 4.h),
+                //               Text(
+                //                 // _bankBalance.formatMoney(),
+                //                 '0',
+                //                 style: TextStyle(
+                //                   fontSize: 16.sp,
+                //                   fontWeight: FontWeight.w600,
+                //                   color: Colors.black,
+                //                 ),
+                //               ),
+                //             ],
+                //           ),
+                //         ],
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 SizedBox(height: 24.h),
 
                 // Type Selection
