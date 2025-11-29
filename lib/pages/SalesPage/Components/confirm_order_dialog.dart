@@ -23,18 +23,19 @@ class ConfirmOrderDialog extends StatefulWidget {
 class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
   PaymentMethod _selectedPaymentMethod = PaymentMethod.BANK_TRANSFER;
 
-
   String _convertToPaymentMethod(PaymentMethod paymentMethod) {
     if (paymentMethod == PaymentMethod.BANK_TRANSFER) {
       return 'BANK_TRANSFER';
     } else {
       return 'CASH';
     }
-  } 
-  void onCreateOrder(BuildContext context, PaymentMethod paymentMethod) {
+  }
+
+  void onCreateOrder(BuildContext context, PaymentMethod paymentMethod) async {
     debugPrint("📝 Creating order with payment method: $paymentMethod");
+    final user = await UserRepository.getUser();
     final order = Order(
-      userId: 1,
+      userId: user?.id ?? 1,
       distributorId: 2,
       customerName: "Khách lẻ",
       customerPhone: "0901234567",
@@ -54,8 +55,9 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
               )
               .toList(),
     );
-
-    context.read<OrderBloc>().add(OrderCreateOrderEvent(order: order));
+    if (context.mounted) {
+      context.read<OrderBloc>().add(OrderCreateOrderEvent(order: order));
+    }
 
     debugPrint("📝 Order submitted: ${order.toJson()}");
   }
@@ -99,7 +101,11 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             Navigator.push(
               widget.parentContext,
               MaterialPageRoute(
-                builder: (_) => QrPage(paymentInfo: paymentInfo!, orderCode: state.orderCode,),
+                builder:
+                    (_) => QrPage(
+                      paymentInfo: paymentInfo!,
+                      orderCode: state.orderCode,
+                    ),
               ),
             );
           } else {
@@ -107,7 +113,8 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             DialogUtils.showAppDialog(
               context: context,
               title: 'Xác nhận đã thanh toán',
-              content: 'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
+              content:
+                  'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
               onFirstAction: () {
                 Navigator.pop(context);
               },
@@ -117,9 +124,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
               },
               secondActionText: 'Cancel',
             );
-
           }
-          
         }
 
         if (state is OrderFailure) {
@@ -221,7 +226,9 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                         onPaymentSelected: (method) {
                           setState(() {
                             _selectedPaymentMethod =
-                                method == "transfer" ? PaymentMethod.BANK_TRANSFER : PaymentMethod.CASH;
+                                method == "transfer"
+                                    ? PaymentMethod.BANK_TRANSFER
+                                    : PaymentMethod.CASH;
                           });
                         },
                       ),
@@ -246,47 +253,45 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            ...widget.items
-                .map(
-                  (item) => Column(
+            ...widget.items.map(
+              (item) => Column(
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              item.url ?? item.images?.first.url ?? '',
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  "Số lượng: ${item.quantity}",
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text("${formatMoney(item.price * item.quantity)}đ"),
-                        ],
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          item.url ?? item.images?.first.url ?? '',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                      SizedBox(height: 16.h),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              "Số lượng: ${item.quantity}",
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text("${formatMoney(item.price * item.quantity)}đ"),
                     ],
                   ),
-                )
-                ,
+                  SizedBox(height: 16.h),
+                ],
+              ),
+            ),
           ],
         ),
       ),
