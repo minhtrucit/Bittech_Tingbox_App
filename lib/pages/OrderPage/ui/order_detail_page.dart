@@ -280,11 +280,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildSummarySection() {
-    final subtotal = widget.order.totalAmount ?? 0;
+    final subtotal = widget.order.subtotal ?? 0;
     final discount = widget.order.discount;
     final vat = widget.order.vat;
     final paidAmount = widget.order.paidAmount;
-    final total = subtotal + vat - discount;
+    final total = widget.order.totalAmount ?? 0;
     final change = paidAmount - total;
 
     return Container(

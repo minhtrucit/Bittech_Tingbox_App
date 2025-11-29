@@ -38,6 +38,7 @@ class Order {
   final String shippingAddress;
   final double discount;
   final double vat;
+  double? subtotal;
   final double paidAmount;
   final String paymentMethod;
   String? paymentStatus;
@@ -55,6 +56,7 @@ class Order {
     required this.customerName,
     required this.customerPhone,
     required this.customerEmail,
+    this.subtotal,
     this.paymentStatus,
     required this.shippingAddress,
     this.discount = 0,
@@ -71,6 +73,7 @@ class Order {
   factory Order.fromJson(Map<String, dynamic> json) {
     int id = parseInt(json['id'], 'id');
     int userId = parseInt(json['userId'], 'userId');
+    double subtotal = parseDouble(json['subtotal'], 'subtotal');
     int distributorId = parseInt(json['distributorId'], 'distributorId');
     String code = json['code'] ?? '';
     double discount = parseDouble(json['discount'], 'discount');
@@ -129,6 +132,7 @@ class Order {
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
+      subtotal: subtotal,
       note: note,
       items: items,
       paymentInfo: paymentInfo,
@@ -154,6 +158,7 @@ class Order {
       'items': items.map((e) => e.toJson()).toList(),
       'totalAmount': totalAmount,
       'createdAt': createdAt,
+      'subtotal': subtotal,
       'id': id,
     };
   }
