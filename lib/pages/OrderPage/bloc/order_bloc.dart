@@ -164,20 +164,21 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "code":
             event
                 .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
-        "content": "ORD-251121-0001", // Nội dung chuyển khoản
+        "content": "${event
+                .orderCode}_251121-0001", // Nội dung chuyển khoản
         "transferType": "in", // Loại giao dịch. in là tiền vào, out là tiền ra
         "transferAmount": 896000, // Số tiền giao dịch
         "accumulated": 19077000, // Số dư tài khoản (lũy kế)
         "subAccount": null, // Tài khoản ngân hàng phụ (tài khoản định danh),
         "referenceCode":
-            "MBVCB.hxtgw3a3fhxrh", // Mã tham chiếu của tin nhắn sms
+            "MBVCB.hxtgw3a3fhxrh${event.orderCode}", // Mã tham chiếu của tin nhắn sms
         "description": "", // Toàn bộ nội dung tin nhắn sms
       };
 
       // Gọi API từ service
       final result = await orderService.handleSePayWebHook(body: body);
 
-      debugPrint("📌 [OrderBloc] API trả về Statistic:");
+      debugPrint("📌 [OrderBloc] API trả về Sepay Webhook");
       debugPrint("orders: ${result.length}");
       // Nếu có thêm field khác thì log thêm ở đây
 
@@ -185,7 +186,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(OrderPaymentSuccess(message: "Khách đã thanh toán thành công!"));
       debugPrint("✅ [OrderBloc] Emit state thành công.");
     } catch (e, stacktrace) {
-      debugPrint("❌ [OrderBloc] Lỗi lấy thống kê:");
+      debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook:");
       debugPrint("Error: $e");
       debugPrint("Stacktrace: $stacktrace");
 

@@ -4,6 +4,8 @@ import 'package:ting_box/models/order.dart';
 import '../models/statistic_order.dart';
 import 'api_services.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class OrderService {
   final ApiService api;
   OrderService({required this.api});
@@ -79,8 +81,12 @@ class OrderService {
   }) async {
     try {
       final dio = Dio();
+      dio.options.headers['Authorization'] =
+          'Apikey ${dotenv.get('SEPAY_API_KEY')}';
+
+      debugPrint("📤 Xử lý webhook SePay Body: ${body.toString()}");
       final resp = await dio.post(
-        'https://sepay.bittechx.cloud/sepay/webhook/sepay/webhook',
+        'https://sepay.bittechx.cloud/sepay/webhook',
         data: body,
       );
 
@@ -88,7 +94,10 @@ class OrderService {
         "📩 API Response Xử lý webhook SePay thành công: ${resp.data}",
       );
 
-      final ok = resp.statusCode == 201;
+      final ok =
+          resp.statusCode == 200 ||
+          resp.statusCode == 201 ||
+          resp.data['statusCode'] == 201;
 
       if (!ok) {
         throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
@@ -96,13 +105,15 @@ class OrderService {
 
       return resp.data;
     } on DioException catch (err) {
-      debugPrint("❌ Xử lý webhook SePay thất bại: $err");
+      debugPrint("❌ Xử lý webhook SePay thất bại: ${err.message}");
 
-      throw Exception("Không thể xử lý webhook SePay. Lỗi: $err");
+      throw Exception(
+        "Không thể xử lý webhook SePay dio exception. Lỗi: ${err.message}",
+      );
     } catch (e) {
-      debugPrint("❌ Xử lý webhook SePay thất bại: $e");
+      debugPrint("❌ Xử lý webhook SePay thất bại: ${e.toString()}");
 
-      throw Exception("Không thể xử lý webhook SePay. Lỗi: $e");
+      throw Exception("Không thể xử lý webhook SePay. Lỗi: ${e.toString()}");
     }
   }
 }

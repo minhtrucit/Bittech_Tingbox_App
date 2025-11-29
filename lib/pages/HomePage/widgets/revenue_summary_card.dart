@@ -30,7 +30,7 @@ class RevenueSummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tổng Doanh Thu',
+                'Số dư',
                 style: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
               ),
               // We can remove the static date or pass it in if needed
