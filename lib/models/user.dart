@@ -12,7 +12,8 @@ class User {
   final DateTime updatedAt;
   final int roleId;
   final Role role;
-  final String? token; // access token nếu muốn lưu
+  final String? token;
+  bool? isDevMode;
 
   User({
     required this.id,
@@ -27,6 +28,7 @@ class User {
     required this.roleId,
     required this.role,
     this.token,
+    this.isDevMode,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -38,11 +40,16 @@ class User {
       avatar: json['avatar'],
       isActive: json['isActive'] ?? false,
       refreshToken: json['expenseManagerRefreshToken'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updatedAt'] ?? DateTime.now().toIso8601String(),
+      ),
       roleId: json['roleId'] ?? 0,
       role: Role.fromJson(Map<String, dynamic>.from(json['role'] ?? {})),
       token: json['expenseManagerAccessToken']?.toString(),
+      isDevMode: json['isDev'] ?? false,
     );
   }
 
@@ -59,6 +66,7 @@ class User {
       'updatedAt': updatedAt.toIso8601String(),
       'roleId': roleId,
       'role': role.toJson(),
+      'isDev': isDevMode,
       if (token != null) 'token': token,
     };
   }
@@ -85,7 +93,9 @@ class Role {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      permissions: Permissions.fromJson(Map<String, dynamic>.from(json['permissions'] ?? {})),
+      permissions: Permissions.fromJson(
+        Map<String, dynamic>.from(json['permissions'] ?? {}),
+      ),
     );
   }
 

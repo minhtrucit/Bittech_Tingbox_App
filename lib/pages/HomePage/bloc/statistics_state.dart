@@ -17,3 +17,13 @@ class StatisticsError extends StatisticsState {
 
   StatisticsError({required this.message});
 }
+
+class ReceiptCreatedSuccess extends StatisticsState {
+  final String message;
+  ReceiptCreatedSuccess({required this.message});
+}
+
+class ReceiptCreatedFailure extends StatisticsState {
+  final String message;
+  ReceiptCreatedFailure({required this.message});
+}

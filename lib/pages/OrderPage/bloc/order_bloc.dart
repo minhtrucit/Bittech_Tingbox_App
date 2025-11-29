@@ -9,13 +9,12 @@ import '../../../models/payment_info.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderService orderService;
-  OrderBloc({required this.orderService})
-    : super(OrderInitial()) {
+  OrderBloc({required this.orderService}) : super(OrderInitial()) {
     on<OrderCreateOrderEvent>(_onCreateOrder);
     on<OrderPaymentSuccessEvent>(_onPaymentSuccess);
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
     on<OrderGetAllOrdersEvent>(_onGetAllOrders);
-    
+    on<OrderSePayWebHookEvent>(_onSePayWebHook);
   }
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
@@ -55,6 +54,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       }; // Nếu thành công trả về 201 (trong service đã check), emit success
       emit(
         OrderCreateSuccess(
+          orderCode: response['data']['code'],
           success: true,
           paymentInfo:
               paymentData != null ? PaymentInfo.fromJson(paymentData) : null,
@@ -139,6 +139,54 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       debugPrint("✅ [OrderBloc] Emit state thành công.");
     } catch (e, stacktrace) {
       debugPrint("❌ [OrderBloc] Lỗi lấy thống kê:");
+      debugPrint("Error: $e");
+      debugPrint("Stacktrace: $stacktrace");
+
+      emit(OrderFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onSePayWebHook(
+    OrderSePayWebHookEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderLoading());
+
+    try {
+      debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
+
+      final body = {
+        "id": 45454545, // ID giao dịch trên SePay
+        "gateway": "Vietcombank", // Brand name của ngân hàng
+        "transactionDate":
+            "2023-03-25 14:02:37", // Thời gian xảy ra giao dịch phía ngân hàng
+        "accountNumber": "0123499999", // Số tài khoản ngân hàng
+        "code":
+            event
+                .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
+        "content": "${event
+                .orderCode}_251121-0001", // Nội dung chuyển khoản
+        "transferType": "in", // Loại giao dịch. in là tiền vào, out là tiền ra
+        "transferAmount": 896000, // Số tiền giao dịch
+        "accumulated": 19077000, // Số dư tài khoản (lũy kế)
+        "subAccount": null, // Tài khoản ngân hàng phụ (tài khoản định danh),
+        "referenceCode":
+            "MBVCB.hxtgw3a3fhxrh${event.orderCode}", // Mã tham chiếu của tin nhắn sms
+        "description": "", // Toàn bộ nội dung tin nhắn sms
+      };
+
+      // Gọi API từ service
+      final result = await orderService.handleSePayWebHook(body: body);
+
+      debugPrint("📌 [OrderBloc] API trả về Sepay Webhook");
+      debugPrint("orders: ${result.length}");
+      // Nếu có thêm field khác thì log thêm ở đây
+
+      emit(OrderSePayWebHookSuccess(message: "Sepay Webhook thành công"));
+      emit(OrderPaymentSuccess(message: "Khách đã thanh toán thành công!"));
+      debugPrint("✅ [OrderBloc] Emit state thành công.");
+    } catch (e, stacktrace) {
+      debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook:");
       debugPrint("Error: $e");
       debugPrint("Stacktrace: $stacktrace");
 

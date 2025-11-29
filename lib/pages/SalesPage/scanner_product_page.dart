@@ -264,11 +264,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   void showConfirmOrderDialog() {
+    if (scannedProducts.isEmpty) return;
     showDialog(
       context: context,
       builder:
           (_) => ConfirmOrderDialog(
-            items: scannedProducts,
+            items: List.from(scannedProducts),
             parentContext: context,
           ),
     );
@@ -315,20 +316,33 @@ class _ScanProductPageState extends State<ScanProductPage> {
           Navigator.pop(context);
         }
       },
-      child: BlocListener<ProductBloc, ProductState>(
-        listener: (context, state) {
-          if (state is ProductLoading) {
-            setState(() {
-              isLoadingProducts = true;
-            });
-          }
-          if (state is ProductLoadProductsSuccess) {
-            setState(() {
-              isLoadingProducts = false;
-            });
-            products.addAll(state.products);
-          }
-        },
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<OrderBloc, OrderState>(
+            listener: (context, state) {
+              if (state is OrderCreateSuccess) {
+                setState(() {
+                  scannedProducts.clear();
+                });
+              }
+            },
+          ),
+          BlocListener<ProductBloc, ProductState>(
+            listener: (context, state) {
+              if (state is ProductLoading) {
+                setState(() {
+                  isLoadingProducts = true;
+                });
+              }
+              if (state is ProductLoadProductsSuccess) {
+                setState(() {
+                  isLoadingProducts = false;
+                });
+                products.addAll(state.products);
+              }
+            },
+          ),
+        ],
         child: AppScaffold(
           hasSafeArea: false,
           resizeToAvoidBottomInset: false,
