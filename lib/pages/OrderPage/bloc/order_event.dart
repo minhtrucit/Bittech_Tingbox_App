@@ -20,3 +20,8 @@ class OrderSePayWebHookEvent extends OrderEvent {
   final String orderCode;
   OrderSePayWebHookEvent({required this.orderCode});
 }
+
+class OrderGenerateQRCodeEvent extends OrderEvent {
+  final String orderId;
+  OrderGenerateQRCodeEvent({required this.orderId});
+}

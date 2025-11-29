@@ -116,4 +116,31 @@ class OrderService {
       throw Exception("Không thể xử lý webhook SePay. Lỗi: ${e.toString()}");
     }
   }
+
+Future<Map<String, dynamic>> generateOrderQRCode({
+    required String orderId,
+    
+  }) async {
+    try {
+      debugPrint("📤 Generate QR code for order: $orderId");
+
+      final resp = await api.post('/orders/$orderId/regenerate-qr');
+
+      debugPrint("📩 API Generate QR code for order Response: ${resp.data}");
+
+      final ok = resp.statusCode == 201;
+
+      if (!ok) {
+        throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
+      }
+
+      return resp.data['data'];
+    } catch (e, st) {
+      debugPrint("❌ Generate QR code for order error: $e");
+      debugPrint("STACK: $st");
+
+      throw Exception("Không thể generate QR code for order. Lỗi: $e");
+    }
+  }
+
 }

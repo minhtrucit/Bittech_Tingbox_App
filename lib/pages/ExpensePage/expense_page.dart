@@ -202,14 +202,14 @@ class _ExpensePageState extends State<ExpensePage> {
                           SizedBox(height: 24.h),
 
                           // Date Picker
-                          ExpenseDatePicker(
-                            selectedDate: _selectedDate,
-                            onDateChanged: (date) {
-                              setState(() {
-                                _selectedDate = date;
-                              });
-                            },
-                          ),
+                          // ExpenseDatePicker(
+                          //   selectedDate: _selectedDate,
+                          //   onDateChanged: (date) {
+                          //     setState(() {
+                          //       _selectedDate = date;
+                          //     });
+                          //   },
+                          // ),
                           SizedBox(height: 24.h),
 
                           // Type Selector

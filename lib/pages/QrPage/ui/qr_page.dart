@@ -47,6 +47,12 @@ class _QrPageState extends State<QrPage> {
     }
   }
 
+  @override
+  void dispose() {
+    webSocketManager.off("payment.success");
+    super.dispose();
+  }
+
   void showSuccessDialog({required bool isManualPrint}) {
     showDialog(
       context: context,

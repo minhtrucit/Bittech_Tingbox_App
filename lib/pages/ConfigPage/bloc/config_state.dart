@@ -46,6 +46,6 @@ final class BankAccountSuccess extends ConfigState {
 
 final class SepayInfoLoaded extends ConfigState {
   final String url;
-  final String? apiKey;
-  SepayInfoLoaded({required this.url, this.apiKey});
+  final String sepayApiKey;
+  SepayInfoLoaded({required this.url, required this.sepayApiKey});
 }

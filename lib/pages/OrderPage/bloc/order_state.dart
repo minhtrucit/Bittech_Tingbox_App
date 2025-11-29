@@ -53,3 +53,9 @@ final class OrderSePayWebHookSuccess extends OrderState {
   OrderSePayWebHookSuccess({required this.message});
 }
 
+
+final class OrderGenerateQRCodeSuccess extends OrderState {
+  final String message;
+  final PaymentInfo? paymentInfo;
+  OrderGenerateQRCodeSuccess({required this.message, this.paymentInfo});
+}
