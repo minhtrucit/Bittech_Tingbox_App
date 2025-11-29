@@ -47,7 +47,7 @@ class _QrPageState extends State<QrPage> {
     }
   }
 
-  void showSuccessDialog() {
+  void showSuccessDialog({required bool isManualPrint}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -88,34 +88,35 @@ class _QrPageState extends State<QrPage> {
                     ),
                   ),
                   SizedBox(height: 24.h),
-
-                  // Button: In hóa đơn
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2962FF), // Blue
-                        elevation: 0,
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                  if (isManualPrint)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2962FF), // Blue
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        "In hóa đơn",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
+                        child: Text(
+                          "In hóa đơn",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   SizedBox(height: 12.h),
+
+                  // Button: In hóa đơn
 
                   // Button: Trở về trang bán hàng
                   SizedBox(
@@ -166,12 +167,9 @@ class _QrPageState extends State<QrPage> {
             currentConfig = configState.config;
           }
 
-          if (currentConfig != null &&
-              currentConfig.printMode == PrintMode.manual) {
-            showSuccessDialog();
-          } else {
-            Navigator.pop(context);
-          }
+          showSuccessDialog(
+            isManualPrint: currentConfig?.printMode == PrintMode.manual,
+          );
         }
       },
       child: AppScaffold(
