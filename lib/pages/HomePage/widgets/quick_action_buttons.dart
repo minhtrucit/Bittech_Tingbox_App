@@ -26,7 +26,7 @@ class QuickActionButtons extends StatelessWidget {
         SizedBox(width: 12.w),
         _buildActionButton(
           icon: Icons.account_balance_wallet_outlined,
-          label: 'Nhập thu',
+          label: 'Tạo phiếu thu',
           onTap: () {
             // Get yesterday's statistic from StatisticsBloc
             final statisticsState = context.read<StatisticsBloc>().state;

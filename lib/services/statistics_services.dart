@@ -166,4 +166,39 @@ class StatisticServices {
       return {'status': 'error', 'message': 'Đã xảy ra lỗi không mong muốn'};
     }
   }
+
+  Future<Map<String, dynamic>> createReceipt({
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final response = await api.post('/receipts', data: data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Receipt created successfully: ${response.data}");
+        return {
+          'status': 'success',
+          'message': response.data['message'] ?? 'Tạo phiếu thu thành công',
+          'data': response.data['data'],
+        };
+      }
+
+      return {
+        'status': 'error',
+        'message': response.data['message'] ?? 'Tạo phiếu thu thất bại',
+      };
+    } on DioException catch (err) {
+      debugPrint(
+        "❌ DioException creating payment: ${err.response?.statusCode}",
+      );
+      debugPrint("❌ Error data: ${err.response?.data}");
+      return {
+        'status': 'error',
+        'message': err.response?.data['message'] ?? 'Tạo phiếu thu thất bại',
+        'statusCode': err.response?.statusCode,
+      };
+    } catch (e) {
+      debugPrint("❌ Unexpected error creating payment: $e");
+      return {'status': 'error', 'message': 'Đã xảy ra lỗi không mong muốn'};
+    }
+  }
 }
