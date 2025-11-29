@@ -28,8 +28,7 @@ class OrderDetailPage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar:
-          order.paymentStatus == 'unpaid' ? _buildBottomButton(context) : null,
+      bottomNavigationBar: _buildBottomButton(context),
     );
   }
 
@@ -178,9 +177,10 @@ class OrderDetailPage extends StatelessWidget {
     final productName = item.product?.name ?? 'Sản phẩm #${item.productId}';
     // Check if images list exists and is not empty before accessing first
     final productImage =
-        (item.product?.images != null && item.product!.images!.isNotEmpty)
+        item.product?.url ??
+        ((item.product?.images != null && item.product!.images!.isNotEmpty)
             ? item.product!.images!.first.url
-            : null;
+            : null);
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
@@ -255,7 +255,10 @@ class OrderDetailPage extends StatelessWidget {
   Widget _buildSummarySection() {
     final subtotal = order.totalAmount ?? 0;
     final discount = order.discount;
-    final total = subtotal - discount;
+    final vat = order.vat;
+    final paidAmount = order.paidAmount;
+    final total = subtotal + vat - discount;
+    final change = paidAmount - total;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -267,11 +270,25 @@ class OrderDetailPage extends StatelessWidget {
         children: [
           _buildSummaryRow('Tạm tính', '${formatMoney(subtotal)}đ', false),
           SizedBox(height: 12.h),
+          _buildSummaryRow('VAT', '${formatMoney(vat)}%', false),
+          SizedBox(height: 12.h),
           _buildSummaryRow('Giảm giá', '${formatMoney(discount)}đ', false),
           SizedBox(height: 16.h),
           Divider(color: Colors.grey.shade200, height: 1),
           SizedBox(height: 16.h),
           _buildSummaryRow('Tổng cộng', '${formatMoney(total)}đ', true),
+          SizedBox(height: 12.h),
+          _buildSummaryRow(
+            'Đã thanh toán',
+            '${formatMoney(paidAmount)}đ',
+            false,
+          ),
+          SizedBox(height: 12.h),
+          _buildSummaryRow(
+            'Tiền thừa/Trả lại',
+            '${formatMoney(change > 0 ? change : 0)}đ',
+            false,
+          ),
         ],
       ),
     );
@@ -315,32 +332,76 @@ class OrderDetailPage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 48.h,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Generate QR code for payment
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tạo mã QR thanh toán')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48.h,
+                child: IconButton(
+                  onPressed: () {
+                    // TODO: Implement print invoice
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('In hóa đơn')));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue.withValues(
+                      alpha: 0.1,
+                    ),
+                    foregroundColor: AppColors.primaryBlue,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  icon: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.print, size: 24.sp),
+                      SizedBox(width: 12.w),
+                      Text(
+                        'In hóa đơn',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            icon: const Icon(Icons.qr_code, color: Colors.white),
-            label: Text(
-              'Tạo lại mã QR thanh toán',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            SizedBox(width: 12.w),
+            Expanded(
+              child: SizedBox(
+                height: 48.h,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Generate QR code for payment
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Tạo mã QR thanh toán')),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  icon: const Icon(Icons.qr_code, color: Colors.white),
+                  label: Text(
+                    'Tạo mã QR',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

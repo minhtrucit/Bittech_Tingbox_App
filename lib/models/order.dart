@@ -37,6 +37,8 @@ class Order {
   final String customerEmail;
   final String shippingAddress;
   final double discount;
+  final double vat;
+  final double paidAmount;
   final String paymentMethod;
   String? paymentStatus;
   final String? note;
@@ -56,6 +58,8 @@ class Order {
     this.paymentStatus,
     required this.shippingAddress,
     this.discount = 0,
+    this.vat = 0,
+    this.paidAmount = 0,
     this.totalAmount,
     required this.paymentMethod,
     this.note,
@@ -70,6 +74,8 @@ class Order {
     int distributorId = parseInt(json['distributorId'], 'distributorId');
     String code = json['code'] ?? '';
     double discount = parseDouble(json['discount'], 'discount');
+    double vat = parseDouble(json['vat'], 'vat');
+    double paidAmount = parseDouble(json['paidAmount'], 'paidAmount');
     double totalAmount = parseDouble(
       json['totalAmount'] ?? json['amount'],
       'totalAmount',
@@ -118,6 +124,8 @@ class Order {
       customerEmail: customerEmail,
       shippingAddress: shippingAddress,
       discount: discount,
+      vat: vat,
+      paidAmount: paidAmount,
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
@@ -138,6 +146,8 @@ class Order {
       'customerEmail': customerEmail,
       'shippingAddress': shippingAddress,
       'discount': discount,
+      'vat': vat,
+      'paidAmount': paidAmount,
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       'note': note,

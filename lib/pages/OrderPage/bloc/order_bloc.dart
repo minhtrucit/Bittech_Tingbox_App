@@ -1,8 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/pages/SalesPage/Components/confirm_order_dialog.dart';
-import 'package:ting_box/pages/SalesPage/bloc/order_event.dart';
-import 'package:ting_box/pages/SalesPage/bloc/order_state.dart';
+import 'package:ting_box/pages/OrderPage/bloc/order_event.dart';
+import 'package:ting_box/pages/OrderPage/bloc/order_state.dart';
 import 'package:ting_box/services/order_service.dart';
 
 import '../../../models/payment_info.dart';
