@@ -285,7 +285,7 @@ class OrderDetailPage extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           _buildSummaryRow(
-            'Tiền thừa/Trả lại',
+            'Còn lại',
             '${formatMoney(change > 0 ? change : 0)}đ',
             false,
           ),
