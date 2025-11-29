@@ -28,18 +28,17 @@ class _ScanProductPageState extends State<ScanProductPage> {
   final ValueNotifier<bool> _isLoading = ValueNotifier(false);
   List<Product> products = [];
   late OrderService orderService;
+  int _currentTab = 0; // 0: Scanned, 1: All Products
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
-    final apiService = ApiService.getInstance(
-      baseUrl: dotenv.get('API_BASE_URL'),
-    );
-    orderService = OrderService(api: apiService);
-    final productBloc = BlocProvider.of<ProductBloc>(context);
-
     _initCamera();
     Future.delayed(Duration(milliseconds: 300), () {
-      productBloc.add(GetProductsEvent());
+      if (mounted) {
+        context.read<ProductBloc>().add(GetProductsEvent());
+      }
     });
     super.initState();
   }
@@ -245,6 +244,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     });
   }
 
+  // show re select product bottom sheet
   void showProductBottomSheet(BuildContext context, int oldIndex) {
     showModalBottomSheet(
       context: context,
@@ -263,6 +263,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
+  // show confirm order dialog
   void showConfirmOrderDialog() {
     if (scannedProducts.isEmpty) return;
     showDialog(
@@ -377,7 +378,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
                           },
                           name: product.name,
                           imageUrl:
-                              product.url ?? product.images?.first.url ?? '',
+                              product.url ??
+                              (product.images != null &&
+                                      product.images!.isNotEmpty
+                                  ? product.images!.first.url
+                                  : ''),
                           price: product.price,
                           quantity: product.quantity,
                           onIncrease: () {
@@ -389,7 +394,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
                           onDecrease: () {
                             handleUpdateQuantity(
                               index: scannedProducts.indexOf(product),
-
                               isIncrease: false,
                             );
                           },
@@ -404,11 +408,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
                   totalPrice: _calculateTotalPrice,
                 ),
               ),
-
-              _buildTakePhotoButton(
-                onTap: _takePictureAndSend,
-                isLoading: _isLoading,
-              ),
+              if (_currentTab == 0)
+                _buildTakePhotoButton(
+                  onTap: _takePictureAndSend,
+                  isLoading: _isLoading,
+                ),
             ],
           ),
         ),
@@ -526,14 +530,14 @@ class _ScanProductPageState extends State<ScanProductPage> {
     required VoidCallback onConfirmButtonTap,
     required double Function() totalPrice,
   }) {
-    return Container(
-      height: 350.h,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: _currentTab == 0 ? 350.h : 600.h,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           const SizedBox(height: 10),
           Container(
@@ -545,86 +549,350 @@ class _ScanProductPageState extends State<ScanProductPage> {
             ),
           ),
           const SizedBox(height: 10),
-          ListTile(
-            title: Text(
-              "Sản phẩm đã quét (${productItems.length})",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: productItems.length,
-              itemBuilder: (context, index) => productItems[index],
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+          // Tab Selector
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12.r),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
+              padding: EdgeInsets.all(4.w),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Tổng cộng: ',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey,
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _currentTab = 0),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color:
+                              _currentTab == 0
+                                  ? Colors.white
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8.r),
+                          boxShadow:
+                              _currentTab == 0
+                                  ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ]
+                                  : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Đã quét (${scannedProducts.length})",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                _currentTab == 0
+                                    ? Colors.black
+                                    : Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    '${formatMoney(totalPrice())}đ',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _currentTab = 1),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color:
+                              _currentTab == 1
+                                  ? Colors.white
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8.r),
+                          boxShadow:
+                              _currentTab == 1
+                                  ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ]
+                                  : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Tất cả sản phẩm",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                _currentTab == 1
+                                    ? Colors.black
+                                    : Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: AppTextButton(
-                style: ButtonStyle(
-                  shape: WidgetStatePropertyAll(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 10),
+
+          // Content
+          Expanded(
+            child:
+                _currentTab == 0
+                    ? _buildScannedList(
+                      productItems,
+                      onConfirmButtonTap,
+                      totalPrice,
+                    )
+                    : _buildAllProductsList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScannedList(
+    List<Widget> productItems,
+    VoidCallback onConfirmButtonTap,
+    double Function() totalPrice,
+  ) {
+    return Column(
+      children: [
+        Expanded(
+          child:
+              productItems.isEmpty
+                  ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 48,
+                          color: Colors.grey[300],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          "Chưa có sản phẩm nào",
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      ],
                     ),
+                  )
+                  : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: productItems.length,
+                    itemBuilder: (context, index) => productItems[index],
                   ),
-                  backgroundColor: WidgetStatePropertyAll(
-                    AppColors.primaryBlue,
-                  ),
-                  textStyle: WidgetStatePropertyAll(
-                    Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(width: 0.4.w, color: Colors.grey.shade300),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(right: 16.w, left: 16.w, top: 16.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tổng cộng: ',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
                   ),
                 ),
-                onPressed: onConfirmButtonTap,
-                label: Text(
-                  "Hoàn tất",
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                Text(
+                  '${formatMoney(totalPrice())}đ',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: AppTextButton(
+              style: ButtonStyle(
+                shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                backgroundColor: WidgetStatePropertyAll(AppColors.primaryBlue),
+                textStyle: WidgetStatePropertyAll(
+                  Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
               ),
+              onPressed: onConfirmButtonTap,
+              label: Text(
+                "Hoàn tất",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAllProductsList() {
+    final filteredProducts =
+        products
+            .where(
+              (p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+            )
+            .toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm sản phẩm...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: Colors.grey[100],
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: filteredProducts.length,
+            itemBuilder: (context, index) {
+              final product = filteredProducts[index];
+              return _buildProductListItem(product);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductListItem(Product product) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(8.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: Image.network(
+              product.url ??
+                  (product.images?.isNotEmpty == true
+                      ? product.images!.first.url
+                      : ''),
+              width: 50.w,
+              height: 50.w,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, __, ___) => Container(
+                    width: 50.w,
+                    height: 50.w,
+                    color: Colors.grey[200],
+                    child: Icon(Icons.image, color: Colors.grey),
+                  ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                Text(
+                  '${formatMoney(product.price)}đ',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13.sp),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              _addProductToScannedList(product);
+            },
+            icon: Icon(Icons.add_circle, color: AppColors.primaryBlue),
           ),
         ],
       ),
     );
+  }
+
+  void _addProductToScannedList(Product product) {
+    setState(() {
+      final index = scannedProducts.indexWhere((p) => p.id == product.id);
+      if (index != -1) {
+        final existing = scannedProducts[index];
+        scannedProducts[index] = Product(
+          id: existing.id,
+          name: existing.name,
+          price: existing.price,
+          quantity: existing.quantity + 1,
+          url: existing.url,
+          images: existing.images,
+        );
+      } else {
+        scannedProducts.insert(
+          0,
+          Product(
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1,
+            url: product.url,
+            images: product.images,
+          ),
+        );
+      }
+      // Optional: Switch back to scanned list or show toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã thêm ${product.name}'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    });
   }
 
   Widget buildProductCartItem({

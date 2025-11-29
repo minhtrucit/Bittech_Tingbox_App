@@ -36,9 +36,9 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
     final order = Order(
       userId: 1,
       distributorId: 2,
-      customerName: "Trần Lâm Huy",
+      customerName: "Khách lẻ",
       customerPhone: "0901234567",
-      customerEmail: "tlhuy02@gmail.com",
+      customerEmail: "customer@example.com",
       shippingAddress: "123 Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
       discount: 0,
       paymentMethod: _convertToPaymentMethod(paymentMethod),
