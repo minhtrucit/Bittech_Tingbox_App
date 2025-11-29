@@ -78,7 +78,11 @@ class OrderService {
     required dynamic body,
   }) async {
     try {
-      final resp = await api.post('/sepay/webhook', data: body);
+      final dio = Dio();
+      final resp = await dio.post(
+        'https://sepay.bittechx.cloud/sepay/webhook/sepay/webhook',
+        data: body,
+      );
 
       debugPrint(
         "📩 API Response Xử lý webhook SePay thành công: ${resp.data}",

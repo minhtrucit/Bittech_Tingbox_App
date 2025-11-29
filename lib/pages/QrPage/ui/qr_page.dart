@@ -33,13 +33,17 @@ class _QrPageState extends State<QrPage> {
         debugPrint('event data from websocket error $e');
       }
     });
+    getUserInfo();
     super.initState();
   }
 
   Future<void> getUserInfo() async {
     final user = await UserRepository.getUser();
-    if(user != null){
+    debugPrint('user: $user');
+    if (user != null) {
       isDevMode = user.isDevMode ?? false;
+      setState(() {});
+      debugPrint('isDevMode: $isDevMode');
     }
   }
 
