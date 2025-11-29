@@ -12,7 +12,8 @@ class User {
   final DateTime updatedAt;
   final int roleId;
   final Role role;
-  final String? token; // access token nếu muốn lưu
+  final String? token; 
+  bool? isDevMode;
 
   User({
     required this.id,
@@ -27,6 +28,7 @@ class User {
     required this.roleId,
     required this.role,
     this.token,
+    this.isDevMode,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class User {
       roleId: json['roleId'] ?? 0,
       role: Role.fromJson(Map<String, dynamic>.from(json['role'] ?? {})),
       token: json['expenseManagerAccessToken']?.toString(),
+      isDevMode: json['isDevMode'] ?? false,
     );
   }
 
@@ -59,6 +62,7 @@ class User {
       'updatedAt': updatedAt.toIso8601String(),
       'roleId': roleId,
       'role': role.toJson(),
+      'isDevMode': isDevMode,
       if (token != null) 'token': token,
     };
   }

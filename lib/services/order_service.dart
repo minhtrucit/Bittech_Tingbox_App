@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/order.dart';
 import '../models/statistic_order.dart';
@@ -70,6 +71,34 @@ class OrderService {
     } catch (e) {
       debugPrint("❌ ERROR: $e");
       throw Exception('Error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> handleSePayWebHook({
+    required dynamic body,
+  }) async {
+    try {
+      final resp = await api.post('/sepay/webhook', data: body);
+
+      debugPrint(
+        "📩 API Response Xử lý webhook SePay thành công: ${resp.data}",
+      );
+
+      final ok = resp.statusCode == 201;
+
+      if (!ok) {
+        throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
+      }
+
+      return resp.data;
+    } on DioException catch (err) {
+      debugPrint("❌ Xử lý webhook SePay thất bại: $err");
+
+      throw Exception("Không thể xử lý webhook SePay. Lỗi: $err");
+    } catch (e) {
+      debugPrint("❌ Xử lý webhook SePay thất bại: $e");
+
+      throw Exception("Không thể xử lý webhook SePay. Lỗi: $e");
     }
   }
 }

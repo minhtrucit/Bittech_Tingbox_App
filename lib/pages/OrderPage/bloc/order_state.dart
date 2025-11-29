@@ -11,10 +11,12 @@ final class OrderCreateSuccess extends OrderState {
   final bool success;
   final PaymentMethod? paymentMethod;
   final PaymentInfo? paymentInfo;
+  final String orderCode;
   OrderCreateSuccess({
     required this.success,
     this.paymentInfo,
     this.paymentMethod,
+    required this.orderCode,
   });
 }
 
@@ -24,10 +26,10 @@ final class OrderFailure extends OrderState {
 }
 
 class OrderPaymentSuccess extends OrderState {
-  final int orderId;
+  final int? orderId;
   final String message;
 
-  OrderPaymentSuccess({required this.orderId, required this.message});
+  OrderPaymentSuccess({this.orderId, required this.message});
 }
 
 class OrderPaymentFailed extends OrderState {
@@ -44,5 +46,10 @@ final class OrderGetStatisticSuccess extends OrderState {
 final class OrderGetAllOrdersSuccess extends OrderState {
   final List<Order> orders;
   OrderGetAllOrdersSuccess({required this.orders});
+}
+
+final class OrderSePayWebHookSuccess extends OrderState {
+  final String message;
+  OrderSePayWebHookSuccess({required this.message});
 }
 

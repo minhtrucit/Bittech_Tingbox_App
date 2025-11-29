@@ -10,8 +10,9 @@ import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
 
 class QrPage extends StatefulWidget {
-  const QrPage({required this.paymentInfo, super.key});
+  const QrPage({required this.paymentInfo, required this.orderCode, super.key});
   final PaymentInfo paymentInfo;
+  final String orderCode;
 
   @override
   State<QrPage> createState() => _QrPageState();
@@ -19,6 +20,7 @@ class QrPage extends StatefulWidget {
 
 class _QrPageState extends State<QrPage> {
   late WebSocketManager webSocketManager = WebSocketManager();
+  bool isDevMode = false;
   @override
   void initState() {
     webSocketManager.on("payment.success", (data) {
@@ -32,6 +34,13 @@ class _QrPageState extends State<QrPage> {
       }
     });
     super.initState();
+  }
+
+  Future<void> getUserInfo() async {
+    final user = await UserRepository.getUser();
+    if(user != null){
+      isDevMode = user.isDevMode ?? false;
+    }
   }
 
   void showSuccessDialog() {
@@ -156,6 +165,8 @@ class _QrPageState extends State<QrPage> {
           if (currentConfig != null &&
               currentConfig.printMode == PrintMode.manual) {
             showSuccessDialog();
+          } else {
+            Navigator.pop(context);
           }
         }
       },
@@ -235,23 +246,62 @@ class _QrPageState extends State<QrPage> {
                   ),
 
                   SizedBox(height: 24.h),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      minimumSize: Size(double.infinity, 48.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
+                  Row(
+                    spacing: 8.w,
+                    children: [
+                      if (isDevMode)
+                        Expanded(
+                          child: SizedBox(
+                            height: 48.h,
+                            child: AppTextButton(
+                              onPressed: () {
+                                context.read<OrderBloc>().add(
+                                  OrderSePayWebHookEvent(
+                                    orderCode: widget.orderCode,
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue
+                                    .withValues(alpha: 0.1),
+                                foregroundColor: AppColors.primaryBlue,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                              ),
+                              label: Text(
+                                'Demo thanh toán',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryBlue,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            minimumSize: Size(double.infinity, 48.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                          ),
+                          child: Text(
+                            "Đóng",
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      "Đóng",
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

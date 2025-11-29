@@ -90,12 +90,13 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             Navigator.push(
               widget.parentContext,
               MaterialPageRoute(
-                builder: (_) => QrPage(paymentInfo: paymentInfo!),
+                builder: (_) => QrPage(paymentInfo: paymentInfo!, orderCode: state.orderCode,),
               ),
             );
           } else {
             // Todo handle for cash method
           }
+          
         }
 
         if (state is OrderFailure) {
