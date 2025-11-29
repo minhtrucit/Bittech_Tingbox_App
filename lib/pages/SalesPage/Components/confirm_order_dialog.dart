@@ -104,6 +104,20 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             );
           } else {
             // Todo handle for cash method
+            DialogUtils.showAppDialog(
+              context: context,
+              title: 'Xác nhận đã thanh toán',
+              content: 'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
+              onFirstAction: () {
+                Navigator.pop(context);
+              },
+              firstActionText: 'OK',
+              onSecondAction: () {
+                Navigator.pop(context);
+              },
+              secondActionText: 'Cancel',
+            );
+
           }
           
         }
