@@ -21,9 +21,18 @@ class ConfirmOrderDialog extends StatefulWidget {
 }
 
 class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
-  String _selectedPaymentMethod = PaymentMethod.BANK_TRANSFER.toString();
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.BANK_TRANSFER;
 
-  void onCreateOrder(BuildContext context, String paymentMethod) {
+
+  String _convertToPaymentMethod(PaymentMethod paymentMethod) {
+    if (paymentMethod == PaymentMethod.BANK_TRANSFER) {
+      return 'BANK_TRANSFER';
+    } else {
+      return 'CASH';
+    }
+  } 
+  void onCreateOrder(BuildContext context, PaymentMethod paymentMethod) {
+    debugPrint("📝 Creating order with payment method: $paymentMethod");
     final order = Order(
       userId: 1,
       distributorId: 2,
@@ -32,7 +41,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
       customerEmail: "tlhuy02@gmail.com",
       shippingAddress: "123 Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
       discount: 0,
-      paymentMethod: paymentMethod,
+      paymentMethod: _convertToPaymentMethod(paymentMethod),
       note: "Giao giờ hành chính, vui lòng gọi trước khi giao.",
       items:
           widget.items
@@ -198,7 +207,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                         onPaymentSelected: (method) {
                           setState(() {
                             _selectedPaymentMethod =
-                                method == "transfer" ? "BANK_TRANSFER" : "CASH";
+                                method == "transfer" ? PaymentMethod.BANK_TRANSFER : PaymentMethod.CASH;
                           });
                         },
                       ),
