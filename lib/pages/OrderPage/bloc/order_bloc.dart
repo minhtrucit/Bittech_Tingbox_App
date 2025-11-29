@@ -15,6 +15,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
     on<OrderGetAllOrdersEvent>(_onGetAllOrders);
     on<OrderSePayWebHookEvent>(_onSePayWebHook);
+    on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
   }
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
@@ -164,8 +165,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "code":
             event
                 .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
-        "content": "${event
-                .orderCode}_251121-0001", // Nội dung chuyển khoản
+        "content": "${event.orderCode}_251121-0001", // Nội dung chuyển khoản
         "transferType": "in", // Loại giao dịch. in là tiền vào, out là tiền ra
         "transferAmount": 896000, // Số tiền giao dịch
         "accumulated": 19077000, // Số dư tài khoản (lũy kế)
@@ -187,6 +187,36 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       debugPrint("✅ [OrderBloc] Emit state thành công.");
     } catch (e, stacktrace) {
       debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook:");
+      debugPrint("Error: $e");
+      debugPrint("Stacktrace: $stacktrace");
+
+      emit(OrderFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onGenerateQRCode(
+    OrderGenerateQRCodeEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderLoading());
+
+    try {
+      debugPrint("🚀 [OrderBloc] Bắt đầu gọi API generate QR code...");
+
+      // Gọi API từ service
+      final result = await orderService.generateOrderQRCode(
+        orderId: event.orderId,
+      );
+
+      emit(
+        OrderGenerateQRCodeSuccess(
+          message: "Generate QR code thành công",
+          paymentInfo: PaymentInfo.fromJson(result['paymentInfo']),
+        ),
+      );
+      debugPrint("✅ [OrderBloc] Emit state thành công.");
+    } catch (e, stacktrace) {
+      debugPrint("❌ [OrderBloc] Lỗi generate QR code:");
       debugPrint("Error: $e");
       debugPrint("Stacktrace: $stacktrace");
 
