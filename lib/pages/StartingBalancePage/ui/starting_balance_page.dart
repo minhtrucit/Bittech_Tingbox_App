@@ -76,7 +76,14 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
             content: state.message,
             firstActionText: 'OK',
             onFirstAction: () {
-              Navigator.of(context).pop(); // Go back
+              Navigator.of(context).pop(); // Close dialog
+              setState(() {
+                _amountController.clear();
+                _subjectController.clear();
+                _noteController.clear();
+                _selectedType = 'cash';
+                _hasError = false;
+              });
             },
           );
         } else if (state is ReceiptCreatedFailure) {
