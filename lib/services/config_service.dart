@@ -12,6 +12,7 @@ class ConfigService {
   ConfigService({required this.api});
 
   static const String _keySepayUrl = 'sepay_url';
+  static const String _keySepayApiKey = 'sepay_api_key';
 
   Future<List<Bank>> getBanks() async {
     try {
@@ -31,40 +32,47 @@ class ConfigService {
     return [];
   }
 
-  Future<void> saveSepayUrl(String url) async {
+  Future<void> saveSepayUrl(String url, String? sepayApiKey) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keySepayUrl, url);
+      if (sepayApiKey != null) {
+        await prefs.setString(_keySepayApiKey, sepayApiKey);
+      }
     } catch (e) {
       debugPrint('Error saving sepay url: $e');
     }
   }
 
-  Future<String?> getSepayUrlFromLocal() async {
+  Future<Map<String, dynamic>> getSepayInfoFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keySepayUrl);
+      final url = prefs.getString(_keySepayUrl);
+      final sepayApiKey = prefs.getString(_keySepayApiKey);
+      return {'url': url, 'sepayApiKey': sepayApiKey};
     } catch (e) {
       debugPrint('Error getting sepay url from local: $e');
-      return null;
+      return {'url': null, 'sepayApiKey': null};
     }
   }
 
-  Future<Map<String, dynamic>> getSepayInfo() async {
+  Future<Map<String, dynamic>> getSepayInfo(int configId) async {
     try {
-      final response = await api.get('configs/url-sepay');
+      final response = await api.get('configs/url-sepay/?configId=$configId');
       if (response.statusCode == 200) {
         final data =
             response.data is String ? jsonDecode(response.data) : response.data;
         final url = data['data']['url'];
+        final sepayApiKey = data['data']['sepayApiKey'];
         if (url != null) {
-          await saveSepayUrl(url);
+          await saveSepayUrl(url, sepayApiKey);
         }
-        return data['data'];
+        return data;
       }
       throw Exception('Error getting sepay info: ${response.data['message']}');
     } catch (e) {
-      throw Exception('Error getting sepay info: ${e.toString()}');
+      debugPrint('Error getting sepay info: $e');
+      return {};
     }
   }
 
@@ -78,7 +86,9 @@ class ConfigService {
 
         if (data['status'] == 'success' && data != null) {
           if (data['data'] is List && (data['data'] as List).isNotEmpty) {
-            final config = ConfigModel.fromJson(data['data'][0]); // Lấy config đầu tiên
+            final config = ConfigModel.fromJson(
+              data['data'][0],
+            ); // Lấy config đầu tiên
             debugPrint('Config: ${config.toJson()}');
             return config;
           } else if (data['data'] is Map<String, dynamic>) {

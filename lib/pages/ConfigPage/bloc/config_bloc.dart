@@ -24,9 +24,9 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
     Emitter<ConfigState> emit,
   ) async {
     try {
-      final url = await configService.getSepayUrlFromLocal();
-      if (url != null && url.isNotEmpty) {
-        emit(SepayInfoLoaded(url: url));
+      final data = await configService.getSepayInfoFromLocal();
+      if (data['url'] != null && data['url'].isNotEmpty) {
+        emit(SepayInfoLoaded(url: data['url']!, sepayApiKey: data['sepayApiKey']!));
       }
     } catch (e) {
       debugPrint('Error loading sepay info from local: $e');
@@ -38,9 +38,10 @@ class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
     Emitter<ConfigState> emit,
   ) async {
     try {
-      final data = await configService.getSepayInfo();
-      if (data.isNotEmpty) {
-        emit(SepayInfoLoaded(url: data['url'] ?? ''));
+      final data = await configService.getSepayInfo(event.configId);
+      debugPrint('Sepay info: ${data['data']}');
+      if (data['status'] == 'success') {
+        emit(SepayInfoLoaded(url: data['data']['url'] ?? '', sepayApiKey: data['data']['sepayApiKey'] ?? ''));
       } else {
         emit(ConfigFailure(message: 'Không lấy được thông tin Sepay'));
       }

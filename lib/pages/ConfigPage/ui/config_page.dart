@@ -25,6 +25,7 @@ class _ConfigPageState extends State<ConfigPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _unitNameController = TextEditingController();
   final TextEditingController _sepayUrlController = TextEditingController();
+  final TextEditingController _sepayApiKeyController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
@@ -109,6 +110,7 @@ class _ConfigPageState extends State<ConfigPage> {
   void dispose() {
     _unitNameController.dispose();
     _sepayUrlController.dispose();
+    _sepayApiKeyController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -333,6 +335,7 @@ class _ConfigPageState extends State<ConfigPage> {
           );
         } else if (state is SepayInfoLoaded) {
           _sepayUrlController.text = state.url;
+          _sepayApiKeyController.text = state.sepayApiKey;
         }
       },
       child: AppScaffold(
@@ -421,7 +424,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 context.read<ConfigBloc>().add(
-                                  GetSepayInfoEvent(),
+                                  GetSepayInfoEvent(configId: widget.config!.id!),
                                 );
                               },
                               icon: const Icon(
@@ -456,6 +459,20 @@ class _ConfigPageState extends State<ConfigPage> {
                             onPressed:
                                 () =>
                                     _copyToClipboard(_sepayUrlController.text),
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+
+                        _buildTextField(
+                          controller: _sepayApiKeyController,
+                          hintText: 'sepayApiKey',
+                          readOnly: true,
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.copy, color: Colors.grey),
+                            onPressed:
+                                () => _copyToClipboard(
+                                  _sepayApiKeyController.text,
+                                ),
                           ),
                         ),
                         SizedBox(height: 24.h),

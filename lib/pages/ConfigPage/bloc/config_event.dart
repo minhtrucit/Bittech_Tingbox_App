@@ -22,7 +22,8 @@ final class GetBankEvent extends ConfigEvent {
 }
 
 final class GetSepayInfoEvent extends ConfigEvent {
-  GetSepayInfoEvent();
+  final int configId;
+  GetSepayInfoEvent({required this.configId});
 }
 
 final class LoadSepayInfoFromLocalEvent extends ConfigEvent {
