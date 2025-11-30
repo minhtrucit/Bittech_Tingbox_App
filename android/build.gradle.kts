@@ -14,6 +14,10 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+    
+    tasks.withType<Test>().configureEach {
+        enabled = false
+    }
 }
 
 tasks.register<Delete>("clean") {

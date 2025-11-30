@@ -1,4 +1,4 @@
-package com.example.notification_flutter_client
+package com.bittech.tingBox
 
 import io.flutter.embedding.android.FlutterActivity
 
