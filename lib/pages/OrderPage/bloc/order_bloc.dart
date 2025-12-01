@@ -174,7 +174,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "id": randomId, // ID giao dịch trên SePay
         "gateway": "Vietcombank", // Brand name của ngân hàng
         "transactionDate":
-            event.transactionDate, // Thời gian xảy ra giao dịch phía ngân hàng
+            DateTime.now().toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
         "accountNumber": "0123499999", // Số tài khoản ngân hàng
         "code":
             event

@@ -204,6 +204,8 @@ class _OrdersListPageState extends State<OrdersListPage>
           }
 
           return RefreshIndicator(
+            color: AppColors.primaryBlue,
+            backgroundColor: AppColors.white,
             onRefresh: () async {
               context.read<OrderBloc>().add(OrderGetAllOrdersEvent());
               // Wait for the state to update
