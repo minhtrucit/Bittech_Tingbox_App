@@ -88,7 +88,10 @@ class _ReportPageState extends State<ReportPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRevenueSection(ordersByPaymentMethod!),
+                      _buildRevenueSection(
+                        ordersByPaymentMethod!,
+                        ordersByPaymentStatus!,
+                      ),
                       SizedBox(height: 20.h),
                       _buildExpenseSection(),
                       SizedBox(height: 20.h),
@@ -130,12 +133,21 @@ class _ReportPageState extends State<ReportPage>
   // -------------------------------
   // SECTION: Tổng Thu
   // -------------------------------
-  Widget _buildRevenueSection(OrdersByPaymentMethod ordersByPaymentMethod) {
+  Widget _buildRevenueSection(
+    OrdersByPaymentMethod ordersByPaymentMethod,
+    OrdersByPaymentStatus ordersByPaymentStatus,
+  ) {
     final cashItem = ordersByPaymentMethod.items.firstWhere(
       (item) => item.paymentMethodValue == 0,
     );
     final bankItem = ordersByPaymentMethod.items.firstWhere(
       (item) => item.paymentMethodValue == 1,
+    );
+    final paidItem = ordersByPaymentStatus.items.firstWhere(
+      (item) => item.paymentStatus == 'paid',
+    );
+    final unpaidItem = ordersByPaymentStatus.items.firstWhere(
+      (item) => item.paymentStatus == 'unpaid',
     );
     final totalAmount = cashItem.totalAmount + bankItem.totalAmount;
     return Container(
@@ -171,16 +183,35 @@ class _ReportPageState extends State<ReportPage>
             "Chuyển khoản từ đơn hàng",
             formatMoney(bankItem.totalAmount),
           ),
+          SizedBox(height: 12.h),
+          _buildIconRow(
+            Icons.check_circle_outline,
+            "Đã thanh toán",
+            formatMoney(paidItem.totalAmount),
+            iconColor: AppColors.primaryBlue,
+          ),
+          SizedBox(height: 12.h),
+          _buildIconRow(
+            Icons.cancel,
+            "Chưa thanh toán",
+            formatMoney(unpaidItem.totalAmount),
+            iconColor: Colors.red,
+          ),
         ],
       ),
     );
   }
 
   // Một hàng nhỏ có icon + label + số tiền
-  Widget _buildIconRow(IconData icon, String title, String value) {
+  Widget _buildIconRow(
+    IconData icon,
+    String title,
+    String value, {
+    Color? iconColor,
+  }) {
     return Row(
       children: [
-        Icon(icon, color: Colors.green, size: 20),
+        Icon(icon, color: iconColor ?? Colors.green, size: 20),
         SizedBox(width: 8.w),
         Expanded(child: Text(title)),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -250,7 +281,7 @@ class _ReportPageState extends State<ReportPage>
           children: [
             const Expanded(
               child: Text(
-                "Giao dịch gần đây",
+                "Đơn hàng gần đây",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -263,7 +294,7 @@ class _ReportPageState extends State<ReportPage>
         SizedBox(height: 12.h),
 
         // Danh sách đơn hàng gần đây
-        ...statistic.recentOrders.map(_buildTransactionItem),
+        ...statistic.recentOrders.take(5).map(_buildTransactionItem),
       ],
     );
   }
@@ -282,7 +313,11 @@ class _ReportPageState extends State<ReportPage>
       child: Row(
         children: [
           // Icon cố định: xanh + arrow_downward
-          Icon(Icons.arrow_downward, color: Colors.green, size: 22),
+          Icon(
+            Icons.receipt_long_rounded,
+            color: order.paymentStatus == 'paid' ? Colors.green : Colors.red,
+            size: 22,
+          ),
           SizedBox(width: 12.w),
 
           // Thông tin giao dịch
@@ -291,12 +326,21 @@ class _ReportPageState extends State<ReportPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Tổng tiền
-                Text(
-                  "${formatMoney(order.totalAmount ?? 0)}đ",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15.sp,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${formatMoney(order.totalAmount ?? 0)}đ",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15.sp,
+                      ),
+                    ),
+                    Text(
+                      "(${order.paymentStatus == 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'})",
+                      style: TextStyle(fontSize: 13.sp, color: Colors.blueGrey),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 4.h),
 
