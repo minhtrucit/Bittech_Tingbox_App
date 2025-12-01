@@ -1,4 +1,3 @@
-
 import '../../../models/user.dart';
 
 sealed class UserProfileState {}
@@ -14,6 +13,7 @@ final class UserProfileFailure extends UserProfileState {
 
 final class UserProfileSuccess extends UserProfileState {
   final User user;
-  UserProfileSuccess({required this.user});
-}
+  final bool isAvatarUpdating;
 
+  UserProfileSuccess({required this.user, this.isAvatarUpdating = false});
+}

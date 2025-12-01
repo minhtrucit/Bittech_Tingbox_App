@@ -583,6 +583,7 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                       onPressed: () {
                         Navigator.pop(context); // Close dialog
                         Navigator.pop(context); // Close bottom sheet
+                        Navigator.pop(context); // Close bottom sheet
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE3F2FD),

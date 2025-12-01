@@ -107,6 +107,44 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+        height: 60.h,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(5),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Tổng thu: ${widget.transactions.where((tx) => (tx.amount ?? 0) >= 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ),
+            Text(
+              'Tổng chi: ${widget.transactions.where((tx) => (tx.amount ?? 0) < 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

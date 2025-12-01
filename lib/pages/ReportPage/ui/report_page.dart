@@ -277,19 +277,9 @@ class _ReportPageState extends State<ReportPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                "Đơn hàng gần đây",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-            Text(
-              "Xem tất cả",
-              style: TextStyle(color: Colors.blue, fontSize: 14.sp),
-            ),
-          ],
+        Text(
+          "Đơn hàng gần đây",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
 

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:ting_box/pages/HomePage/widgets/quick_action_buttons.dart';
 import 'package:ting_box/pages/HomePage/widgets/report_filter_bar.dart';
 import 'package:ting_box/pages/HomePage/widgets/revenue_pie_chart.dart';
+import 'package:ting_box/pages/HomePage/widgets/revenue_pie_chart_skeleton.dart';
 import 'package:ting_box/pages/HomePage/widgets/revenue_summary_card.dart';
 import 'package:ting_box/pages/HomePage/widgets/transaction_list.dart';
 
@@ -138,9 +139,7 @@ class _HomePageState extends State<HomePage> {
             await Future.delayed(const Duration(milliseconds: 500));
           },
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
+            physics: BouncingScrollPhysics(),
             padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +194,9 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 16.h),
                 BlocBuilder<StatisticsBloc, StatisticsState>(
                   builder: (context, state) {
+                    if (state is StatisticsLoading) {
+                      return const RevenuePieChartSkeleton();
+                    }
                     return RevenuePieChart(
                       incomeSources:
                           state is StatisticsLoaded
