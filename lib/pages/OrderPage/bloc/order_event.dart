@@ -18,7 +18,13 @@ class OrderGetAllOrdersEvent extends OrderEvent {}
 
 class OrderSePayWebHookEvent extends OrderEvent {
   final String orderCode;
-  OrderSePayWebHookEvent({required this.orderCode});
+  final int transferAmount;
+  final String transactionDate;
+  OrderSePayWebHookEvent({
+    required this.orderCode,
+    required this.transferAmount,
+    required this.transactionDate,
+  });
 }
 
 class OrderGenerateQRCodeEvent extends OrderEvent {

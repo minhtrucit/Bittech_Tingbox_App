@@ -115,10 +115,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                         child: BlocBuilder<ProductBloc, ProductState>(
                           builder: (context, state) {
                             // Show skeleton when loading or searching
-                            if (state is ProductLoading ||
-                                isSearching ||
-                                state is ProductUpdateSuccess ||
-                                state is ProductCreateSuccess) {
+                            if (state is ProductLoading || isSearching) {
                               return const ProductsListSkeleton();
                             }
 
@@ -228,20 +225,30 @@ class _ProductsListPageState extends State<ProductsListPage> {
   }
 
   Widget _buildProductGrid(List<Product> products) {
-    return GridView.builder(
-      padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 100.h),
-      physics: BouncingScrollPhysics(),
-      cacheExtent: 2,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12.w,
-        mainAxisSpacing: 12.h,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        return _buildProductCard(products[index]);
+    return RefreshIndicator(
+      color: AppColors.primaryBlue,
+      backgroundColor: AppColors.white,
+      onRefresh: () async {
+        context.read<ProductBloc>().add(GetProductsEvent());
+        await Future.delayed(const Duration(milliseconds: 500));
       },
+      child: GridView.builder(
+        padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 100.h),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        cacheExtent: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 12.w,
+          mainAxisSpacing: 12.h,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          return _buildProductCard(products[index]);
+        },
+      ),
     );
   }
 

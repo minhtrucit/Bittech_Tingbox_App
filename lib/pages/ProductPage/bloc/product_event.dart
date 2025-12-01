@@ -32,3 +32,8 @@ final class UpdateProductEmbeddingEvent extends ProductEvent {
     required this.imageUrls,
   });
 }
+
+final class DeleteProductEvent extends ProductEvent {
+  final int productId;
+  DeleteProductEvent({required this.productId});
+}

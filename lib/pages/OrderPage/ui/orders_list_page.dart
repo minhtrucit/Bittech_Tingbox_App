@@ -14,7 +14,6 @@ class OrdersListPage extends StatefulWidget {
 
 class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
-  final String _selectedTimeFilter = 'Hôm nay';
   String _selectedStatusFilter = 'Tất cả';
   List<Order>? _orders;
 
@@ -52,17 +51,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppAppBar(
-      title: TitleAppbarText(title: 'Đơn hàng'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () {
-            // TODO: Implement search
-          },
-        ),
-      ],
-    );
+    return AppAppBar(title: TitleAppbarText(title: 'Đơn hàng'));
   }
 
   // Widget _buildTimeFilterTabs() {
@@ -213,18 +202,29 @@ class _OrdersListPageState extends State<OrdersListPage>
             return _buildEmptyState();
           }
 
-          return ListView.builder(
-            physics: BouncingScrollPhysics(),
-            padding: EdgeInsets.only(
-              bottom: 64.h,
-              left: 16.w,
-              right: 16.w,
-              top: 16.h,
-            ),
-            itemCount: filteredOrders.length,
-            itemBuilder: (context, index) {
-              return _buildOrderCard(filteredOrders[index]);
+          return RefreshIndicator(
+            color: AppColors.primaryBlue,
+            backgroundColor: AppColors.white,
+            onRefresh: () async {
+              context.read<OrderBloc>().add(OrderGetAllOrdersEvent());
+              // Wait for the state to update
+              await Future.delayed(const Duration(milliseconds: 500));
             },
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: EdgeInsets.only(
+                bottom: 64.h,
+                left: 16.w,
+                right: 16.w,
+                top: 16.h,
+              ),
+              itemCount: filteredOrders.length,
+              itemBuilder: (context, index) {
+                return _buildOrderCard(filteredOrders[index]);
+              },
+            ),
           );
         }
 

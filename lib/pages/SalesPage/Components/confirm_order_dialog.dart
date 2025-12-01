@@ -260,11 +260,36 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.url ?? item.images?.first.url ?? '',
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
+                        child: Builder(
+                          builder: (context) {
+                            final imageUrl =
+                                item.url ??
+                                (item.images != null && item.images!.isNotEmpty
+                                    ? item.images!.first.url
+                                    : null);
+
+                            if (imageUrl != null && imageUrl.isNotEmpty) {
+                              return Image.network(
+                                imageUrl,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey[200],
+                                      child: const Icon(Icons.broken_image),
+                                    ),
+                              );
+                            }
+                            return Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image),
+                            );
+                          },
                         ),
                       ),
                       SizedBox(width: 12),

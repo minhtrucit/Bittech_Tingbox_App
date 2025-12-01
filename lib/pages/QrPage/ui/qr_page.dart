@@ -266,6 +266,9 @@ class _QrPageState extends State<QrPage> {
                                 context.read<OrderBloc>().add(
                                   OrderSePayWebHookEvent(
                                     orderCode: widget.orderCode,
+                                    transferAmount:
+                                        widget.paymentInfo.amount.toInt(),
+                                    transactionDate: DateTime.now().toString(),
                                   ),
                                 );
                               },

@@ -39,7 +39,7 @@ class Order {
   final double discount;
   final double vat;
   double? subtotal;
-  final double paidAmount;
+  double paidAmount;
   final String paymentMethod;
   String? paymentStatus;
   final String? note;

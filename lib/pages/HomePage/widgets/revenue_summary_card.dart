@@ -10,7 +10,7 @@ class RevenueSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Default values if revenue is null
-    final total = revenue?.total ?? 0;
+    final total = revenue?.balance ?? 0;
     final difference = revenue?.difference ?? 0;
     final isPositive = difference >= 0;
 

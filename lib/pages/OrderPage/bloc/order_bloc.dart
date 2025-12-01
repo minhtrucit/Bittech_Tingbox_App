@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/pages/SalesPage/Components/confirm_order_dialog.dart';
@@ -85,6 +86,18 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           message: "Khách đã thanh toán thành công!",
         ),
       );
+
+      // Reload orders list to get updated data
+      debugPrint(
+        "🔄 [OrderBloc] Reloading orders list after WebSocket payment success...",
+      );
+      try {
+        final orders = await orderService.getAllOrders();
+        emit(OrderGetAllOrdersSuccess(orders: orders));
+        debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
+      } catch (e) {
+        debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
+      }
     } else {
       emit(OrderFailure(message: "Thanh toán thất bại!"));
     }
@@ -104,7 +117,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
       debugPrint("📌 [OrderBloc] API trả về Statistic:");
       debugPrint("recentOrders: ${result.recentOrders.length}");
-      debugPrint("revenue: ${result.revenue.toJson()}");
+      debugPrint("revenue: ${result.ordersByPaymentMethod.items.length}");
       // Nếu có thêm field khác thì log thêm ở đây
 
       emit(OrderGetStatisticSuccess(statistic: result));
@@ -156,35 +169,47 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     try {
       debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
 
+      final randomId = Random().nextInt(100000000);
       final body = {
-        "id": 45454545, // ID giao dịch trên SePay
+        "id": randomId, // ID giao dịch trên SePay
         "gateway": "Vietcombank", // Brand name của ngân hàng
         "transactionDate":
-            "2023-03-25 14:02:37", // Thời gian xảy ra giao dịch phía ngân hàng
+            DateTime.now().toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
         "accountNumber": "0123499999", // Số tài khoản ngân hàng
         "code":
             event
                 .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
         "content": "${event.orderCode}_251121-0001", // Nội dung chuyển khoản
         "transferType": "in", // Loại giao dịch. in là tiền vào, out là tiền ra
-        "transferAmount": 896000, // Số tiền giao dịch
+        "transferAmount": event.transferAmount, // Số tiền giao dịch
         "accumulated": 19077000, // Số dư tài khoản (lũy kế)
         "subAccount": null, // Tài khoản ngân hàng phụ (tài khoản định danh),
         "referenceCode":
-            "MBVCB.hxtgw3a3fhxrh${event.orderCode}", // Mã tham chiếu của tin nhắn sms
+            "MBVCB.hxtgw31a3fhxrh${event.orderCode}.$randomId", // Mã tham chiếu của tin nhắn sms
         "description": "", // Toàn bộ nội dung tin nhắn sms
       };
 
       // Gọi API từ service
       final result = await orderService.handleSePayWebHook(body: body);
 
-      debugPrint("📌 [OrderBloc] API trả về Sepay Webhook");
-      debugPrint("orders: ${result.length}");
-      // Nếu có thêm field khác thì log thêm ở đây
+      if (result['message'] == "Xử lý webhook SePay thành công") {
+        emit(OrderSePayWebHookSuccess(message: result['message']));
+        emit(OrderPaymentSuccess(message: "Khách đã thanh toán thành công!"));
 
-      emit(OrderSePayWebHookSuccess(message: "Sepay Webhook thành công"));
-      emit(OrderPaymentSuccess(message: "Khách đã thanh toán thành công!"));
-      debugPrint("✅ [OrderBloc] Emit state thành công.");
+        // Reload orders list to get updated data
+        debugPrint(
+          "🔄 [OrderBloc] Reloading orders list after payment success...",
+        );
+        try {
+          final orders = await orderService.getAllOrders();
+          emit(OrderGetAllOrdersSuccess(orders: orders));
+          debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
+        } catch (e) {
+          debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
+        }
+      } else {
+        emit(OrderSePayWebHookFailed(message: result['message']));
+      }
     } catch (e, stacktrace) {
       debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook:");
       debugPrint("Error: $e");

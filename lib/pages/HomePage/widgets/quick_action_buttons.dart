@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
@@ -28,14 +27,6 @@ class QuickActionButtons extends StatelessWidget {
           icon: Icons.account_balance_wallet_outlined,
           label: 'Tạo phiếu thu',
           onTap: () {
-            // Get yesterday's statistic from StatisticsBloc
-            final statisticsState = context.read<StatisticsBloc>().state;
-            Statistic? yesterdayStatistic;
-
-            if (statisticsState is StatisticsLoaded) {
-              yesterdayStatistic = statisticsState.statistic;
-            }
-
             Navigator.push(
               context,
               MaterialPageRoute(

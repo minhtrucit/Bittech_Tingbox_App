@@ -330,16 +330,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
           ),
           BlocListener<ProductBloc, ProductState>(
             listener: (context, state) {
+              debugPrint('Product state: $state');
               if (state is ProductLoading) {
                 setState(() {
                   isLoadingProducts = true;
                 });
               }
               if (state is ProductLoadProductsSuccess) {
+                debugPrint(
+                    'ProductLoadProductsSuccess: ${state.products.length} products');
                 setState(() {
                   isLoadingProducts = false;
+                  products.addAll(state.products);
                 });
-                products.addAll(state.products);
               }
             },
           ),
@@ -348,15 +351,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
           hasSafeArea: false,
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.black,
-          appBar: AppAppBar(
-            backgroundColor: Colors.transparent,
-            leading: buildBackButton(context),
-            actions: [
-              if (_lenDirection == CameraLensDirection.back) buildFlashButton(),
-              SizedBox(width: 8.w),
-              buildChangeLenButton(),
-            ],
-          ),
+          appBar:
+              _currentTab == 0
+                  ? AppAppBar(
+                    backgroundColor: Colors.transparent,
+                    leading: buildBackButton(context),
+                    actions: [
+                      if (_lenDirection == CameraLensDirection.back)
+                        buildFlashButton(),
+                      SizedBox(width: 8.w),
+                      buildChangeLenButton(),
+                    ],
+                  )
+                  : null,
           body: Stack(
             children: [
               SizedBox.expand(child: CameraPreview(_camera!)),
@@ -530,9 +537,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
     required VoidCallback onConfirmButtonTap,
     required double Function() totalPrice,
   }) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      height: _currentTab == 0 ? 350.h : 600.h,
+      height: _currentTab == 0 ? 350.h : screenHeight,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -540,15 +548,16 @@ class _ScanProductPageState extends State<ScanProductPage> {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          Container(
-            width: 45,
-            height: 5,
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(12.r),
+          if (_currentTab == 0)
+            Container(
+              width: 45,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(12.r),
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+          SizedBox(height: _currentTab == 0 ? 10 : 50.h),
           // Tab Selector
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -575,7 +584,9 @@ class _ScanProductPageState extends State<ScanProductPage> {
                               _currentTab == 0
                                   ? [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       blurRadius: 4,
                                       offset: Offset(0, 2),
                                     ),
@@ -611,7 +622,9 @@ class _ScanProductPageState extends State<ScanProductPage> {
                               _currentTab == 1
                                   ? [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       blurRadius: 4,
                                       offset: Offset(0, 2),
                                     ),

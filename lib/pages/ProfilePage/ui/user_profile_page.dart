@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/models/bank.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
@@ -141,47 +142,146 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   // ───────────────────────────────────────────
 
-  Widget _buildUserInfoSection(User user) {
-    return Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: const Color(0xFFEDE7DB),
-                backgroundImage:
-                    user.avatar != null ? NetworkImage(user.avatar!) : null,
-                child:
-                    user.avatar == null
-                        ? const Icon(
-                          Icons.person,
-                          size: 56,
-                          color: Colors.black54,
-                        )
-                        : null,
+  Future<void> _pickImage(ImageSource source, String userId) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      if (mounted) {
+        context.read<UserProfileBloc>().add(
+          UpdateAvatarEvent(userId: userId, filePath: pickedFile.path),
+        );
+      }
+    }
+  }
+
+  void _showAvatarOptions(BuildContext context, String userId) {
+    showCupertinoModalPopup(
+      context: context,
+      builder:
+          (context) => CupertinoActionSheet(
+            title: Text(
+              'Cập nhật ảnh đại diện',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBlue,
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, color: Colors.white, size: 16),
+            ),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera, userId);
+                },
+                child: Text(
+                  'Chụp ảnh',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.black),
+                ),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery, userId);
+                },
+                child: Text(
+                  'Chọn từ thư viện',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.black),
+                ),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Hủy',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.red),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildUserInfoSection(User user) {
+    return BlocBuilder<UserProfileBloc, UserProfileState>(
+      builder: (context, state) {
+        bool isAvatarLoading =
+            state is UserProfileSuccess && state.isAvatarUpdating;
+
+        return Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          decoration: const BoxDecoration(color: Colors.white),
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: () => _showAvatarOptions(context, user.id.toString()),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor: const Color(0xFFEDE7DB),
+                      backgroundImage:
+                          user.avatar != null
+                              ? NetworkImage(user.avatar!)
+                              : null,
+                      child:
+                          user.avatar == null
+                              ? const Icon(
+                                Icons.person,
+                                size: 56,
+                                color: Colors.black54,
+                              )
+                              : null,
+                    ),
+                    if (isAvatarLoading)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.blue,
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                user.userName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            user.userName,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

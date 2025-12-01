@@ -47,17 +47,20 @@ class StatisticRevenue {
   final double total;
   final double previous;
   final double difference;
+  final double balance;
   final double percentageChange;
 
   StatisticRevenue({
-    required this.total,
+    required this.total,  
     required this.previous,
     required this.difference,
+    required this.balance,
     required this.percentageChange,
   });
 
   factory StatisticRevenue.fromJson(Map<String, dynamic> json) {
     return StatisticRevenue(
+      balance: (json['balance'] as num).toDouble(),
       total: (json['total'] as num).toDouble(),
       previous: (json['previous'] as num).toDouble(),
       difference: (json['difference'] as num).toDouble(),
@@ -70,6 +73,7 @@ class StatisticRevenue {
       'total': total,
       'previous': previous,
       'difference': difference,
+      'balance': balance,
       'percentageChange': percentageChange,
     };
   }
