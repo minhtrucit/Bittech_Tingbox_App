@@ -94,10 +94,7 @@ class OrderService {
         "📩 API Response Xử lý webhook SePay thành công: ${resp.data}",
       );
 
-      final ok =
-          resp.statusCode == 200 ||
-          resp.statusCode == 201 ||
-          resp.data['statusCode'] == 201;
+      final ok = (resp.statusCode == 200 || resp.data['statusCode'] == 201);
 
       if (!ok) {
         throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
@@ -117,9 +114,8 @@ class OrderService {
     }
   }
 
-Future<Map<String, dynamic>> generateOrderQRCode({
+  Future<Map<String, dynamic>> generateOrderQRCode({
     required String orderId,
-    
   }) async {
     try {
       debugPrint("📤 Generate QR code for order: $orderId");
@@ -142,5 +138,4 @@ Future<Map<String, dynamic>> generateOrderQRCode({
       throw Exception("Không thể generate QR code for order. Lỗi: $e");
     }
   }
-
 }

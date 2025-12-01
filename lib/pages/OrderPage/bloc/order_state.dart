@@ -53,6 +53,10 @@ final class OrderSePayWebHookSuccess extends OrderState {
   OrderSePayWebHookSuccess({required this.message});
 }
 
+final class OrderSePayWebHookFailed extends OrderState {
+  final String message;
+  OrderSePayWebHookFailed({required this.message});
+}
 
 final class OrderGenerateQRCodeSuccess extends OrderState {
   final String message;

@@ -31,6 +31,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       listener: (context, state) {
         if (state is OrderGenerateQRCodeSuccess && state.paymentInfo != null) {
           _showQrBottomSheet(context, state.paymentInfo!);
+        } else if (state is OrderPaymentSuccess) {
+          setState(() {
+            widget.order.paymentStatus = 'paid';
+            // Cập nhật số tiền đã thanh toán = tổng tiền
+            widget.order.paidAmount = widget.order.totalAmount ?? 0;
+          });
         }
       },
       child: AppScaffold(
@@ -285,7 +291,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final vat = widget.order.vat;
     final paidAmount = widget.order.paidAmount;
     final total = widget.order.totalAmount ?? 0;
-    final change = paidAmount - total;
+    final remaining = total - paidAmount; // Số tiền còn thiếu
+    final change = paidAmount - total; // Số tiền thừa
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -312,8 +319,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           SizedBox(height: 12.h),
           _buildSummaryRow(
-            'Còn lại',
-            '${formatMoney(change > 0 ? change : 0)}đ',
+            remaining > 0 ? 'Còn lại' : 'Tiền thừa',
+            '${formatMoney(remaining > 0 ? remaining : (change > 0 ? change : 0))}đ',
             false,
           ),
         ],
@@ -448,6 +455,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: _QrSheetContent(
               paymentInfo: paymentInfo,
               orderCode: widget.order.code ?? widget.order.id.toString(),
+              createdAt: widget.order.createdAt,
             ),
           ),
     );
@@ -455,10 +463,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 }
 
 class _QrSheetContent extends StatefulWidget {
-  const _QrSheetContent({required this.paymentInfo, required this.orderCode});
+  const _QrSheetContent({
+    required this.paymentInfo,
+    required this.orderCode,
+    this.createdAt,
+  });
 
   final PaymentInfo paymentInfo;
   final String orderCode;
+  final String? createdAt;
 
   @override
   State<_QrSheetContent> createState() => _QrSheetContentState();
@@ -491,7 +504,6 @@ class _QrSheetContentState extends State<_QrSheetContent> {
       if (mounted) setState(() {});
     }
   }
-
 
   @override
   void dispose() {
@@ -615,6 +627,16 @@ class _QrSheetContentState extends State<_QrSheetContent> {
           showSuccessDialog(
             isManualPrint: currentConfig?.printMode == PrintMode.manual,
           );
+        } else if (state is OrderSePayWebHookFailed) {
+          DialogUtils.showAppDialog(
+            context: context,
+            title: "Lỗi",
+            content: state.message,
+            firstActionText: "Đóng",
+            onFirstAction: () {
+              Navigator.pop(context);
+            },
+          );
         }
       },
       child: Padding(
@@ -678,7 +700,13 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                       child: AppTextButton(
                         onPressed: () {
                           context.read<OrderBloc>().add(
-                            OrderSePayWebHookEvent(orderCode: widget.orderCode),
+                            OrderSePayWebHookEvent(
+                              orderCode: widget.orderCode,
+                              transferAmount: widget.paymentInfo.amount.toInt(),
+                              transactionDate:
+                                  widget.createdAt?.toReadableDateTime() ??
+                                  DateTime.now().toString(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
