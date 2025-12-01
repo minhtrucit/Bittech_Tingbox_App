@@ -12,6 +12,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<GetProductsEvent>(_onGetProducts);
     on<UpdateProductEvent>(_onUpdateProduct);
     on<UpdateProductEmbeddingEvent>(_onUpdateProductEmbedding);
+    on<DeleteProductEvent>(_onDeleteProduct);
   }
 
   Future<void> _onLoadCategories(
@@ -57,7 +58,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     CreateProductEvent event,
     Emitter<ProductState> emit,
   ) async {
-    emit(ProductLoading());
 
     try {
       final body = {
@@ -121,7 +121,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         rethrow; // ném tiếp để biết app crash ở đâu
       }
 
-      emit(ProductLoadProductsSuccess(products: products));
+      emit(
+        ProductLoadProductsSuccess(
+          products: products.where((e) => e.isActive == true).toList(),
+        ),
+      );
     } catch (e, st) {
       // 3️⃣ In toàn bộ exception và stack trace
       debugPrint('=== GET PRODUCTS ERROR ===');
@@ -193,6 +197,23 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     } catch (e, st) {
       debugPrint('[ProductBloc] _onUpdateProductEmbedding: error -> $e');
       debugPrint('Stack trace: $st');
+    }
+  }
+
+  Future<void> _onDeleteProduct(
+    DeleteProductEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    try {
+      debugPrint('=== DELETE PRODUCT ===');
+      debugPrint('Product ID: ${event.productId}');
+      await productApiService.deleteProduct(event.productId);
+      emit(ProductDeleteSuccess());
+    } catch (e, st) {
+      debugPrint('=== DELETE PRODUCT ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      emit(ProductFailure('Failed to delete product'));
     }
   }
 }

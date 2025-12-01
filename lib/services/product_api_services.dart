@@ -200,4 +200,25 @@ class ProductApiService {
       throw Exception("Không thể cập nhật embedding. Lỗi: $e");
     }
   }
+
+  Future<void> deleteProduct(int productId) async {
+    try {
+      debugPrint("🚀 ProductApiService: Deleting product $productId");
+      final response = await api.put(
+        '/products/$productId',
+        data: {"isActive": false},
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ ProductApiService: Delete success");
+      } else {
+        debugPrint("❌ ProductApiService: Delete failed: ${response.data}");
+        throw Exception(response.data['message'] ?? "Lỗi API không xác định");
+      }
+    } catch (e, st) {
+      debugPrint("❌ deleteProduct error: $e");
+      debugPrint("STACK: $st");
+      throw Exception("Không thể xóa sản phẩm. Lỗi: $e");
+    }
+  }
 }

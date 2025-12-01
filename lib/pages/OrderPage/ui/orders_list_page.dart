@@ -14,7 +14,6 @@ class OrdersListPage extends StatefulWidget {
 
 class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
-  final String _selectedTimeFilter = 'Hôm nay';
   String _selectedStatusFilter = 'Tất cả';
   List<Order>? _orders;
 

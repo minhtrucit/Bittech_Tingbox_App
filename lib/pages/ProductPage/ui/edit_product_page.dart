@@ -184,6 +184,7 @@ class _EditProductPageState extends State<EditProductPage> {
             onFirstAction: () {
               Navigator.pop(context); // Close dialog
               Navigator.pop(context, state.product); // Return updated product
+              context.read<ProductBloc>().add(GetProductsEvent());
             },
             firstActionText: 'OK',
           );
@@ -195,6 +196,23 @@ class _EditProductPageState extends State<EditProductPage> {
               ),
             );
           }
+        }
+
+        if (state is ProductDeleteSuccess) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Xóa thành công',
+            content: 'Đã xóa sản phẩm thành công',
+            onFirstAction: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Pop EditProductPage
+              context.read<ProductBloc>().add(GetProductsEvent());
+            },
+            firstActionText: 'OK',
+          );
         }
 
         if (state is ProductFailure) {
@@ -248,7 +266,35 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppAppBar(title: TitleAppbarText(title: "Sửa sản phẩm"));
+    return AppAppBar(
+      title: TitleAppbarText(title: "Sửa sản phẩm"),
+      actions: [
+        IconButton(
+          onPressed: _confirmDelete,
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDelete() {
+    DialogUtils.showAppDialog(
+      context: context,
+      title: 'Xác nhận xóa',
+      content: 'Bạn có chắc chắn muốn xóa sản phẩm này không?',
+      onFirstAction: () {
+        Navigator.pop(context); // Close dialog
+        setState(() {
+          isLoading = true;
+        });
+        context.read<ProductBloc>().add(
+          DeleteProductEvent(productId: widget.product.id),
+        );
+      },
+      firstActionText: 'Xóa',
+      onSecondAction: () => Navigator.pop(context),
+      secondActionText: 'Hủy',
+    );
   }
 
   Widget _buildProductNameSection() {

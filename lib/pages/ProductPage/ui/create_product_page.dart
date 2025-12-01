@@ -127,6 +127,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
               Navigator.pop(context, true);
 
               clearForm();
+              context.read<ProductBloc>().add(GetProductsEvent());
             },
             firstActionText: 'OK',
           );

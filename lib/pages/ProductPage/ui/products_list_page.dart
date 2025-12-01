@@ -115,10 +115,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                         child: BlocBuilder<ProductBloc, ProductState>(
                           builder: (context, state) {
                             // Show skeleton when loading or searching
-                            if (state is ProductLoading ||
-                                isSearching ||
-                                state is ProductUpdateSuccess ||
-                                state is ProductCreateSuccess) {
+                            if (state is ProductLoading || isSearching) {
                               return const ProductsListSkeleton();
                             }
 

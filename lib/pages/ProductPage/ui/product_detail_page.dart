@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 import 'edit_product_page.dart';
@@ -14,6 +15,7 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late Product currentProduct;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -23,35 +25,73 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      backgroundColor: Colors.white,
-      hasSafeArea: false,
-      appBar: _buildAppBar(context),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProductImage(),
-            Padding(
-              padding: EdgeInsets.all(16.w),
+    return BlocListener<ProductBloc, ProductState>(
+      listener: (context, state) {
+        if (state is ProductDeleteSuccess) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Xóa thành công',
+            content: 'Đã xóa sản phẩm thành công',
+            onFirstAction: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Pop ProductDetailPage
+              context.read<ProductBloc>().add(GetProductsEvent());
+            },
+            firstActionText: 'OK',
+          );
+        }
+
+        if (state is ProductFailure) {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Lỗi',
+            content: state.message,
+            onFirstAction: () => Navigator.pop(context),
+            firstActionText: 'OK',
+          );
+        }
+      },
+      child: Stack(
+        children: [
+          AppScaffold(
+            backgroundColor: Colors.white,
+            hasSafeArea: false,
+            appBar: _buildAppBar(context),
+            body: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildProductName(),
-                  SizedBox(height: 8.h),
-                  _buildProductPrice(),
-                  SizedBox(height: 24.h),
-                  _buildDescriptionSection(),
-                  SizedBox(height: 24.h),
-                  _buildCategorySection(),
-                  SizedBox(height: 100.h),
+                  _buildProductImage(),
+                  Padding(
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProductName(),
+                        SizedBox(height: 8.h),
+                        _buildProductPrice(),
+                        SizedBox(height: 24.h),
+                        _buildDescriptionSection(),
+                        SizedBox(height: 24.h),
+                        _buildCategorySection(),
+                        SizedBox(height: 100.h),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
+            bottomNavigationBar: _buildBottomActions(context),
+          ),
+          if (isLoading) const LoadingOverlay(),
+        ],
       ),
-      bottomNavigationBar: _buildBottomActions(context),
     );
   }
 
@@ -256,7 +296,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               height: 48.h,
               child: OutlinedButton(
                 onPressed: () {
-                  // TODO: Handle delete product
                   _showDeleteConfirmation(context);
                 },
                 style: OutlinedButton.styleFrom(
@@ -292,12 +331,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         Navigator.pop(context);
       },
       onSecondAction: () {
-        Navigator.pop(context);
-        // TODO: Implement delete product logic
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm')));
-        Navigator.pop(context);
+        Navigator.pop(context); // Close dialog
+        setState(() {
+          isLoading = true;
+        });
+        context.read<ProductBloc>().add(
+          DeleteProductEvent(productId: currentProduct.id),
+        );
       },
     );
   }
