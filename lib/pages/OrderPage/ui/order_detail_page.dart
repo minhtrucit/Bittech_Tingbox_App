@@ -407,33 +407,34 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
             SizedBox(width: 12.w),
-            Expanded(
-              child: SizedBox(
-                height: 48.h,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.read<OrderBloc>().add(
-                      OrderGenerateQRCodeEvent(orderId: order.id.toString()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
+            if (widget.order.paymentStatus != 'paid')
+              Expanded(
+                child: SizedBox(
+                  height: 48.h,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      context.read<OrderBloc>().add(
+                        OrderGenerateQRCodeEvent(orderId: order.id.toString()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
                     ),
-                  ),
-                  icon: const Icon(Icons.qr_code, color: Colors.white),
-                  label: Text(
-                    'Tạo mã QR',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    icon: const Icon(Icons.qr_code, color: Colors.white),
+                    label: Text(
+                      'Tạo mã QR',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
