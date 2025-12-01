@@ -15,7 +15,8 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage>
     with AutomaticKeepAliveClientMixin {
   StatisticOrder? statistic;
-  Revenue? revenue;
+  OrdersByPaymentMethod? ordersByPaymentMethod;
+  OrdersByPaymentStatus? ordersByPaymentStatus;
   bool isLoading = false;
 
   @override
@@ -31,7 +32,8 @@ class _ReportPageState extends State<ReportPage>
     } else {
       // If already loaded, sync local state
       statistic = currentState.statistic;
-      revenue = statistic?.revenue;
+      ordersByPaymentMethod = statistic?.ordersByPaymentMethod;
+      ordersByPaymentStatus = statistic?.ordersByPaymentStatus;
     }
   }
 
@@ -57,7 +59,8 @@ class _ReportPageState extends State<ReportPage>
           setState(() {
             isLoading = false;
             statistic = state.statistic;
-            revenue = statistic?.revenue;
+            ordersByPaymentMethod = statistic?.ordersByPaymentMethod;
+            ordersByPaymentStatus = statistic?.ordersByPaymentStatus;
           });
         }
 
@@ -75,7 +78,9 @@ class _ReportPageState extends State<ReportPage>
               return const ReportPageSkeleton();
             }
 
-            if (statistic != null && revenue != null) {
+            if (statistic != null &&
+                ordersByPaymentMethod != null &&
+                ordersByPaymentStatus != null) {
               return SafeArea(
                 child: SingleChildScrollView(
                   physics: BouncingScrollPhysics(),
@@ -83,7 +88,7 @@ class _ReportPageState extends State<ReportPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRevenueSection(revenue!),
+                      _buildRevenueSection(ordersByPaymentMethod!),
                       SizedBox(height: 20.h),
                       _buildExpenseSection(),
                       SizedBox(height: 20.h),
@@ -125,7 +130,14 @@ class _ReportPageState extends State<ReportPage>
   // -------------------------------
   // SECTION: Tổng Thu
   // -------------------------------
-  Widget _buildRevenueSection(Revenue revenue) {
+  Widget _buildRevenueSection(OrdersByPaymentMethod ordersByPaymentMethod) {
+    final cashItem = ordersByPaymentMethod.items.firstWhere(
+      (item) => item.paymentMethodValue == 0,
+    );
+    final bankItem = ordersByPaymentMethod.items.firstWhere(
+      (item) => item.paymentMethodValue == 1,
+    );
+    final totalAmount = cashItem.totalAmount + bankItem.totalAmount;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -144,20 +156,20 @@ class _ReportPageState extends State<ReportPage>
           ),
           SizedBox(height: 8.h),
           Text(
-            "${formatMoney(revenue.total.amount)}đ",
+            "${formatMoney(totalAmount)}đ",
             style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 16.h),
           _buildIconRow(
             Icons.money,
             "Tiền mặt từ đơn hàng",
-            formatMoney(revenue.cash.amount),
+            formatMoney(cashItem.totalAmount),
           ),
           SizedBox(height: 12.h),
           _buildIconRow(
             Icons.account_balance,
             "Chuyển khoản từ đơn hàng",
-            formatMoney(revenue.bankTransfer.amount),
+            formatMoney(bankItem.totalAmount),
           ),
         ],
       ),

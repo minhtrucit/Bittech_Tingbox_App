@@ -5,8 +5,15 @@ import 'order.dart';
 class StatisticOrder {
   final List<Order> recentOrders;
   final Revenue revenue;
+  final OrdersByPaymentMethod ordersByPaymentMethod;
+  final OrdersByPaymentStatus ordersByPaymentStatus;
 
-  StatisticOrder({required this.recentOrders, required this.revenue});
+  StatisticOrder({
+    required this.recentOrders,
+    required this.revenue,
+    required this.ordersByPaymentMethod,
+    required this.ordersByPaymentStatus,
+  });
 
   factory StatisticOrder.fromJson(Map<String, dynamic> json) {
     List<Order> parsedOrders = [];
@@ -33,7 +40,32 @@ class StatisticOrder {
       rethrow;
     }
 
-    return StatisticOrder(recentOrders: parsedOrders, revenue: parsedRevenue);
+    OrdersByPaymentMethod parsedOrdersByPaymentMethod;
+    try {
+      parsedOrdersByPaymentMethod = OrdersByPaymentMethod.fromJson(
+        json['ordersByPaymentMethod'],
+      );
+    } catch (e) {
+      debugPrint('Error parsing "ordersByPaymentMethod": $e');
+      rethrow;
+    }
+
+    OrdersByPaymentStatus parsedOrdersByPaymentStatus;
+    try {
+      parsedOrdersByPaymentStatus = OrdersByPaymentStatus.fromJson(
+        json['ordersByPaymentStatus'],
+      );
+    } catch (e) {
+      debugPrint('Error parsing "ordersByPaymentStatus": $e');
+      rethrow;
+    }
+
+    return StatisticOrder(
+      recentOrders: parsedOrders,
+      revenue: parsedRevenue,
+      ordersByPaymentMethod: parsedOrdersByPaymentMethod,
+      ordersByPaymentStatus: parsedOrdersByPaymentStatus,
+    );
   }
 }
 
@@ -113,5 +145,102 @@ class RevenueItem {
 
   Map<String, dynamic> toJson() {
     return {'amount': amount, 'count': count};
+  }
+}
+
+class OrdersByPaymentMethod {
+  final List<OrdersByPaymentMethodItem> items;
+
+  OrdersByPaymentMethod({required this.items});
+
+  factory OrdersByPaymentMethod.fromJson(List<dynamic> list) {
+    return OrdersByPaymentMethod(
+      items: list.map((e) => OrdersByPaymentMethodItem.fromJson(e)).toList(),
+    );
+  }
+}
+
+class OrdersByPaymentMethodItem {
+  final String paymentMethod;
+  final int count;
+  final int paymentMethodValue;
+  final double totalAmount;
+
+  OrdersByPaymentMethodItem({
+    required this.paymentMethod,
+    required this.count,
+    required this.paymentMethodValue,
+    required this.totalAmount,
+  });
+
+  factory OrdersByPaymentMethodItem.fromJson(Map<String, dynamic> json) {
+  return OrdersByPaymentMethodItem(
+    paymentMethod: json['paymentMethod']?.toString() ?? '',
+    count: json['count'] is int ? json['count'] : int.tryParse(json['count'].toString()) ?? 0,
+    paymentMethodValue: json['paymentMethodValue'] is int
+        ? json['paymentMethodValue']
+        : int.tryParse(json['paymentMethodValue'].toString()) ?? 0,
+    totalAmount: (json['totalAmount'] is num)
+        ? (json['totalAmount'] as num).toDouble()
+        : double.tryParse(json['totalAmount'].toString()) ?? 0.0,
+  );
+}
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'paymentMethod': paymentMethod,
+      'count': count,
+      'paymentMethodValue': paymentMethodValue,
+      'totalAmount': totalAmount,
+    };
+  }
+}
+
+class OrdersByPaymentStatus {
+  final List<OrdersByPaymentStatusItem> items;
+
+  OrdersByPaymentStatus({required this.items});
+
+  factory OrdersByPaymentStatus.fromJson(List<dynamic> list) {
+    return OrdersByPaymentStatus(
+      items: list.map((e) => OrdersByPaymentStatusItem.fromJson(e)).toList(),
+    );
+  }
+}
+
+class OrdersByPaymentStatusItem {
+  final String paymentStatus;
+  final int count;
+  final int paymentStatusValue;
+  final double totalAmount;
+
+  OrdersByPaymentStatusItem({
+    required this.paymentStatus,
+    required this.count,
+    required this.paymentStatusValue,
+    required this.totalAmount,
+  });
+
+  factory OrdersByPaymentStatusItem.fromJson(Map<String, dynamic> json) {
+    return OrdersByPaymentStatusItem(
+      paymentStatus: json['paymentStatus']?.toString() ?? '',
+      count: json['count'] is int ? json['count'] : int.tryParse(json['count'].toString()) ?? 0,
+      paymentStatusValue: json['paymentStatusValue'] is int
+          ? json['paymentStatusValue']
+          : int.tryParse(json['paymentStatusValue'].toString()) ?? 0,
+      totalAmount: (json['totalAmount'] is num)
+          ? (json['totalAmount'] as num).toDouble()
+          : double.tryParse(json['totalAmount'].toString()) ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'paymentStatus': paymentStatus,
+      'count': count,
+      'paymentStatusValue': paymentStatusValue,
+      'totalAmount': totalAmount,
+    };
   }
 }

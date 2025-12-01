@@ -117,7 +117,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
       debugPrint("📌 [OrderBloc] API trả về Statistic:");
       debugPrint("recentOrders: ${result.recentOrders.length}");
-      debugPrint("revenue: ${result.revenue.toJson()}");
+      debugPrint("revenue: ${result.ordersByPaymentMethod.items.length}");
       // Nếu có thêm field khác thì log thêm ở đây
 
       emit(OrderGetStatisticSuccess(statistic: result));
