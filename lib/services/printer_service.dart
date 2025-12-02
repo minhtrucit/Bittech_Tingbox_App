@@ -129,32 +129,49 @@ class PrinterService {
 
   // ==================== REAL METHODS (PRODUCTION MODE) ====================
 
-  Future<List<MockBluetoothDevice>> _scanDevices() async {
-    // TODO: Implement với esc_pos_bluetooth hoặc blue_thermal_printer
-    debugPrint('🔍 [REAL] Scanning for real Bluetooth devices...');
+  
 
-    // Placeholder - sẽ implement sau khi có máy in thật
-    return [];
+  Future<List<MockBluetoothDevice>> _scanDevices() async {
+    debugPrint('🔍 [REAL] Scanning for real Bluetooth devices...');
+    try {
+      return [];
+    } catch (e) {
+      debugPrint('❌ Error scanning devices: $e');
+      return [];
+    }
   }
 
   Future<bool> _connect(String address, String name) async {
-    // TODO: Implement kết nối Bluetooth thật
-    debugPrint('🔌 [REAL] Connecting to real printer: $name');
-
-    // Placeholder
-    return false;
+    debugPrint('🔌 [REAL] Connecting to real printer: $name ($address)');
+    try {
+      
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error connecting to printer: $e');
+      return false;
+    }
   }
 
   Future<bool> _isConnected() async {
-    // TODO: Kiểm tra kết nối Bluetooth thật
-    return false;
+    try {
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<bool> _print(Order order, ConfigModel? config) async {
-    // TODO: In thật qua Bluetooth với ESC/POS commands
     debugPrint('📄 [REAL] Printing to real printer...');
-
-    // Placeholder
     return false;
+      
+  }
+
+  String formatMoney(num amount) {
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 }

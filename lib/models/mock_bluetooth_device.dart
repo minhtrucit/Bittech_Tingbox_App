@@ -6,7 +6,7 @@ class MockBluetoothDevice {
   MockBluetoothDevice({
     required this.name,
     required this.address,
-    this.isConnected = false,
+    this.isConnected = true,
   });
 
   Map<String, dynamic> toJson() {

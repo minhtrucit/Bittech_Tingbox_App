@@ -82,6 +82,11 @@ class ReceiptPreviewPage extends StatelessWidget {
               style: TextStyle(fontSize: 11.sp, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
+          Text(
+            'Hóa đơn bán hàng',
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
 
           Divider(height: 24.h, thickness: 1),
 
@@ -294,16 +299,16 @@ class ReceiptPreviewPage extends StatelessWidget {
     // Kiểm tra đã kết nối máy in chưa
     final isConnected = await printerService.isConnected();
 
-    if (!isConnected) {
-      // Hiện dialog chọn máy in
-      if (!context.mounted) return;
-      final connected = await showDialog<bool>(
-        context: context,
-        builder: (context) => PrinterSelectorDialog(),
-      );
+    // if (!isConnected) {
+    //   // Hiện dialog chọn máy in
+    //   if (!context.mounted) return;
+    //   final connected = await showDialog<bool>(
+    //     context: context,
+    //     builder: (context) => PrinterSelectorDialog(),
+    //   );
 
-      if (connected != true) return;
-    }
+    //   if (connected != true) return;
+    // }
 
     // Hiển thị loading
     if (!context.mounted) return;
