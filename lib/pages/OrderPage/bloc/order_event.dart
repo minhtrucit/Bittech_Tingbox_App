@@ -15,11 +15,11 @@ class OrderPaymentSuccessEvent extends OrderEvent {
 class OrderGetStatisticsEvent extends OrderEvent {}
 
 class OrderGetAllOrdersEvent extends OrderEvent {
-  final int page;
+  final int? page;
   final int limit;
-  final String? paymentStatus;
+  final int? paymentStatus;
 
-  OrderGetAllOrdersEvent({this.page = 1, this.limit = 10, this.paymentStatus});
+  OrderGetAllOrdersEvent({this.page, this.limit = 10, this.paymentStatus});
 }
 
 class OrderSePayWebHookEvent extends OrderEvent {

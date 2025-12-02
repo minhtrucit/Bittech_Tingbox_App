@@ -178,7 +178,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       List<Order> allOrders = [];
 
       // Nếu là load more (page > 1) và state hiện tại là success, merge với list cũ
-      if (event.page > 1 && state is OrderGetAllOrdersSuccess) {
+      if (event.page != null && event.page! > 1 && state is OrderGetAllOrdersSuccess) {
         allOrders = List.from((state as OrderGetAllOrdersSuccess).orders)
           ..addAll(newOrders);
       } else {

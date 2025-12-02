@@ -47,12 +47,12 @@ final class OrderGetStatisticSuccess extends OrderState {
 final class OrderGetAllOrdersSuccess extends OrderState {
   final List<Order> orders;
   final bool canLoadMore;
-  final int page;
+  final int? page;
 
   OrderGetAllOrdersSuccess({
     required this.orders,
     this.canLoadMore = false,
-    this.page = 1,
+    this.page,
   });
 }
 

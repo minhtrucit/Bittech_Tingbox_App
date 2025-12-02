@@ -15,7 +15,7 @@ class OrdersListPage extends StatefulWidget {
 class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
   String _selectedStatusFilter = 'Tất cả';
-  String? _currentPaymentStatus; // Track current filter for API
+  int? _currentPaymentStatus; // Track current filter for API
   List<Order>? _orders;
 
   @override
@@ -39,7 +39,7 @@ class _OrdersListPageState extends State<OrdersListPage>
         setState(() {
           _orders = currentState.orders;
           _canLoadMore = currentState.canLoadMore;
-          _currentPage = currentState.page;
+          _currentPage = currentState.page ?? 1;
         });
       } else {
         // Otherwise fetch new data
@@ -63,7 +63,7 @@ class _OrdersListPageState extends State<OrdersListPage>
     }
   }
 
-  void _fetchOrders({required int page, String? paymentStatus}) {
+  void _fetchOrders({int? page, int? paymentStatus}) {
     context.read<OrderBloc>().add(
       OrderGetAllOrdersEvent(page: page, paymentStatus: paymentStatus),
     );
@@ -82,9 +82,9 @@ class _OrdersListPageState extends State<OrdersListPage>
       _selectedStatusFilter = filter;
       // Map UI filter to API paymentStatus
       if (filter == 'Đã thanh toán') {
-        _currentPaymentStatus = 'paid';
+        _currentPaymentStatus = 2;
       } else if (filter == 'Chưa thanh toán') {
-        _currentPaymentStatus = 'unpaid';
+        _currentPaymentStatus = 0;
       } else {
         _currentPaymentStatus = null; // 'Tất cả'
       }
@@ -96,7 +96,10 @@ class _OrdersListPageState extends State<OrdersListPage>
     });
 
     // Fetch with new filter from page 1
-    _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
+    _fetchOrders(
+      page: 1,
+      paymentStatus: _currentPaymentStatus,
+    );
   }
 
   @override
@@ -142,7 +145,7 @@ class _OrdersListPageState extends State<OrdersListPage>
                     label: Text(status),
                     selected: isSelected,
                     onSelected: (selected) {
-                      // _onFilterChanged(status);
+                      _onFilterChanged(status);
                     },
                     backgroundColor: Colors.grey.shade100,
                     selectedColor: AppColors.white,
@@ -184,7 +187,7 @@ class _OrdersListPageState extends State<OrdersListPage>
           setState(() {
             _orders = state.orders;
             _canLoadMore = state.canLoadMore;
-            _currentPage = state.page;
+            _currentPage = state.page ?? 1;
             _isLoadingMore = false;
           });
         } else if (state is OrderFailure) {
@@ -217,6 +220,7 @@ class _OrdersListPageState extends State<OrdersListPage>
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: RawScrollbar(
+              controller: _scrollController,
               child: ListView.builder(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(

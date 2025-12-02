@@ -55,16 +55,15 @@ class OrderService {
   }
 
   Future<OrderListResponse> getAllOrders({
-    int page = 1,
+    int? page,
     int limit = 10,
-    String? paymentStatus,
+    int? paymentStatus,
   }) async {
     try {
       final queryParams = {
-        'page': page,
+        if (page != null) 'page': page,
         'limit': limit,
-        if (paymentStatus != null && paymentStatus.isNotEmpty)
-          'paymentStatus': paymentStatus,
+        if (paymentStatus != null) 'paymentStatus': paymentStatus,
       };
 
       final resp = await api.get('/orders', queryParameters: queryParams);
