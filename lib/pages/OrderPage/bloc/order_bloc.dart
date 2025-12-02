@@ -7,6 +7,7 @@ import 'package:ting_box/pages/OrderPage/bloc/order_state.dart';
 import 'package:ting_box/services/order_service.dart';
 
 import '../../../models/payment_info.dart';
+import '../../../models/order.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderService orderService;
@@ -80,10 +81,28 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     final data = event.data;
 
     if (data["event"] == "payment.success") {
+      // Lấy orderId từ data
+      final orderId = data["data"]["id"] as int?;
+      Order? order;
+
+      // Fetch order details để có thể in hóa đơn
+      if (orderId != null) {
+        try {
+          final orders = await orderService.getAllOrders();
+          order = orders.firstWhere(
+            (o) => o.id == orderId,
+            orElse: () => throw Exception('Order not found'),
+          );
+        } catch (e) {
+          debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
+        }
+      }
+
       emit(
         OrderPaymentSuccess(
-          orderId: data["data"]["id"],
+          orderId: orderId,
           message: "Khách đã thanh toán thành công!",
+          order: order, // Truyền order để có thể in
         ),
       );
 
@@ -174,7 +193,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "id": randomId, // ID giao dịch trên SePay
         "gateway": "Vietcombank", // Brand name của ngân hàng
         "transactionDate":
-            DateTime.now().toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
+            DateTime.now()
+                .toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
         "accountNumber": "0123499999", // Số tài khoản ngân hàng
         "code":
             event
@@ -193,8 +213,27 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       final result = await orderService.handleSePayWebHook(body: body);
 
       if (result['message'] == "Xử lý webhook SePay thành công") {
+        // Fetch orders to find the paid order
+        Order? paidOrder;
+        try {
+          final orders = await orderService.getAllOrders();
+          paidOrder = orders.firstWhere(
+            (o) => o.code == event.orderCode,
+            orElse: () => throw Exception('Order not found'),
+          );
+          // Also emit updated orders list
+          emit(OrderGetAllOrdersSuccess(orders: orders));
+        } catch (e) {
+          debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
+        }
+
         emit(OrderSePayWebHookSuccess(message: result['message']));
-        emit(OrderPaymentSuccess(message: "Khách đã thanh toán thành công!"));
+        emit(
+          OrderPaymentSuccess(
+            message: "Khách đã thanh toán thành công!",
+            order: paidOrder,
+          ),
+        );
 
         // Reload orders list to get updated data
         debugPrint(

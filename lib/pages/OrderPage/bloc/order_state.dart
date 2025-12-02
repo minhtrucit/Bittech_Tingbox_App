@@ -28,8 +28,9 @@ final class OrderFailure extends OrderState {
 class OrderPaymentSuccess extends OrderState {
   final int? orderId;
   final String message;
+  final Order? order; // Thêm order object để có thể in hóa đơn
 
-  OrderPaymentSuccess({this.orderId, required this.message});
+  OrderPaymentSuccess({this.orderId, required this.message, this.order});
 }
 
 class OrderPaymentFailed extends OrderState {
