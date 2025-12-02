@@ -6,7 +6,6 @@ import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/services/websocket_manager.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
-import 'package:ting_box/models/config_model.dart';
 import '../../../ting_box.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -372,11 +371,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               child: SizedBox(
                 height: 48.h,
                 child: IconButton(
-                  onPressed: () {
-                    // TODO: Implement print invoice
-                    ScaffoldMessenger.of(
+                  onPressed: () async {
+                    // Lấy config hiện tại
+                    final configState = context.read<ConfigBloc>().state;
+                    ConfigModel? currentConfig;
+
+                    if (configState is ConfigLoaded) {
+                      currentConfig = configState.config;
+                    } else if (configState is ConfigUpdateSuccess) {
+                      currentConfig = configState.config;
+                    } else if (configState is ConfigCreateSuccess) {
+                      currentConfig = configState.config;
+                    }
+
+                    // Mở preview hóa đơn
+                    await PrintHelper.openPreviewFromDetail(
                       context,
-                    ).showSnackBar(const SnackBar(content: Text('In hóa đơn')));
+                      order: widget.order,
+                      config: currentConfig,
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue.withValues(

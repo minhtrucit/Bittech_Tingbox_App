@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import 'package:ting_box/ting_box.dart';
-import 'package:ting_box/models/config_model.dart';
 import 'package:ting_box/models/bank.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';

@@ -8,7 +8,6 @@ import 'package:ting_box/models/bank.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 
-import '../../../models/config_model.dart';
 import '../../../ting_box.dart';
 import '../../ConfigPage/bloc/config_state.dart';
 import 'user_profile_skeleton.dart';

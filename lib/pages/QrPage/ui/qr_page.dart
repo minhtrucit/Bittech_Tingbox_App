@@ -4,7 +4,6 @@ import 'package:ting_box/models/payment_info.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
-import 'package:ting_box/models/config_model.dart';
 
 import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
@@ -53,6 +52,127 @@ class _QrPageState extends State<QrPage> {
     super.dispose();
   }
 
+  Future<void> _handlePrint(BuildContext context) async {
+    // Lấy order từ OrderBloc state
+    final orderState = context.read<OrderBloc>().state;
+    Order? order;
+
+    if (orderState is OrderPaymentSuccess) {
+      order = orderState.order;
+    }
+
+    if (order == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không tìm thấy thông tin đơn hàng'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Lấy config từ ConfigBloc state
+    final configState = context.read<ConfigBloc>().state;
+    ConfigModel? config;
+
+    if (configState is ConfigLoaded) {
+      config = configState.config;
+    } else if (configState is ConfigUpdateSuccess) {
+      config = configState.config;
+    } else if (configState is ConfigCreateSuccess) {
+      config = configState.config;
+    }
+
+    final printerService = PrinterService();
+
+    // Kiểm tra đã kết nối máy in chưa
+    final isConnected = await printerService.isConnected();
+
+    if (!isConnected) {
+      // Hiện dialog chọn máy in
+      if (!context.mounted) return;
+      final connected = await showDialog<bool>(
+        context: context,
+        builder: (context) => PrinterSelectorDialog(),
+      );
+
+      if (connected != true) return;
+    }
+
+    // Hiển thị loading
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Material(
+            color: Colors.transparent,
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: AppColors.primaryBlue,
+                      strokeWidth: 2,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text('Đang in hóa đơn...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+
+    // In hóa đơn
+    try {
+      final success = await printerService.printReceipt(order, config: config);
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Đóng loading
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8.w),
+                Text('Đã in hóa đơn thành công'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Đóng success dialog
+        Navigator.pop(context);
+      } else {
+        throw Exception('In thất bại');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // Đóng loading
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi in hóa đơn: $e'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Thử lại',
+            textColor: Colors.white,
+            onPressed: () => _handlePrint(context),
+          ),
+        ),
+      );
+    }
+  }
+
   void showSuccessDialog({required bool isManualPrint}) {
     showDialog(
       context: context,
@@ -94,35 +214,33 @@ class _QrPageState extends State<QrPage> {
                     ),
                   ),
                   SizedBox(height: 24.h),
+
                   if (isManualPrint)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2962FF), // Blue
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _handlePrint(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2962FF), // Blue
+                            elevation: 0,
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          "In hóa đơn",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
+                          child: Text(
+                            "In hóa đơn",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  SizedBox(height: 12.h),
-
-                  // Button: In hóa đơn
 
                   // Button: Trở về trang bán hàng
                   SizedBox(

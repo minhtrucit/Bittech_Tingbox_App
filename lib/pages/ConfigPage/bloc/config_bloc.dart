@@ -4,7 +4,6 @@ import 'package:ting_box/services/config_service.dart';
 import 'package:ting_box/ting_box.dart';
 import 'config_event.dart';
 import 'config_state.dart';
-import 'package:ting_box/models/config_model.dart';
 
 class ConfigBloc extends Bloc<ConfigEvent, ConfigState> {
   final ConfigService configService;
