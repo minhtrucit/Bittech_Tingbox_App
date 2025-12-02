@@ -54,19 +54,25 @@ class OrderService {
     }
   }
 
-  Future<List<Order>> getAllOrders() async {
+  Future<OrderListResponse> getAllOrders({
+    int page = 1,
+    int limit = 10,
+    String? paymentStatus,
+  }) async {
     try {
-      final resp = await api.get('/orders');
+      final queryParams = {
+        'page': page,
+        'limit': limit,
+        if (paymentStatus != null && paymentStatus.isNotEmpty)
+          'paymentStatus': paymentStatus,
+      };
+
+      final resp = await api.get('/orders', queryParameters: queryParams);
 
       debugPrint("📌 API RAW DATA: ${resp.data}");
 
       if (resp.statusCode == 200) {
-        debugPrint("📌 DATA PARSED: ${resp.data['data']}");
-
-        final List<dynamic> data = resp.data['data'] as List<dynamic>;
-        return data
-            .map((e) => Order.fromJson(e as Map<String, dynamic>))
-            .toList();
+        return OrderListResponse.fromJson(resp.data);
       }
 
       throw Exception('Failed to load orders');

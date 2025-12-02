@@ -46,7 +46,14 @@ final class OrderGetStatisticSuccess extends OrderState {
 
 final class OrderGetAllOrdersSuccess extends OrderState {
   final List<Order> orders;
-  OrderGetAllOrdersSuccess({required this.orders});
+  final bool canLoadMore;
+  final int page;
+
+  OrderGetAllOrdersSuccess({
+    required this.orders,
+    this.canLoadMore = false,
+    this.page = 1,
+  });
 }
 
 final class OrderSePayWebHookSuccess extends OrderState {

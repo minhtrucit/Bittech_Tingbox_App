@@ -72,9 +72,10 @@ class _AuthPageState extends State<AuthPage> {
               fit: BoxFit.fitWidth,
             ),
           ),
+
           Center(
-            child: SvgPicture.asset(
-              'assets/icons/logo_bittech.svg',
+            child: Image.asset(
+              'assets/icons/tingbox_logo_login.png',
               width: 140.w,
               height: 140.w,
             ),

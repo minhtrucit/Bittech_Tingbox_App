@@ -342,12 +342,12 @@ class Pagination {
 
   factory Pagination.fromJson(Map<String, dynamic> json) {
     return Pagination(
-      page: json['page'] as int,
-      limit: json['limit'] as int,
-      total: json['total'] as int,
-      totalPages: json['totalPages'] as int,
-      hasNextPage: json['hasNextPage'] as bool,
-      hasPreviousPage: json['hasPreviousPage'] as bool,
+      page: json['page'] as int? ?? 1,
+      limit: json['limit'] as int? ?? 10,
+      total: json['total'] as int? ?? 0,
+      totalPages: json['totalPages'] as int? ?? 1,
+      hasNextPage: json['hasNextPage'] as bool? ?? false,
+      hasPreviousPage: json['hasPreviousPage'] as bool? ?? false,
     );
   }
 

@@ -15,20 +15,88 @@ class OrdersListPage extends StatefulWidget {
 class _OrdersListPageState extends State<OrdersListPage>
     with AutomaticKeepAliveClientMixin {
   String _selectedStatusFilter = 'Tất cả';
+  String? _currentPaymentStatus; // Track current filter for API
   List<Order>? _orders;
 
   @override
   bool get wantKeepAlive => true;
 
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  int _currentPage = 1;
+  bool _canLoadMore = true;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
 
-    // Only load orders if not already loaded
-    final currentState = context.read<OrderBloc>().state;
-    if (currentState is! OrderGetAllOrdersSuccess) {
-      context.read<OrderBloc>().add(OrderGetAllOrdersEvent());
+    // Only load orders if we don't have any data yet
+    if (_orders == null) {
+      final currentState = context.read<OrderBloc>().state;
+      if (currentState is OrderGetAllOrdersSuccess) {
+        // If we already have data in bloc, use it
+        setState(() {
+          _orders = currentState.orders;
+          _canLoadMore = currentState.canLoadMore;
+          _currentPage = currentState.page;
+        });
+      } else {
+        // Otherwise fetch new data
+        _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _canLoadMore) {
+      _loadMore();
+    }
+  }
+
+  void _fetchOrders({required int page, String? paymentStatus}) {
+    context.read<OrderBloc>().add(
+      OrderGetAllOrdersEvent(page: page, paymentStatus: paymentStatus),
+    );
+  }
+
+  void _loadMore() {
+    setState(() {
+      _isLoadingMore = true;
+    });
+    // Load more with current filter
+    _fetchOrders(page: _currentPage + 1, paymentStatus: _currentPaymentStatus);
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      _selectedStatusFilter = filter;
+      // Map UI filter to API paymentStatus
+      if (filter == 'Đã thanh toán') {
+        _currentPaymentStatus = 'paid';
+      } else if (filter == 'Chưa thanh toán') {
+        _currentPaymentStatus = 'unpaid';
+      } else {
+        _currentPaymentStatus = null; // 'Tất cả'
+      }
+
+      // Reset pagination when filter changes
+      _currentPage = 1;
+      _orders = null; // Clear old data
+      _canLoadMore = true;
+    });
+
+    // Fetch with new filter from page 1
+    _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
   }
 
   @override
@@ -41,7 +109,6 @@ class _OrdersListPageState extends State<OrdersListPage>
       body: SafeArea(
         child: Column(
           children: [
-            // _buildTimeFilterTabs(),
             _buildStatusFilterChips(),
             Expanded(child: _buildOrdersList()),
           ],
@@ -53,73 +120,6 @@ class _OrdersListPageState extends State<OrdersListPage>
   PreferredSizeWidget _buildAppBar() {
     return AppAppBar(title: TitleAppbarText(title: 'Đơn hàng'));
   }
-
-  // Widget _buildTimeFilterTabs() {
-  //   return Container(
-  //     width: double.infinity,
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-  //     ),
-  //     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-  //     child: CupertinoSlidingSegmentedControl<String>(
-  //       groupValue: _selectedTimeFilter,
-  //       onValueChanged: (value) {
-  //         if (value != null) {
-  //           setState(() {
-  //             _selectedTimeFilter = value;
-  //           });
-  //         }
-  //       },
-  //       backgroundColor: Colors.grey.shade100,
-  //       thumbColor: AppColors.white,
-  //       children: {
-  //         'Hôm nay': Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.h),
-  //           child: Text(
-  //             'Hôm nay',
-  //             style: TextStyle(
-  //               fontSize: 14.sp,
-  //               fontWeight: FontWeight.w500,
-  //               color:
-  //                   _selectedTimeFilter == 'Hôm nay'
-  //                       ? AppColors.primaryBlue
-  //                       : Colors.grey.shade700,
-  //             ),
-  //           ),
-  //         ),
-  //         'Tuần này': Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.h),
-  //           child: Text(
-  //             'Tuần này',
-  //             style: TextStyle(
-  //               fontSize: 14.sp,
-  //               fontWeight: FontWeight.w500,
-  //               color:
-  //                   _selectedTimeFilter == 'Tuần này'
-  //                       ? AppColors.primaryBlue
-  //                       : Colors.grey.shade700,
-  //             ),
-  //           ),
-  //         ),
-  //         'Tháng này': Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.h),
-  //           child: Text(
-  //             'Tháng này',
-  //             style: TextStyle(
-  //               fontSize: 14.sp,
-  //               fontWeight: FontWeight.w500,
-  //               color:
-  //                   _selectedTimeFilter == 'Tháng này'
-  //                       ? AppColors.primaryBlue
-  //                       : Colors.grey.shade700,
-  //             ),
-  //           ),
-  //         ),
-  //       },
-  //     ),
-  //   );
-  // }
 
   Widget _buildStatusFilterChips() {
     final statuses = ['Tất cả', 'Đã thanh toán', 'Chưa thanh toán'];
@@ -142,9 +142,7 @@ class _OrdersListPageState extends State<OrdersListPage>
                     label: Text(status),
                     selected: isSelected,
                     onSelected: (selected) {
-                      setState(() {
-                        _selectedStatusFilter = status;
-                      });
+                      // _onFilterChanged(status);
                     },
                     backgroundColor: Colors.grey.shade100,
                     selectedColor: AppColors.white,
@@ -180,25 +178,33 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   Widget _buildOrdersList() {
-    return BlocBuilder<OrderBloc, OrderState>(
+    return BlocConsumer<OrderBloc, OrderState>(
+      listener: (context, state) {
+        if (state is OrderGetAllOrdersSuccess) {
+          setState(() {
+            _orders = state.orders;
+            _canLoadMore = state.canLoadMore;
+            _currentPage = state.page;
+            _isLoadingMore = false;
+          });
+        } else if (state is OrderFailure) {
+          setState(() {
+            _isLoadingMore = false;
+          });
+        }
+      },
       buildWhen: (previous, current) {
         return current is OrderGetAllOrdersSuccess ||
-            current is OrderLoading ||
+            (current is OrderLoading && _orders == null) ||
             current is OrderFailure;
       },
       builder: (context, state) {
-        if (state is OrderGetAllOrdersSuccess) {
-          _orders = state.orders;
-        }
-
         if (state is OrderLoading && _orders == null) {
           return const OrdersListSkeleton();
         }
 
         if (_orders != null) {
-          final filteredOrders = _filterOrders(_orders!);
-
-          if (filteredOrders.isEmpty) {
+          if (_orders!.isEmpty) {
             return _buildEmptyState();
           }
 
@@ -206,24 +212,38 @@ class _OrdersListPageState extends State<OrdersListPage>
             color: AppColors.primaryBlue,
             backgroundColor: AppColors.white,
             onRefresh: () async {
-              context.read<OrderBloc>().add(OrderGetAllOrdersEvent());
-              // Wait for the state to update
+              // Refresh with current filter
+              _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
               await Future.delayed(const Duration(milliseconds: 500));
             },
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
+            child: RawScrollbar(
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: EdgeInsets.only(
+                  bottom: 64.h,
+                  left: 16.w,
+                  right: 16.w,
+                  top: 16.h,
+                ),
+                itemCount: _orders!.length + (_isLoadingMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _orders!.length) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryBlue,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    );
+                  }
+                  return _buildOrderCard(_orders![index]);
+                },
               ),
-              padding: EdgeInsets.only(
-                bottom: 64.h,
-                left: 16.w,
-                right: 16.w,
-                top: 16.h,
-              ),
-              itemCount: filteredOrders.length,
-              itemBuilder: (context, index) {
-                return _buildOrderCard(filteredOrders[index]);
-              },
             ),
           );
         }
@@ -231,21 +251,6 @@ class _OrdersListPageState extends State<OrdersListPage>
         return _buildEmptyState();
       },
     );
-  }
-
-  List<Order> _filterOrders(List<Order> orders) {
-    List<Order> filtered = orders;
-
-    // Filter by status
-    if (_selectedStatusFilter != 'Tất cả') {
-      filtered =
-          filtered.where((order) {
-            final status = _getOrderStatus(order);
-            return status.label == _selectedStatusFilter;
-          }).toList();
-    }
-
-    return filtered;
   }
 
   Widget _buildOrderCard(Order order) {

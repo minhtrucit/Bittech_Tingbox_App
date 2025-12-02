@@ -31,9 +31,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadConfigId() async {
     _configId = await UserRepository.getConfigId() ?? '';
-    // Fetch default statistics (Today) after loading configId
-    final now = DateTime.now();
-    _fetchStatistics(startDate: now, endDate: now);
+    // Initial statistics fetch is now handled by BasePage
   }
 
   String _formatDate(DateTime date) {

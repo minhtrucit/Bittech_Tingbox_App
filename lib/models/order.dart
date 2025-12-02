@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/models/product.dart';
+import 'package:ting_box/models/statistic.dart';
 
 double parseDouble(dynamic value, String fieldName) {
   try {
@@ -207,5 +208,26 @@ class OrderItem {
       'unitPrice': unitPrice,
       if (product != null) 'product': product!.toJson(),
     };
+  }
+}
+
+class OrderListResponse {
+  final List<Order> orders;
+  final Pagination? pagination;
+
+  OrderListResponse({required this.orders, this.pagination});
+
+  factory OrderListResponse.fromJson(Map<String, dynamic> json) {
+    List<Order> orders = [];
+    if (json['data'] != null) {
+      orders = (json['data'] as List).map((e) => Order.fromJson(e)).toList();
+    }
+
+    Pagination? pagination;
+    if (json['pagination'] != null) {
+      pagination = Pagination.fromJson(json['pagination']);
+    }
+
+    return OrderListResponse(orders: orders, pagination: pagination);
   }
 }

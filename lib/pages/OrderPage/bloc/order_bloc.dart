@@ -88,7 +88,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // Fetch order details để có thể in hóa đơn
       if (orderId != null) {
         try {
-          final orders = await orderService.getAllOrders();
+          final response = await orderService.getAllOrders();
+          final orders = response.orders;
           order = orders.firstWhere(
             (o) => o.id == orderId,
             orElse: () => throw Exception('Order not found'),
@@ -111,8 +112,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "🔄 [OrderBloc] Reloading orders list after WebSocket payment success...",
       );
       try {
-        final orders = await orderService.getAllOrders();
-        emit(OrderGetAllOrdersSuccess(orders: orders));
+        final response = await orderService.getAllOrders();
+        emit(OrderGetAllOrdersSuccess(orders: response.orders));
         debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
       } catch (e) {
         debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
@@ -155,23 +156,56 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     OrderGetAllOrdersEvent event,
     Emitter<OrderState> emit,
   ) async {
-    emit(OrderLoading());
+    // Chỉ emit loading khi load trang đầu tiên
+    if (event.page == 1) {
+      emit(OrderLoading());
+    }
 
     try {
-      debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
+      debugPrint(
+        "🚀 [OrderBloc] Bắt đầu gọi API lấy danh sách đơn hàng page ${event.page}, paymentStatus: ${event.paymentStatus}...",
+      );
 
       // Gọi API từ service
-      final result = await orderService.getAllOrders();
+      final response = await orderService.getAllOrders(
+        page: event.page,
+        limit: event.limit,
+        paymentStatus: event.paymentStatus,
+      );
+      final newOrders = response.orders;
+      final pagination = response.pagination;
 
-      debugPrint("📌 [OrderBloc] API trả về Statistic:");
-      debugPrint("orders: ${result.length}");
-      // Nếu có thêm field khác thì log thêm ở đây
+      List<Order> allOrders = [];
 
-      emit(OrderGetAllOrdersSuccess(orders: result));
+      // Nếu là load more (page > 1) và state hiện tại là success, merge với list cũ
+      if (event.page > 1 && state is OrderGetAllOrdersSuccess) {
+        allOrders = List.from((state as OrderGetAllOrdersSuccess).orders)
+          ..addAll(newOrders);
+      } else {
+        allOrders = newOrders;
+      }
+
+      // Tính toán canLoadMore dựa trên pagination info
+      final canLoadMore =
+          pagination != null
+              ? (pagination.page < pagination.totalPages)
+              : false;
+
+      debugPrint(
+        "📌 [OrderBloc] API trả về: ${newOrders.length} orders. Total: ${allOrders.length}",
+      );
+
+      emit(
+        OrderGetAllOrdersSuccess(
+          orders: allOrders,
+          canLoadMore: canLoadMore,
+          page: event.page,
+        ),
+      );
 
       debugPrint("✅ [OrderBloc] Emit state thành công.");
     } catch (e, stacktrace) {
-      debugPrint("❌ [OrderBloc] Lỗi lấy thống kê:");
+      debugPrint("❌ [OrderBloc] Lỗi lấy danh sách đơn hàng:");
       debugPrint("Error: $e");
       debugPrint("Stacktrace: $stacktrace");
 
@@ -183,8 +217,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     OrderSePayWebHookEvent event,
     Emitter<OrderState> emit,
   ) async {
-    emit(OrderLoading());
-
+    // Don't emit OrderLoading to avoid affecting OrdersListPage UI
     try {
       debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
 
@@ -216,7 +249,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         // Fetch orders to find the paid order
         Order? paidOrder;
         try {
-          final orders = await orderService.getAllOrders();
+          final response = await orderService.getAllOrders();
+          final orders = response.orders;
           paidOrder = orders.firstWhere(
             (o) => o.code == event.orderCode,
             orElse: () => throw Exception('Order not found'),
@@ -240,8 +274,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           "🔄 [OrderBloc] Reloading orders list after payment success...",
         );
         try {
-          final orders = await orderService.getAllOrders();
-          emit(OrderGetAllOrdersSuccess(orders: orders));
+          final response = await orderService.getAllOrders();
+          emit(OrderGetAllOrdersSuccess(orders: response.orders));
           debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
         } catch (e) {
           debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
@@ -262,8 +296,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     OrderGenerateQRCodeEvent event,
     Emitter<OrderState> emit,
   ) async {
-    emit(OrderLoading());
-
+    // Don't emit OrderLoading to avoid affecting OrdersListPage UI
     try {
       debugPrint("🚀 [OrderBloc] Bắt đầu gọi API generate QR code...");
 

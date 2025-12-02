@@ -1,12 +1,16 @@
 flutter_native_splash:
   color: "##3b82f6"
-  image: assets/icons/LOGO_BITTECH.png
+  image: assets/icons/tingbox-logo.png
   ios: false
   android: true
+  branding_mode: bottom
+  branding: assets/icons/branding-bigtech.png
   android_12:
-    image: assets/icons/LOGO_BITTECH.png
+    image: assets/icons/tingbox-logo.png
     color: "#2196F3"
     icon_background_color: "#2196F3"
+    branding: assets/icons/branding-bigtech.png
+    branding_mode: bottom
 
 
 

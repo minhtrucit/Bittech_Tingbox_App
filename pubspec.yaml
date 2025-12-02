@@ -47,7 +47,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
-  image_path: "assets/icons/LOGO_BITTECH.png"
+  image_path: "assets/icons/tingbox-logo.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   flutter_lints: ^5.0.0
 
@@ -70,6 +70,10 @@ flutter:
     - assets/icons/LOGO_BITTECH.png
     - assets/icons/logo_bittech.svg
     - assets/icons/bg-login.svg
+    - assets/icons/tingbox-logo.png
+    - assets/icons/TingBox_LOGO.svg
+    - assets/icons/branding-bigtech.png
+    - assets/icons/tingbox_logo_login.png
 
   fonts:
     - family: montserrat
