@@ -4,11 +4,13 @@ class GetStatisticsEvent extends StatisticsEvent {
   final String startDate;
   final String endDate;
   final int configId;
+  final int page;
 
   GetStatisticsEvent({
     required this.startDate,
     required this.endDate,
     required this.configId,
+    this.page = 1,
   });
 }
 

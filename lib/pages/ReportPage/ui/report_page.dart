@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ting_box/extension/date_time_extension.dart';
+import 'package:intl/intl.dart';
 
 import '../../../ting_box.dart';
 
@@ -14,10 +14,12 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage>
     with AutomaticKeepAliveClientMixin {
-  StatisticOrder? statistic;
-  OrdersByPaymentMethod? ordersByPaymentMethod;
-  OrdersByPaymentStatus? ordersByPaymentStatus;
+  Statistic? statistic;
   bool isLoading = false;
+  String _configId = '';
+  DateTimeRange? _selectedDateRange;
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -25,75 +27,202 @@ class _ReportPageState extends State<ReportPage>
   @override
   void initState() {
     super.initState();
-    // Check if we need to load data
-    final currentState = context.read<OrderBloc>().state;
-    if (currentState is! OrderGetStatisticSuccess) {
-      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
-    } else {
-      // If already loaded, sync local state
-      statistic = currentState.statistic;
-      ordersByPaymentMethod = statistic?.ordersByPaymentMethod;
-      ordersByPaymentStatus = statistic?.ordersByPaymentStatus;
+    _scrollController.addListener(_onScroll);
+    _loadConfigIdAndFetchData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+
+    // Check if scrolled beyond bottom (pull up to load)
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent + 50) {
+      _loadMore();
     }
+  }
+
+  void _loadMore() {
+    if (statistic?.pagination == null ||
+        !statistic!.pagination!.hasNextPage ||
+        _isLoadingMore) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    final nextPage = statistic!.pagination!.page + 1;
+
+    if (_selectedDateRange != null) {
+      _fetchStatisticsByDateRange(
+        _selectedDateRange!.start,
+        _selectedDateRange!.end,
+        page: nextPage,
+      );
+    }
+  }
+
+  Future<void> _loadConfigIdAndFetchData() async {
+    _configId = await UserRepository.getConfigId() ?? '';
+    // Fetch statistics for current month by default
+    _fetchMonthlyStatistics();
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd-MM-yyyy').format(date);
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  void _fetchStatisticsByDateRange(
+    DateTime startDate,
+    DateTime endDate, {
+    int page = 1,
+  }) {
+    if (!mounted) return;
+
+    debugPrint("startDate (UI): ${_formatDate(startDate)}");
+    debugPrint("startDate (API): ${_formatDateForApi(startDate)}");
+    debugPrint("endDate: ${_formatDate(endDate)}");
+
+    final configId = int.tryParse(_configId) ?? 0;
+    if (configId > 0) {
+      context.read<StatisticsBloc>().add(
+        GetStatisticsEvent(
+          startDate: _formatDateForApi(startDate),
+          endDate: _formatDateForApi(endDate),
+          configId: configId,
+          page: page,
+        ),
+      );
+      setState(() {
+        _isLoadingMore = page > 1;
+      });
+    }
+  }
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: AppColors.white,
+            ),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+      _fetchStatisticsByDateRange(picked.start, picked.end, page: 1);
+    }
+  }
+
+  void _fetchMonthlyStatistics() {
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    // Get first day of current month
+    final startDate = DateTime(now.year, now.month, 1);
+    // Get current day of current month
+    final endDate = now;
+
+    setState(() {
+      _selectedDateRange = DateTimeRange(start: startDate, end: endDate);
+    });
+
+    _fetchStatisticsByDateRange(startDate, endDate, page: 1);
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
-    return BlocListener<OrderBloc, OrderState>(
+    return BlocListener<StatisticsBloc, StatisticsState>(
       listenWhen: (prev, curr) {
-        // Ignore loading if we already have data to prevent skeleton flicker from other tabs
-        if (statistic != null && curr is OrderLoading) return false;
+        // Ignore loading if we already have data to prevent skeleton flicker
+        if (statistic != null && curr is StatisticsLoading) return false;
 
-        return curr is OrderGetStatisticSuccess ||
-            curr is OrderLoading ||
-            curr is OrderFailure;
+        return curr is StatisticsLoaded ||
+            curr is StatisticsLoading ||
+            curr is StatisticsError;
       },
       listener: (context, state) {
-        if (state is OrderLoading) {
+        if (state is StatisticsLoading) {
           setState(() => isLoading = true);
         }
 
-        if (state is OrderGetStatisticSuccess) {
+        if (state is StatisticsLoaded) {
           setState(() {
             isLoading = false;
+            _isLoadingMore = false;
             statistic = state.statistic;
-            ordersByPaymentMethod = statistic?.ordersByPaymentMethod;
-            ordersByPaymentStatus = statistic?.ordersByPaymentStatus;
           });
         }
 
-        if (state is OrderFailure) {
-          setState(() => isLoading = false);
+        if (state is StatisticsError) {
+          setState(() {
+            isLoading = false;
+            _isLoadingMore = false;
+          });
         }
       },
       child: AppScaffold(
         hasSafeArea: false,
         backgroundColor: Color(0xFFF4F7FC),
-        appBar: AppAppBar(title: TitleAppbarText(title: "Quản Lý Quỹ")),
+        appBar: AppAppBar(
+          title: TitleAppbarText(title: "Quản Lý Thu Chi"),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.calendar_today_outlined,
+                color: Colors.black,
+              ),
+              onPressed: _showDateRangePicker,
+            ),
+          ],
+        ),
         body: Builder(
           builder: (context) {
             if (isLoading && statistic == null) {
               return const ReportPageSkeleton();
             }
 
-            if (statistic != null &&
-                ordersByPaymentMethod != null &&
-                ordersByPaymentStatus != null) {
+            if (statistic != null) {
               return SafeArea(
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   physics: BouncingScrollPhysics(),
                   padding: EdgeInsets.all(16.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRevenueSection(
-                        ordersByPaymentMethod!,
-                        ordersByPaymentStatus!,
-                      ),
+                      _buildRevenueSection(statistic!),
                       SizedBox(height: 20.h),
-                      _buildExpenseSection(),
+                      _buildExpenseSection(statistic!),
                       SizedBox(height: 20.h),
                       _buildRecentTransactionsSection(statistic!),
                     ],
@@ -114,7 +243,7 @@ class _ReportPageState extends State<ReportPage>
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () {
-                      context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+                      _fetchMonthlyStatistics();
                     },
                     child: const Text(
                       "Tải lại",
@@ -133,23 +262,24 @@ class _ReportPageState extends State<ReportPage>
   // -------------------------------
   // SECTION: Tổng Thu
   // -------------------------------
-  Widget _buildRevenueSection(
-    OrdersByPaymentMethod ordersByPaymentMethod,
-    OrdersByPaymentStatus ordersByPaymentStatus,
-  ) {
-    final cashItem = ordersByPaymentMethod.items.firstWhere(
-      (item) => item.paymentMethodValue == 0,
-    );
-    final bankItem = ordersByPaymentMethod.items.firstWhere(
-      (item) => item.paymentMethodValue == 1,
-    );
-    final paidItem = ordersByPaymentStatus.items.firstWhere(
-      (item) => item.paymentStatus == 'paid',
-    );
-    final unpaidItem = ordersByPaymentStatus.items.firstWhere(
-      (item) => item.paymentStatus == 'unpaid',
-    );
-    final totalAmount = cashItem.totalAmount + bankItem.totalAmount;
+  Widget _buildRevenueSection(Statistic statistic) {
+    final revenue = statistic.revenue;
+    final incomeSources = statistic.incomeSources;
+
+    // Calculate cash and bank from income sources
+    double cashAmount = 0;
+    double bankAmount = 0;
+
+    for (var source in incomeSources.sources) {
+      if (source.type == 'cash') {
+        cashAmount += source.amount;
+      } else if (source.type == 'bank') {
+        bankAmount += source.amount;
+      }
+    }
+
+    final totalIn = revenue.totalIn;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -162,40 +292,55 @@ class _ReportPageState extends State<ReportPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Tổng Thu",
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Text(
+                "Tổng Thu",
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
+              Spacer(),
+              Text(
+                "${_formatDate(_selectedDateRange?.start ?? statistic.startDate)} - ${_formatDate(_selectedDateRange?.end ?? statistic.endDate)}",
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 8.h),
           Text(
-            "${formatMoney(totalAmount)}đ",
-            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+            "${formatMoney(totalIn)}đ",
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
           ),
           SizedBox(height: 16.h),
-          _buildIconRow(
-            Icons.money,
-            "Tiền mặt từ đơn hàng",
-            formatMoney(cashItem.totalAmount),
-          ),
+          _buildIconRow(Icons.money, "Tiền mặt", formatMoney(cashAmount)),
           SizedBox(height: 12.h),
           _buildIconRow(
             Icons.account_balance,
-            "Chuyển khoản từ đơn hàng",
-            formatMoney(bankItem.totalAmount),
+            "Chuyển khoản",
+            formatMoney(bankAmount),
+          ),
+          SizedBox(height: 12.h),
+          Divider(color: Colors.grey[300], thickness: 1),
+          SizedBox(height: 12.h),
+          _buildIconRow(
+            Icons.warning_amber_rounded,
+            "Công nợ tháng trước",
+            formatMoney(statistic.debt.previousMonth),
+            iconColor: Colors.orange,
           ),
           SizedBox(height: 12.h),
           _buildIconRow(
-            Icons.check_circle_outline,
-            "Đã thanh toán",
-            formatMoney(paidItem.totalAmount),
-            iconColor: AppColors.primaryBlue,
-          ),
-          SizedBox(height: 12.h),
-          _buildIconRow(
-            Icons.cancel,
-            "Chưa thanh toán",
-            formatMoney(unpaidItem.totalAmount),
-            iconColor: Colors.red,
+            Icons.error_outline,
+            "Công nợ hiện tại",
+            formatMoney(statistic.debt.current),
+            iconColor: statistic.debt.current > 0 ? Colors.red : Colors.green,
           ),
         ],
       ),
@@ -220,9 +365,11 @@ class _ReportPageState extends State<ReportPage>
   }
 
   // -------------------------------
-  // SECTION: Tổng Chi (tạm = 0)
+  // SECTION: Tổng Chi
   // -------------------------------
-  Widget _buildExpenseSection() {
+  Widget _buildExpenseSection(Statistic statistic) {
+    final expenseSources = statistic.expenseSources;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -235,13 +382,26 @@ class _ReportPageState extends State<ReportPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Tổng Chi",
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Text(
+                "Tổng Chi",
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
+              Spacer(),
+              Text(
+                "${_formatDate(_selectedDateRange?.start ?? statistic.startDate)} - ${_formatDate(_selectedDateRange?.end ?? statistic.endDate)}",
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 8.h),
           Text(
-            "-0đ",
+            "${formatMoney(expenseSources.total)}đ",
             style: TextStyle(
               fontSize: 20.sp,
               color: Colors.red,
@@ -249,47 +409,91 @@ class _ReportPageState extends State<ReportPage>
             ),
           ),
           SizedBox(height: 16.h),
-          _buildExpenseRow("Chi trả nhà cung cấp", '-0'),
+          _buildIconRow(
+            Icons.money,
+            "Tiền mặt",
+            formatMoney(
+              expenseSources.sources
+                  .firstWhere((element) => element.type == "cash")
+                  .amount,
+            ),
+          ),
           SizedBox(height: 12.h),
-          _buildExpenseRow("Chi phí vận hành", '-0'),
-          SizedBox(height: 12.h),
-          _buildExpenseRow("Chi phí khác", '-0'),
+          _buildIconRow(
+            Icons.account_balance,
+            "Chuyển khoản",
+            formatMoney(
+              expenseSources.sources
+                  .firstWhere((element) => element.type == "bank")
+                  .amount,
+            ),
+          ),
+          SizedBox(height: 16.h),
+
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey, size: 16),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  "Chi tiết các khoản chi được hiển thị trong danh sách giao dịch bên dưới",
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildExpenseRow(String title, String value) {
-    return Row(
-      children: [
-        Icon(Icons.circle, color: Colors.redAccent, size: 12),
-        SizedBox(width: 8.w),
-        Expanded(child: Text(title)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
     );
   }
 
   // -------------------------------
   // SECTION: Giao Dịch Gần Đây
   // -------------------------------
-  Widget _buildRecentTransactionsSection(StatisticOrder statistic) {
+  Widget _buildRecentTransactionsSection(Statistic statistic) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Đơn hàng gần đây",
+          "Giao dịch",
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
 
-        // Danh sách đơn hàng gần đây
-        ...statistic.recentOrders.take(5).map(_buildTransactionItem),
+        // Danh sách giao dịch gần đây
+        if (statistic.transactions.isEmpty)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.h),
+              child: Text(
+                "Không có giao dịch nào",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else
+          ...statistic.transactions.map(_buildTransactionItem),
+
+        // Load more indicator
+        if (_isLoadingMore)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildTransactionItem(Order order) {
+  Widget _buildTransactionItem(StatisticTransaction transaction) {
+    final isIncome = transaction.type == 'receipt';
+    final color = isIncome ? Colors.green : Colors.red;
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(14.w),
@@ -302,10 +506,10 @@ class _ReportPageState extends State<ReportPage>
       ),
       child: Row(
         children: [
-          // Icon cố định: xanh + arrow_downward
+          // Icon
           Icon(
-            Icons.receipt_long_rounded,
-            color: order.paymentStatus == 'paid' ? Colors.green : Colors.red,
+            isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+            color: color,
             size: 22,
           ),
           SizedBox(width: 12.w),
@@ -315,39 +519,40 @@ class _ReportPageState extends State<ReportPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tổng tiền
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "${formatMoney(order.totalAmount ?? 0)}đ",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15.sp,
-                      ),
-                    ),
-                    Text(
-                      "(${order.paymentStatus == 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'})",
-                      style: TextStyle(fontSize: 13.sp, color: Colors.blueGrey),
-                    ),
-                  ],
+                // Subject
+                Text(
+                  transaction.subject ?? 'Không có tiêu đề',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15.sp,
+                  ),
                 ),
                 SizedBox(height: 4.h),
 
-                // Phương thức thanh toán
+                // Type
                 Text(
-                  order.paymentMethod,
+                  transaction.type ?? '',
                   style: TextStyle(fontSize: 13.sp, color: Colors.blueGrey),
                 ),
 
                 SizedBox(height: 4.h),
 
-                // Thời gian tạo
+                // Thời gian
                 Text(
-                  '${order.createdAt?.toReadableDateTime()}',
+                  '${transaction.date ?? ''}',
                   style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                 ),
               ],
+            ),
+          ),
+
+          // Amount
+          Text(
+            (transaction.amount ?? 0).formatMoney(),
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],

@@ -38,77 +38,80 @@ class _RevenuePieChartState extends State<RevenuePieChart> {
       );
     }
 
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 200.h,
-            child: Stack(
-              children: [
-                PieChart(
-                  PieChartData(
-                    pieTouchData: PieTouchData(
-                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                        setState(() {
-                          if (!event.isInterestedForInteractions ||
-                              pieTouchResponse == null ||
-                              pieTouchResponse.touchedSection == null) {
-                            touchedIndex = -1;
-                            return;
-                          }
-                          touchedIndex =
-                              pieTouchResponse
-                                  .touchedSection!
-                                  .touchedSectionIndex;
-                        });
-                      },
+    return IgnorePointer(
+      ignoring: true,
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 200.h,
+              child: Stack(
+                children: [
+                  PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              touchedIndex = -1;
+                              return;
+                            }
+                            touchedIndex =
+                                pieTouchResponse
+                                    .touchedSection!
+                                    .touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 0,
+                      centerSpaceRadius: 60.r,
+                      sections: showingSections(sources),
                     ),
-                    borderData: FlBorderData(show: false),
-                    sectionsSpace: 0,
-                    centerSpaceRadius: 60.r,
-                    sections: showingSections(sources),
                   ),
-                ),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Tổng thu',
-                        style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-                      ),
-                      Text(
-                        total.formatMoney(),
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Tổng thu',
+                          style: TextStyle(color: Colors.grey, fontSize: 12.sp),
                         ),
-                      ),
-                    ],
+                        Text(
+                          total.formatMoney(),
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20.h),
-          ...List.generate(sources.length, (index) {
-            final source = sources[index];
-            return Padding(
-              padding: EdgeInsets.only(bottom: 10.h),
-              child: _buildLegendItem(
-                color: _colors[index % _colors.length],
-                text: source.name,
-                amount: source.amount.formatMoney(),
+                ],
               ),
-            );
-          }),
-        ],
+            ),
+            SizedBox(height: 20.h),
+            ...List.generate(sources.length, (index) {
+              final source = sources[index];
+              return Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: _buildLegendItem(
+                  color: _colors[index % _colors.length],
+                  text: source.name,
+                  amount: source.amount.formatMoney(),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

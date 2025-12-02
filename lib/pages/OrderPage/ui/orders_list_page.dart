@@ -291,16 +291,13 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   Widget _buildOrderHeader(Order order) {
-    final orderId =
-        order.createdAt != null
-            ? 'HD${order.createdAt!.replaceAll(RegExp(r'[^0-9]'), '').substring(0, 6)}'
-            : 'HD000000';
+    final orderId = '#${order.code}-${order.id}';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          '#$orderId',
+          orderId,
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.bold,

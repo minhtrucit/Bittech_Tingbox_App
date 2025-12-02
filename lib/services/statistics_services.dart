@@ -12,15 +12,16 @@ class StatisticServices {
     required String startDate,
     required String endDate,
     required int configId,
+    int page = 1,
   }) async {
     try {
       final response = await api.get(
         '/statistics',
         queryParameters: {
           'configId': configId,
-          'limit': 5,
           'startDate': startDate,
           'endDate': endDate,
+          'page': page,
         },
       );
 

@@ -126,7 +126,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           children: [
             Expanded(
               child: Text(
-                'Tổng thu: ${widget.transactions.where((tx) => (tx.amount ?? 0) >= 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
+                'Thu: ${widget.transactions.where((tx) => (tx.amount ?? 0) >= 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
@@ -135,7 +135,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
             ),
             Text(
-              'Tổng chi: ${widget.transactions.where((tx) => (tx.amount ?? 0) < 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
+              'Chi: ${widget.transactions.where((tx) => (tx.amount ?? 0) < 0).fold(0.0, (sum, tx) => sum + (tx.amount ?? 0)).formatMoney()}',
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.bold,
