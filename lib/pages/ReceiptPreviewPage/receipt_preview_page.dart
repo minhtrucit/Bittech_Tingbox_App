@@ -61,7 +61,7 @@ class ReceiptPreviewPage extends StatelessWidget {
           // Tên cửa hàng
           Text(
             config?.unitName ?? 'TÊN CỬA HÀNG',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
@@ -84,7 +84,7 @@ class ReceiptPreviewPage extends StatelessWidget {
             ),
           Text(
             'Hóa đơn bán hàng',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
