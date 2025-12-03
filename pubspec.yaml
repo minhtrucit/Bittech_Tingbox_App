@@ -71,9 +71,15 @@ flutter:
     - assets/icons/logo_bittech.svg
     - assets/icons/bg-login.svg
     - assets/icons/tingbox-logo.png
-    - assets/icons/TingBox_LOGO.svg
+    - assets/icons/tingbox_logo.svg
     - assets/icons/branding-bigtech.png
     - assets/icons/tingbox_logo_login.png
+    - assets/images/
+    - assets/images/tingbox_login/
+    - assets/images/tingbox_login/tingbox_logo_login.png
+    - assets/images/tingbox_login/2x/tingbox_logo_login.png
+    - assets/images/tingbox_login/3x/tingbox_logo_login.png
+    - assets/images/tingbox_login/4x/tingbox_logo_login.png
 
   fonts:
     - family: montserrat

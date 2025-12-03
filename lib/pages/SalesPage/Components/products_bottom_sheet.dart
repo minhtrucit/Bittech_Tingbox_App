@@ -84,11 +84,35 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
           // List of products
           BlocBuilder<ProductBloc, ProductState>(
             builder: (context, state) {
-              if (state is ProductLoading) {
+              debugPrint("State: $state");
+              if (state is ProductLoading || state is ProductInitial) {
                 return Expanded(
                   child: ListView.builder(
                     itemCount: 10,
                     itemBuilder: (context, index) => _buildSkeletonItem(),
+                  ),
+                );
+              }
+
+              if (state is ProductFailure) {
+                return Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Đã xảy ra lỗi khi tải sản phẩm",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<ProductBloc>().add(GetProductsEvent());
+                          },
+                          child: Text("Thử lại"),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }
@@ -110,7 +134,7 @@ class _ProductBottomSheetState extends State<ProductBottomSheet> {
                       )
                       .toList();
 
-              if (filteredProducts.isEmpty && state is! ProductLoading) {
+              if (filteredProducts.isEmpty) {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),

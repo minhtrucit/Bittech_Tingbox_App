@@ -73,11 +73,12 @@ class _AuthPageState extends State<AuthPage> {
             ),
           ),
 
-          Center(
+           Center(
             child: Image.asset(
-              'assets/icons/tingbox_logo_login.png',
-              width: 140.w,
-              height: 140.w,
+              'assets/images/tingbox_login/tingbox_logo_login.png',
+              fit: BoxFit.contain,
+              width: 140,
+              height: 140,
             ),
           ),
         ],

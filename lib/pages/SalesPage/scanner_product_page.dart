@@ -338,7 +338,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
               }
               if (state is ProductLoadProductsSuccess) {
                 debugPrint(
-                    'ProductLoadProductsSuccess: ${state.products.length} products');
+                  'ProductLoadProductsSuccess: ${state.products.length} products',
+                );
                 setState(() {
                   isLoadingProducts = false;
                   products.addAll(state.products);
@@ -766,13 +767,6 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   Widget _buildAllProductsList() {
-    final filteredProducts =
-        products
-            .where(
-              (p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()),
-            )
-            .toList();
-
     return Column(
       children: [
         Padding(
@@ -799,12 +793,70 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
         SizedBox(height: 8.h),
         Expanded(
-          child: ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            itemCount: filteredProducts.length,
-            itemBuilder: (context, index) {
-              final product = filteredProducts[index];
-              return _buildProductListItem(product);
+          child: BlocBuilder<ProductBloc, ProductState>(
+            builder: (context, state) {
+              if (state is ProductLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryBlue,
+                  ),
+                );
+              }
+
+              if (state is ProductFailure) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Lỗi tải sản phẩm",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      TextButton(
+                        onPressed:
+                            () => context.read<ProductBloc>().add(
+                              GetProductsEvent(),
+                            ),
+                        child: Text("Thử lại"),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              List<Product> currentProducts = [];
+              if (state is ProductLoadProductsSuccess) {
+                currentProducts = state.products;
+              } else {
+                currentProducts = products;
+              }
+
+              final filteredProducts =
+                  currentProducts
+                      .where(
+                        (p) => p.name.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
+                        ),
+                      )
+                      .toList();
+
+              if (filteredProducts.isEmpty) {
+                return Center(
+                  child: Text(
+                    "Không tìm thấy sản phẩm",
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                itemCount: filteredProducts.length,
+                itemBuilder: (context, index) {
+                  final product = filteredProducts[index];
+                  return _buildProductListItem(product);
+                },
+              );
             },
           ),
         ),
