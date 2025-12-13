@@ -16,10 +16,9 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(String phone, String password) async {
     try {
-      final resp = await api.post(
-        '/auth/login',
-        data: {'phone': phone, 'password': password},
-      ).timeout(const Duration(seconds: 15));
+      final resp = await api
+          .post('/auth/login', data: {'phone': phone, 'password': password})
+          .timeout(const Duration(seconds: 15));
       debugPrint(
         'API Response status: ${resp.statusCode} - ${resp.data['statusCode']}',
       );
@@ -34,6 +33,7 @@ class AuthService {
             data['expenseManagerAccessToken'];
         userJson['expenseManagerRefreshToken'] =
             data['expenseManagerRefreshToken'];
+        userJson['qrCode'] = data['qrCode'];
 
         final user = User.fromJson(userJson);
         debugPrint('Parsed User: ${user.toJson()}');

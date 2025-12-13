@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +13,7 @@ import '../../../ting_box.dart';
 import '../../ConfigPage/bloc/config_state.dart';
 import 'user_profile_skeleton.dart';
 import '../../ConfigPage/ui/config_page.dart';
+import '../../MyQrPage/ui/my_qr_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -23,6 +25,7 @@ class UserProfilePage extends StatefulWidget {
 class _UserProfilePageState extends State<UserProfilePage> {
   ConfigModel? config;
   List<Bank> bankList = [];
+  User? _currentUser;
 
   @override
   void initState() {
@@ -32,13 +35,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _loadUser() async {
     try {
-      // Check if data is already loaded
-      // final currentState = context.read<UserProfileBloc>().state;
-      // if (currentState is UserProfileSuccess) {
-      //   debugPrint("👤 UserProfilePage: User already loaded, skipping fetch.");
-      //   return;
-      // }
-
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString(UserRepository.keyUserId);
       debugPrint("👤 UserProfilePage: userId from prefs: $userId");
@@ -54,6 +50,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     } catch (e) {
       debugPrint("❌ UserProfilePage: Error loading user: $e");
     }
+  }
+
+  Future<void> _onRefresh() async {
+    await _loadUser();
   }
 
   bool _isLoadingOverlay = false;
@@ -89,32 +89,48 @@ class _UserProfilePageState extends State<UserProfilePage> {
             }
           },
         ),
+        BlocListener<UserProfileBloc, UserProfileState>(
+          listener: (context, state) {
+            if (state is UserProfileSuccess) {
+              setState(() {
+                _currentUser = state.user;
+              });
+            } else if (state is UserProfileFailure) {}
+          },
+        ),
       ],
       child: BlocBuilder<UserProfileBloc, UserProfileState>(
         builder: (context, state) {
+          // If we have data, show it (even if loading)
+          // If we don't have data AND it's loading, show skeleton
           if (state is UserProfileLoading) {
             return const UserProfileSkeleton();
           }
-          if (state is UserProfileFailure) {
-            return const UserProfileSkeleton();
-          }
-          if (state is UserProfileSuccess) {
-            final user = state.user;
+
+          if (_currentUser != null) {
+            final user = _currentUser!;
             return Stack(
               children: [
                 AppScaffold(
                   backgroundColor: AppColors.white,
                   appBar: _buildAppBar(context),
                   body: SafeArea(
-                    child: Column(
-                      children: [
-                        _buildUserInfoSection(user),
-                        _buildInfoCard(user),
-                        const Spacer(),
-                        SizedBox(height: 40.h),
-                        _buildLogoutButton(context),
-                        const Spacer(),
-                      ],
+                    child: RefreshIndicator(
+                      color: AppColors.primaryBlue,
+                      backgroundColor: Colors.white,
+                      onRefresh: _onRefresh,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          children: [
+                            _buildUserInfoSection(user),
+                            _buildInfoCard(user),
+                            SizedBox(height: 40.h),
+                            _buildLogoutButton(context),
+                            SizedBox(height: 60.h),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -122,6 +138,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ],
             );
           }
+          // Fallback if not loading and no user (e.g. failure initial load)
           return const UserProfileSkeleton();
         },
       ),
@@ -131,7 +148,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   // ───────────────────────────────────────────
   // 1️⃣ AppBar
   PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
+    return AppAppBar(
       backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
@@ -286,6 +303,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   // ───────────────────────────────────────────
   Widget _buildInfoCard(User user) {
+    debugPrint("user.qrCode user profile: ${user.qrCode}");
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -295,6 +313,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
       child: Column(
         children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => MyQrPage(user: user)),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.qr_code_scanner_outlined,
+              title: "QR của tôi",
+              subtitle: "Thông tin QR của bạn",
+            ),
+          ),
+          const SizedBox(height: 10),
           _buildInfoTile(
             icon: Icons.email_rounded,
             title: "Email",

@@ -1,13 +1,17 @@
+import 'package:flutter/material.dart';
 import 'package:ting_box/models/bank.dart';
 import 'package:ting_box/models/user.dart';
 
 enum PrintMode { none, auto, manual }
+
+enum SubscriptionPlan { basic, premium }
 
 class ConfigModel {
   final int? id;
   final String? unitName;
   final String? sepayApiKey;
   final PrintMode printMode;
+  SubscriptionPlan? subscriptionPlan;
   final String? logo;
   final String? phone;
   final String? address;
@@ -21,6 +25,7 @@ class ConfigModel {
     this.unitName,
     this.sepayApiKey,
     required this.printMode,
+    this.subscriptionPlan,
     this.logo,
     this.phone,
     this.address,
@@ -31,6 +36,7 @@ class ConfigModel {
   });
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
+    debugPrint(json.toString());
     return ConfigModel(
       id: json['id'],
       unitName: json['unitName']?.toString(),
@@ -58,6 +64,12 @@ class ConfigModel {
               ?.map((e) => ConfigBankAccount.fromJson(e))
               .toList() ??
           [],
+      subscriptionPlan: SubscriptionPlan.values.firstWhere(
+        (e) =>
+            e.name.toUpperCase() ==
+            (json['subscriptionPlan']?.toString() ?? 'BASIC').toUpperCase(),
+        orElse: () => SubscriptionPlan.basic,
+      ),
     );
   }
 
@@ -72,8 +84,13 @@ class ConfigModel {
       'address': address,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'subscriptionPlan': subscriptionPlan?.name.toUpperCase() ?? 'BASIC',
       // Don't send bankAccounts and configUsers - they are handled separately
     };
+  }
+
+  bool checkPremium() {
+    return subscriptionPlan == SubscriptionPlan.premium;
   }
 }
 

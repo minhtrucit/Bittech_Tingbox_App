@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+
 class User {
   final int id;
   final String email;
@@ -14,6 +16,7 @@ class User {
   final Role role;
   final String? token;
   bool? isDevMode;
+  final String? qrCode;
 
   User({
     required this.id,
@@ -29,9 +32,11 @@ class User {
     required this.role,
     this.token,
     this.isDevMode,
+    this.qrCode,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    debugPrint("user.qrCode user profile:2 ${json['qrCode']}");
     return User(
       id: json['id'] ?? 0,
       email: json['email'] ?? '',
@@ -50,6 +55,7 @@ class User {
       role: Role.fromJson(Map<String, dynamic>.from(json['role'] ?? {})),
       token: json['expenseManagerAccessToken']?.toString(),
       isDevMode: json['isDev'] ?? false,
+      qrCode: json['qrCode']?.toString(),
     );
   }
 
@@ -68,6 +74,7 @@ class User {
       'role': role.toJson(),
       'isDev': isDevMode,
       if (token != null) 'token': token,
+      if (qrCode != null) 'qrCode': qrCode,
     };
   }
 

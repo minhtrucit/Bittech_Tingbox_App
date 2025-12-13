@@ -17,6 +17,8 @@ class BasePage extends StatefulWidget {
 
 class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
+  ConfigModel? _configModel;
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -41,12 +43,14 @@ class _BasePageState extends State<BasePage> {
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  final _pages = const [
-    HomePage(),
-    OrdersListPage(),
-    HomePage(), // Placeholder for center button if needed, or just use index mapping
-    ProductsListPage(),
-    UserProfilePage(),
+  List<Widget> get _pages => [
+    const HomePage(),
+    if (_isPremium) ...[
+      const OrdersListPage(),
+      const HomePage(), // Placeholder
+      const ProductsListPage(),
+    ],
+    const UserProfilePage(),
   ];
 
   @override
@@ -63,6 +67,13 @@ class _BasePageState extends State<BasePage> {
               configId: state.config.id!,
             ),
           );
+          setState(() {
+            _configModel = state.config;
+            _isPremium = _configModel?.checkPremium() ?? false;
+            if (_selectedIndex >= _pages.length) {
+              _selectedIndex = 0;
+            }
+          });
         }
       },
       child: AppScaffold(
@@ -71,7 +82,9 @@ class _BasePageState extends State<BasePage> {
         body: Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned.fill(child: _pages[_selectedIndex]),
+            Positioned.fill(
+              child: IndexedStack(index: _selectedIndex, children: _pages),
+            ),
 
             Positioned(
               left: 0,
@@ -87,47 +100,48 @@ class _BasePageState extends State<BasePage> {
                 child: AppNavigationBar(
                   currentIndex: _selectedIndex,
                   onTap: (index) => setState(() => _selectedIndex = index),
+                  isPremium: _isPremium,
                 ),
               ),
             ),
-
-            Positioned(
-              bottom: 30,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ScanProductPage(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primaryBlue,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
+            if (_isPremium)
+              Positioned(
+                bottom: 30,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ScanProductPage(),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.qr_code_scanner,
-                      color: Colors.white,
-                      size: 34,
+                      );
+                    },
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primaryBlue,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.white,
+                        size: 34,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

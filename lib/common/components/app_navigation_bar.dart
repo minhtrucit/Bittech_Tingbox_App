@@ -6,11 +6,13 @@ import '../app_colors.dart';
 class AppNavigationBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool isPremium;
 
   const AppNavigationBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.isPremium,
   });
 
   @override
@@ -22,17 +24,20 @@ class AppNavigationBar extends StatelessWidget {
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.grey,
       onTap: onTap,
-      items: const [
+      items: [
         BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: "Home"),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.doc_text),
-          label: "Đơn hàng",
-        ),
-        BottomNavigationBarItem(icon: SizedBox(width: 40), label: ''),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.cart_fill),
-          label: "Sản phẩm",
-        ),
+        if (isPremium) ...[
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.doc_text),
+            label: "Đơn hàng",
+          ),
+          BottomNavigationBarItem(icon: SizedBox(width: 40), label: ''),
+
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.cart_fill),
+            label: "Sản phẩm",
+          ),
+        ],
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.person_alt),
           label: "Hồ sơ",
