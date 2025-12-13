@@ -317,7 +317,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => MyQrPage(user: user)),
+                MaterialPageRoute(builder: (_) => MyQrPage(user: user, config: config!,)),
               );
             },
             child: _buildInfoTile(
