@@ -54,13 +54,15 @@ class OrderService {
     }
   }
 
-  Future<OrderListResponse> getAllOrders({
+  Future<OrderListResponse> getAllOrdersbyUserId({
+    required int userId,
     int? page,
     int limit = 10,
     int? paymentStatus,
   }) async {
     try {
       final queryParams = {
+        'userId': userId,
         if (page != null) 'page': page,
         'limit': limit,
         if (paymentStatus != null) 'paymentStatus': paymentStatus,
@@ -72,6 +74,25 @@ class OrderService {
 
       if (resp.statusCode == 200) {
         return OrderListResponse.fromJson(resp.data);
+      }
+
+      throw Exception('Failed to load orders');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      throw Exception('Error: $e');
+    }
+  }
+
+  Future<Order> getOrdersbyOrderId({
+    required int orderId,
+  }) async {
+    try {
+      final resp = await api.get('/orders/$orderId');
+
+      debugPrint("📌 API RAW DATA: ${resp.data}");
+
+      if (resp.statusCode == 200) {
+        return Order.fromJson(resp.data);
       }
 
       throw Exception('Failed to load orders');

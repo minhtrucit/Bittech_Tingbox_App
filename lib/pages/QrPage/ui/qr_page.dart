@@ -9,9 +9,10 @@ import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
 
 class QrPage extends StatefulWidget {
-  const QrPage({required this.paymentInfo, required this.orderCode, super.key});
+  const QrPage({required this.paymentInfo, required this.orderCode, required this.orderId, super.key});
   final PaymentInfo paymentInfo;
   final String orderCode;
+  final int orderId;
 
   @override
   State<QrPage> createState() => _QrPageState();
@@ -383,6 +384,7 @@ class _QrPageState extends State<QrPage> {
                               onPressed: () {
                                 context.read<OrderBloc>().add(
                                   OrderSePayWebHookEvent(
+                                    orderId: widget.orderId,
                                     orderCode: widget.orderCode,
                                     transferAmount:
                                         widget.paymentInfo.amount.toInt(),

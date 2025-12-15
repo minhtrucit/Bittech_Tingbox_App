@@ -9,11 +9,13 @@ final class OrderLoading extends OrderState {}
 
 final class OrderCreateSuccess extends OrderState {
   final bool success;
+  final int orderId;
   final PaymentMethod? paymentMethod;
   final PaymentInfo? paymentInfo;
   final String orderCode;
   OrderCreateSuccess({
     required this.success,
+    required this.orderId,
     this.paymentInfo,
     this.paymentMethod,
     required this.orderCode,
@@ -54,6 +56,11 @@ final class OrderGetAllOrdersSuccess extends OrderState {
     this.canLoadMore = false,
     this.page,
   });
+}
+
+final class OrderGetOrdersbyOrderIdSuccess extends OrderState {
+  final Order order;
+  OrderGetOrdersbyOrderIdSuccess({required this.order});
 }
 
 final class OrderSePayWebHookSuccess extends OrderState {

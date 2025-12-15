@@ -15,7 +15,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderCreateOrderEvent>(_onCreateOrder);
     on<OrderPaymentSuccessEvent>(_onPaymentSuccess);
     on<OrderGetStatisticsEvent>(_onGetStatisticOverview);
-    on<OrderGetAllOrdersEvent>(_onGetAllOrders);
+    on<OrderGetAllOrdersbyUserIdEvent>(_onGetAllOrdersbyUserId);
     on<OrderSePayWebHookEvent>(_onSePayWebHook);
     on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
   }
@@ -57,6 +57,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       }; // Nếu thành công trả về 201 (trong service đã check), emit success
       emit(
         OrderCreateSuccess(
+          orderId: response['data']['id'],
           orderCode: response['data']['code'],
           success: true,
           paymentInfo:
@@ -88,12 +89,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // Fetch order details để có thể in hóa đơn
       if (orderId != null) {
         try {
-          final response = await orderService.getAllOrders();
-          final orders = response.orders;
-          order = orders.firstWhere(
-            (o) => o.id == orderId,
-            orElse: () => throw Exception('Order not found'),
-          );
+          order = await orderService.getOrdersbyOrderId(orderId: orderId);
         } catch (e) {
           debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
         }
@@ -107,17 +103,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         ),
       );
 
-      // Reload orders list to get updated data
-      debugPrint(
-        "🔄 [OrderBloc] Reloading orders list after WebSocket payment success...",
-      );
-      try {
-        final response = await orderService.getAllOrders();
-        emit(OrderGetAllOrdersSuccess(orders: response.orders));
-        debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
-      } catch (e) {
-        debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
-      }
     } else {
       emit(OrderFailure(message: "Thanh toán thất bại!"));
     }
@@ -152,8 +137,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     }
   }
 
-  Future<void> _onGetAllOrders(
-    OrderGetAllOrdersEvent event,
+  Future<void> _onGetAllOrdersbyUserId(
+    OrderGetAllOrdersbyUserIdEvent event,
     Emitter<OrderState> emit,
   ) async {
     // Chỉ emit loading khi load trang đầu tiên
@@ -167,7 +152,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       );
 
       // Gọi API từ service
-      final response = await orderService.getAllOrders(
+      final response = await orderService.getAllOrdersbyUserId(
+        userId: event.userId,
         page: event.page,
         limit: event.limit,
         paymentStatus: event.paymentStatus,
@@ -217,9 +203,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     OrderSePayWebHookEvent event,
     Emitter<OrderState> emit,
   ) async {
-    // Don't emit OrderLoading to avoid affecting OrdersListPage UI
     try {
-      debugPrint("🚀 [OrderBloc] Bắt đầu gọi API thống kê...");
 
       final randomId = Random().nextInt(100000000);
       final body = {
@@ -249,14 +233,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         // Fetch orders to find the paid order
         Order? paidOrder;
         try {
-          final response = await orderService.getAllOrders();
-          final orders = response.orders;
-          paidOrder = orders.firstWhere(
-            (o) => o.code == event.orderCode,
-            orElse: () => throw Exception('Order not found'),
-          );
-          // Also emit updated orders list
-          emit(OrderGetAllOrdersSuccess(orders: orders));
+          final response = await orderService.getOrdersbyOrderId(orderId: event.orderId);
+          paidOrder = response;
         } catch (e) {
           debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
         }
@@ -269,17 +247,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           ),
         );
 
-        // Reload orders list to get updated data
-        debugPrint(
-          "🔄 [OrderBloc] Reloading orders list after payment success...",
-        );
-        try {
-          final response = await orderService.getAllOrders();
-          emit(OrderGetAllOrdersSuccess(orders: response.orders));
-          debugPrint("✅ [OrderBloc] Orders list reloaded successfully");
-        } catch (e) {
-          debugPrint("⚠️ [OrderBloc] Failed to reload orders: $e");
-        }
       } else {
         emit(OrderSePayWebHookFailed(message: result['message']));
       }

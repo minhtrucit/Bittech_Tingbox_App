@@ -108,7 +108,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
               Column(
                 children: [
                   _buildSearchBar(),
-                  _buildFilterRow(),
+                  // _buildFilterRow(),
                   isLoading
                       ? const Expanded(child: ProductsListSkeleton())
                       : Expanded(
@@ -177,52 +177,52 @@ class _ProductsListPageState extends State<ProductsListPage> {
     );
   }
 
-  Widget _buildFilterRow() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56.h,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Row(
-          children: [
-            _buildFilterChip('Danh mục'),
-            SizedBox(width: 8.w),
-            _buildFilterChip('Giá'),
-            SizedBox(width: 8.w),
-            _buildFilterChip('Trạng thái'),
-            SizedBox(width: 8.w),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.filter_list, size: 18),
-              label: const Text('Lọc'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryBlue,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildFilterRow() {
+  //   return SizedBox(
+  //     width: double.infinity,
+  //     height: 56.h,
+  //     child: SingleChildScrollView(
+  //       scrollDirection: Axis.horizontal,
+  //       padding: EdgeInsets.symmetric(horizontal: 16.w),
+  //       child: Row(
+  //         children: [
+  //           _buildFilterChip('Danh mục'),
+  //           SizedBox(width: 8.w),
+  //           _buildFilterChip('Giá'),
+  //           SizedBox(width: 8.w),
+  //           _buildFilterChip('Trạng thái'),
+  //           SizedBox(width: 8.w),
+  //           TextButton.icon(
+  //             onPressed: () {},
+  //             icon: const Icon(Icons.filter_list, size: 18),
+  //             label: const Text('Lọc'),
+  //             style: TextButton.styleFrom(
+  //               foregroundColor: AppColors.primaryBlue,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildFilterChip(String label) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: TextStyle(fontSize: 13.sp, color: Colors.black87)),
-          SizedBox(width: 4.w),
-          Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black87),
-        ],
-      ),
-    );
-  }
+  // Widget _buildFilterChip(String label) {
+  //   return Container(
+  //     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+  //     decoration: BoxDecoration(
+  //       border: Border.all(color: Colors.grey.shade300),
+  //       borderRadius: BorderRadius.circular(20.r),
+  //     ),
+  //     child: Row(
+  //       mainAxisSize: MainAxisSize.min,
+  //       children: [
+  //         Text(label, style: TextStyle(fontSize: 13.sp, color: Colors.black87)),
+  //         SizedBox(width: 4.w),
+  //         Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black87),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildProductGrid(List<Product> products) {
     return RefreshIndicator(

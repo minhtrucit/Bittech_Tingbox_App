@@ -470,6 +470,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               paymentInfo: paymentInfo,
               orderCode: widget.order.code ?? widget.order.id.toString(),
               createdAt: widget.order.createdAt,
+              orderId: widget.order.id ?? 0,
             ),
           ),
     );
@@ -481,11 +482,13 @@ class _QrSheetContent extends StatefulWidget {
     required this.paymentInfo,
     required this.orderCode,
     this.createdAt,
+    required this.orderId,
   });
 
   final PaymentInfo paymentInfo;
   final String orderCode;
   final String? createdAt;
+  final int orderId;
 
   @override
   State<_QrSheetContent> createState() => _QrSheetContentState();
@@ -716,6 +719,7 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                         onPressed: () {
                           context.read<OrderBloc>().add(
                             OrderSePayWebHookEvent(
+                              orderId: widget.orderId,
                               orderCode: widget.orderCode,
                               transferAmount: widget.paymentInfo.amount.toInt(),
                               transactionDate:

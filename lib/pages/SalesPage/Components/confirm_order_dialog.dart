@@ -103,6 +103,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
               MaterialPageRoute(
                 builder:
                     (_) => QrPage(
+                      orderId: state.orderId,
                       paymentInfo: paymentInfo!,
                       orderCode: state.orderCode,
                     ),

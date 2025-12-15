@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 import '../../../ting_box.dart';
 import 'orders_list_skeleton.dart';
@@ -25,11 +26,13 @@ class _OrdersListPageState extends State<OrdersListPage>
   bool _isLoadingMore = false;
   int _currentPage = 1;
   bool _canLoadMore = true;
+  int? _userId;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _getUserId();
 
     // Only load orders if we don't have any data yet
     if (_orders == null) {
@@ -43,7 +46,30 @@ class _OrdersListPageState extends State<OrdersListPage>
         });
       } else {
         // Otherwise fetch new data
-        _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
+        if (_userId != null) {
+          _fetchOrders(
+            userId: _userId!,
+            page: 1,
+            paymentStatus: _currentPaymentStatus,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(UserRepository.keyUserId);
+    if (userId != null && mounted) {
+      setState(() {
+        _userId = int.parse(userId);
+      });
+      if (_orders == null) {
+        _fetchOrders(
+          userId: _userId!,
+          page: 1,
+          paymentStatus: _currentPaymentStatus,
+        );
       }
     }
   }
@@ -63,9 +89,13 @@ class _OrdersListPageState extends State<OrdersListPage>
     }
   }
 
-  void _fetchOrders({int? page, int? paymentStatus}) {
+  void _fetchOrders({required int userId, int? page, int? paymentStatus}) {
     context.read<OrderBloc>().add(
-      OrderGetAllOrdersEvent(page: page, paymentStatus: paymentStatus),
+      OrderGetAllOrdersbyUserIdEvent(
+        userId: userId,
+        page: page,
+        paymentStatus: paymentStatus,
+      ),
     );
   }
 
@@ -74,7 +104,13 @@ class _OrdersListPageState extends State<OrdersListPage>
       _isLoadingMore = true;
     });
     // Load more with current filter
-    _fetchOrders(page: _currentPage + 1, paymentStatus: _currentPaymentStatus);
+    if (_userId != null) {
+      _fetchOrders(
+        userId: _userId!,
+        page: _currentPage + 1,
+        paymentStatus: _currentPaymentStatus,
+      );
+    }
   }
 
   void _onFilterChanged(String filter) {
@@ -96,10 +132,13 @@ class _OrdersListPageState extends State<OrdersListPage>
     });
 
     // Fetch with new filter from page 1
-    _fetchOrders(
-      page: 1,
-      paymentStatus: _currentPaymentStatus,
-    );
+    if (_userId != null) {
+      _fetchOrders(
+        userId: _userId!,
+        page: 1,
+        paymentStatus: _currentPaymentStatus,
+      );
+    }
   }
 
   @override
@@ -202,6 +241,7 @@ class _OrdersListPageState extends State<OrdersListPage>
             current is OrderFailure;
       },
       builder: (context, state) {
+        debugPrint("OrdersListPage: ${_orders?.length}");
         if (state is OrderLoading && _orders == null) {
           return const OrdersListSkeleton();
         }
@@ -216,7 +256,13 @@ class _OrdersListPageState extends State<OrdersListPage>
             backgroundColor: AppColors.white,
             onRefresh: () async {
               // Refresh with current filter
-              _fetchOrders(page: 1, paymentStatus: _currentPaymentStatus);
+              if (_userId != null) {
+                _fetchOrders(
+                  userId: _userId!,
+                  page: 1,
+                  paymentStatus: _currentPaymentStatus,
+                );
+              }
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: RawScrollbar(
@@ -416,7 +462,13 @@ class _OrdersListPageState extends State<OrdersListPage>
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              context.read<OrderBloc>().add(OrderGetStatisticsEvent());
+              if (_userId != null) {
+                _fetchOrders(
+                  userId: _userId!,
+                  page: 1,
+                  paymentStatus: _currentPaymentStatus,
+                );
+              }
             },
             child: const Text("Tải lại", style: TextStyle(fontSize: 16)),
           ),

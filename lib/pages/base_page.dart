@@ -19,6 +19,7 @@ class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
   ConfigModel? _configModel;
   bool _isPremium = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -33,6 +34,12 @@ class _BasePageState extends State<BasePage> {
       final userProfileBloc = BlocProvider.of<UserProfileBloc>(context);
       userProfileBloc.add(GetUserEvent(userId: userId));
       context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -67,84 +74,104 @@ class _BasePageState extends State<BasePage> {
           setState(() {
             _configModel = state.config;
             _isPremium = _configModel?.checkPremium() ?? false;
+            // Ensure selected index is valid if items changed
             if (_selectedIndex >= _pages.length) {
               _selectedIndex = 0;
             }
+            _isLoading = false;
           });
           if (_isPremium) {
             context.read<ProductBloc>().add(GetProductsEvent());
           }
+        } else if (state is ConfigFailure) {
+          setState(() {
+            _isLoading = false;
+          });
         }
       },
-      child: AppScaffold(
-        hasSafeArea: false,
-        backgroundColor: AppColors.white,
-        body: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: IndexedStack(index: _selectedIndex, children: _pages),
-            ),
-
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: const Border(
-                    top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+      child:
+          _isLoading
+              ? const Scaffold(
+                backgroundColor: Colors.white,
+                body: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryBlue,
                   ),
                 ),
-                child: AppNavigationBar(
-                  currentIndex: _selectedIndex,
-                  onTap: (index) => setState(() => _selectedIndex = index),
-                  isPremium: _isPremium,
-                ),
-              ),
-            ),
-            if (_isPremium)
-              Positioned(
-                bottom: 30,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ScanProductPage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryBlue,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 18,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.qr_code_scanner,
-                        color: Colors.white,
-                        size: 34,
+              )
+              : AppScaffold(
+                hasSafeArea: false,
+                backgroundColor: AppColors.white,
+                body: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: IndexedStack(
+                        index: _selectedIndex,
+                        children: _pages,
                       ),
                     ),
-                  ),
+
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: const Border(
+                            top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                          ),
+                        ),
+                        child: AppNavigationBar(
+                          currentIndex: _selectedIndex,
+                          onTap:
+                              (index) => setState(() => _selectedIndex = index),
+                          isPremium: _isPremium,
+                        ),
+                      ),
+                    ),
+                    if (_isPremium)
+                      Positioned(
+                        bottom: 30,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ScanProductPage(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primaryBlue,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.qr_code_scanner,
+                                color: Colors.white,
+                                size: 34,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          ],
-        ),
-      ),
     );
   }
 }
