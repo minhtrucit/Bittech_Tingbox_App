@@ -133,6 +133,7 @@ class _ConfigPageState extends State<ConfigPage> {
       logo: _logoFile != null ? _logoFile!.path : widget.config!.logo,
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
+      
     );
 
     context.read<ConfigBloc>().add(UpdateConfigEvent(config: updatedConfig));

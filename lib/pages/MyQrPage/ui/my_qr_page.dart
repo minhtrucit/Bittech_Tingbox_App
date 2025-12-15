@@ -37,10 +37,10 @@ class _MyQrPageState extends State<MyQrPage> {
       final file = await _capturePng();
       if (file != null) {
         await Gal.putImage(file.path);
-        _showSnackBar('Đã lưu ảnh thành công!');
+        _showSnackBar('Đã lưu ảnh thành công!', Colors.green);
       }
     } catch (e) {
-      _showSnackBar('Lỗi khi lưu ảnh: $e');
+      _showSnackBar('Lỗi khi lưu ảnh: $e', Colors.red);
     }
   }
 
@@ -51,7 +51,7 @@ class _MyQrPageState extends State<MyQrPage> {
         await ShareService.shareImage(files: [XFile(file.path)]);
       }
     } catch (e) {
-      _showSnackBar('Lỗi khi chia sẻ ảnh: $e');
+      _showSnackBar('Lỗi khi chia sẻ ảnh: $e', Colors.red);
     }
   }
 
@@ -81,10 +81,10 @@ class _MyQrPageState extends State<MyQrPage> {
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, [Color? color]) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   @override
@@ -225,15 +225,19 @@ class _MyQrPageState extends State<MyQrPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12.r),
-              child: Image.network(
-                widget.config.bankAccounts.first.qrCode ??
-                    widget.user.qrCode ??
-                    "",
-                width: 200.w,
-                height: 200.w,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildErrorQr(),
-              ),
+              child:
+                  widget.config.bankAccounts.first.qrCode != null ||
+                          widget.user.qrCode != null
+                      ? Image.network(
+                        widget.config.bankAccounts.first.qrCode ??
+                            widget.user.qrCode ??
+                            "",
+                        width: 200.w,
+                        height: 200.w,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildErrorQr(),
+                      )
+                      : _buildErrorQr(),
             ),
           ),
         ],

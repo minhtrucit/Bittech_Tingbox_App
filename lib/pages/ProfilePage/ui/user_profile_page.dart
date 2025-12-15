@@ -84,8 +84,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
             if (state is ConfigLoaded) {
               debugPrint("👤 UserProfilePage: Config loaded: ${state.config}");
               config = state.config;
-            } else {
-              config = null;
+            } else if (state is ConfigUpdateSuccess) {
+              config = state.config;
+            } else if (state is ConfigCreateSuccess) {
+              config = state.config;
             }
           },
         ),
@@ -303,7 +305,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   // ───────────────────────────────────────────
   Widget _buildInfoCard(User user) {
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -326,20 +327,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
               icon: Icons.qr_code_scanner_outlined,
               title: "QR của tôi",
               subtitle: "Thông tin QR của bạn",
+              isLink: true,
             ),
           ),
-          const SizedBox(height: 10),
-          _buildInfoTile(
-            icon: Icons.email_rounded,
-            title: "Email",
-            subtitle: user.email,
-          ),
-          const SizedBox(height: 10),
-          _buildInfoTile(
-            icon: Icons.phone_in_talk_rounded,
-            title: "Số điện thoại",
-            subtitle: user.phone,
-          ),
+
           const SizedBox(height: 10),
           GestureDetector(
             onTap: () {
@@ -352,7 +343,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
               icon: Icons.settings,
               title: "Cấu hình",
               subtitle: "Thiết lập máy in, ngân hàng...",
+              isLink: true,
             ),
+          ),
+          const SizedBox(height: 10),
+
+          _buildInfoTile(
+            icon: Icons.email_rounded,
+            title: "Email",
+            subtitle: user.email,
+          ),
+          const SizedBox(height: 10),
+          _buildInfoTile(
+            icon: Icons.phone_in_talk_rounded,
+            title: "Số điện thoại",
+            subtitle: user.phone,
           ),
         ],
       ),
@@ -364,6 +369,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     required IconData icon,
     required String title,
     required String subtitle,
+    bool isLink = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -397,7 +403,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          if (isLink) const Icon(Icons.arrow_forward_ios_rounded, size: 16),
         ],
       ),
     );
