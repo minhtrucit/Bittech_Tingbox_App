@@ -303,9 +303,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   // ───────────────────────────────────────────
   Widget _buildInfoCard(User user) {
-    debugPrint(
-      "widget.config.bankAccounts.first.qrCode 123: ${config!.bankAccounts.first.qrCode}",
-    );
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

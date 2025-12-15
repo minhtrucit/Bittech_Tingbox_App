@@ -7,12 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:ting_box/common/components/app_appbar.dart';
 import 'package:ting_box/common/components/app_scaffold.dart';
 import 'package:ting_box/common/components/title_appbar_text.dart';
 import 'package:ting_box/models/config_model.dart';
 
 import '../../../models/user.dart';
+import '../../../services/share_services.dart';
 
 class MyQrPage extends StatefulWidget {
   final User user;
@@ -42,10 +44,15 @@ class _MyQrPageState extends State<MyQrPage> {
     }
   }
 
-  Future<void> _copyContent() async {
-    final qrData = widget.user.qrCode ?? widget.user.id.toString();
-    await Clipboard.setData(ClipboardData(text: qrData));
-    _showSnackBar('Đã sao chép nội dung mã QR');
+  Future<void> _shareQr() async {
+    try {
+      final file = await _capturePng();
+      if (file != null) {
+        await ShareService.shareImage(files: [XFile(file.path)]);
+      }
+    } catch (e) {
+      _showSnackBar('Lỗi khi chia sẻ ảnh: $e');
+    }
   }
 
   Future<File?> _capturePng() async {
@@ -116,98 +123,14 @@ class _MyQrPageState extends State<MyQrPage> {
                           children: [
                             SizedBox(height: 32.h),
                             // Avatar
-                            Container(
-                              padding: EdgeInsets.all(4.w),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFE8F1FF),
-                                  width: 1,
-                                ),
-                              ),
-                              child: CircleAvatar(
-                                radius: 40.r,
-                                backgroundColor: Colors.grey.shade100,
-                                backgroundImage:
-                                    widget.user.avatar != null
-                                        ? NetworkImage(widget.user.avatar!)
-                                        : null,
-                                child:
-                                    widget.user.avatar == null
-                                        ? Icon(
-                                          Icons.person,
-                                          size: 40.sp,
-                                          color: Colors.grey,
-                                        )
-                                        : null,
-                              ),
-                            ),
+                            _buildAvatar(),
                             SizedBox(height: 16.h),
                             // Name
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              child: Text(
-                                widget.config.unitName ?? widget.user.userName,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: const Color(0xFF1A1A1A),
-                                  fontSize: 20.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                            _buildName(),
                             SizedBox(height: 32.h),
 
                             // QR Code Container
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFFE0E0E0),
-                                  width: 1,
-                                  style:
-                                      BorderStyle
-                                          .none, // Using dashed logic if possible or just container
-                                ),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Custom dashed border visual (optional, simplifying to Container)
-                                  Container(
-                                    margin: EdgeInsets.symmetric(
-                                      horizontal: 32.w,
-                                    ),
-                                    padding: EdgeInsets.all(24.w),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFAFAFA),
-                                      borderRadius: BorderRadius.circular(24.r),
-                                      border: Border.all(
-                                        color: const Color(0xFFEEEEEE),
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12.r),
-                                      child:
-                                          (widget.config.bankAccounts.first.qrCode != null  ||
-                                                  widget
-                                                      .user
-                                                      .qrCode!
-                                                      .isNotEmpty)
-                                              ? Image.network(
-                                                widget.config.bankAccounts.first.qrCode ?? widget.user.qrCode ?? "",
-                                                width: 200.w,
-                                                height: 200.w,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (_, __, ___) =>
-                                                        _buildErrorQr(),
-                                              )
-                                              : _buildErrorQr(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildQrImage(),
 
                             SizedBox(height: 24.h),
                             Text(
@@ -228,28 +151,7 @@ class _MyQrPageState extends State<MyQrPage> {
                     SizedBox(height: 40.h),
 
                     // Actions
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildActionButton(
-                          icon: Icons.share_outlined,
-                          label: "Chia sẻ",
-                          onTap: () {
-                            // Share logic
-                          },
-                        ),
-                        _buildMainActionButton(
-                          icon: Icons.download_rounded,
-                          label: "Lưu ảnh",
-                          onTap: _saveQr,
-                        ),
-                        _buildActionButton(
-                          icon: Icons.copy_rounded,
-                          label: "Sao chép",
-                          onTap: _copyContent,
-                        ),
-                      ],
-                    ),
+                    _buildActionsButton(),
                     SizedBox(height: 20.h),
                   ],
                 ),
@@ -258,6 +160,102 @@ class _MyQrPageState extends State<MyQrPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Padding _buildName() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Text(
+        widget.config.unitName ?? widget.user.userName,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: const Color(0xFF1A1A1A),
+          fontSize: 20.sp,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFE8F1FF), width: 1),
+        ),
+        child: CircleAvatar(
+          radius: 40.r,
+          backgroundColor: Colors.grey.shade100,
+          backgroundImage:
+              widget.user.avatar != null
+                  ? NetworkImage(widget.user.avatar!)
+                  : null,
+          child:
+              widget.user.avatar == null
+                  ? Icon(Icons.person, size: 40.sp, color: Colors.grey)
+                  : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQrImage() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: const Color(0xFFE0E0E0),
+          width: 1,
+          style: BorderStyle.none,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Custom dashed border visual (optional, simplifying to Container)
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 32.w),
+            padding: EdgeInsets.all(24.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: const Color(0xFFEEEEEE)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: Image.network(
+                widget.config.bankAccounts.first.qrCode ??
+                    widget.user.qrCode ??
+                    "",
+                width: 200.w,
+                height: 200.w,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildErrorQr(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Row _buildActionsButton() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildActionButton(
+          icon: Icons.share_outlined,
+          label: "Chia sẻ",
+          onTap: _shareQr,
+        ),
+        _buildMainActionButton(
+          icon: Icons.download_rounded,
+          label: "Lưu ảnh",
+          onTap: _saveQr,
+        ),
+      ],
     );
   }
 

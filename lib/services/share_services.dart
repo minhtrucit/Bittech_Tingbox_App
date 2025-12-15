@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -74,5 +73,22 @@ class ShareService {
     // 2. Nếu lỗi do "Rớt mạng" (ví dụ khi share URL cần preview), thực tế share native
     //    hoạt động offline với text/file local.
     // 3. Nếu lỗi nghiêm trọng, có thể ném exception ra ngoài để UI xử lý hiển thị dialog lỗi.
+  }
+
+  static Future<void> shareImage({
+    required List<XFile> files,
+    String? subject,
+    String? text,
+  }) async {
+    try {
+      final result = await SharePlus.instance.share(
+        ShareParams(files: files, text: text, subject: subject),
+      );
+      if (result.status == ShareResultStatus.success) {
+        debugPrint('Thank you for sharing the picture!');
+      }
+    } catch (e) {
+      _handleShareError(e);
+    }
   }
 }
