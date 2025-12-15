@@ -150,6 +150,7 @@ class ConfigBankAccount {
   final int bankId;
   final String accountNumber;
   final String accountName;
+  final String? qrCode;
   final bool isDefault;
   final bool isActive;
   final DateTime? createdAt;
@@ -162,6 +163,7 @@ class ConfigBankAccount {
     required this.bankId,
     required this.accountNumber,
     required this.accountName,
+    this.qrCode,
     required this.isDefault,
     required this.isActive,
     this.createdAt,
@@ -176,6 +178,7 @@ class ConfigBankAccount {
       bankId: json['bankId'] ?? 0,
       accountNumber: json['accountNumber'] ?? '',
       accountName: json['accountName'] ?? '',
+      qrCode: json['qrCode'] ?? '',
       isDefault: json['isDefault'] ?? false,
       isActive: json['isActive'] ?? false,
       createdAt:
@@ -203,6 +206,7 @@ class ConfigBankAccount {
       'bankId': bankId,
       'accountNumber': accountNumber,
       'accountName': accountName,
+      'qrCode': qrCode,
       'isDefault': isDefault,
       'isActive': isActive,
       'createdAt': createdAt?.toIso8601String(),

@@ -188,13 +188,13 @@ class _MyQrPageState extends State<MyQrPage> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(12.r),
                                       child:
-                                          (widget.user.qrCode != null &&
+                                          (widget.config.bankAccounts.first.qrCode != null  ||
                                                   widget
                                                       .user
                                                       .qrCode!
                                                       .isNotEmpty)
                                               ? Image.network(
-                                                widget.user.qrCode!,
+                                                widget.config.bankAccounts.first.qrCode ?? widget.user.qrCode ?? "",
                                                 width: 200.w,
                                                 height: 200.w,
                                                 fit: BoxFit.cover,

@@ -303,7 +303,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   // ───────────────────────────────────────────
   Widget _buildInfoCard(User user) {
-    debugPrint("user.qrCode user profile: ${user.qrCode}");
+    debugPrint(
+      "widget.config.bankAccounts.first.qrCode 123: ${config!.bankAccounts.first.qrCode}",
+    );
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -317,7 +320,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => MyQrPage(user: user, config: config!,)),
+                MaterialPageRoute(
+                  builder: (_) => MyQrPage(user: user, config: config!),
+                ),
               );
             },
             child: _buildInfoTile(

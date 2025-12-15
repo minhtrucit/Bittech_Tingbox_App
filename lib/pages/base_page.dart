@@ -27,9 +27,6 @@ class _BasePageState extends State<BasePage> {
   }
 
   Future<void> _initData() async {
-    final productBloc = BlocProvider.of<ProductBloc>(context);
-    productBloc.add(GetProductsEvent());
-
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString(UserRepository.keyUserId);
     if (userId != null && mounted) {
@@ -74,6 +71,9 @@ class _BasePageState extends State<BasePage> {
               _selectedIndex = 0;
             }
           });
+          if (_isPremium) {
+            context.read<ProductBloc>().add(GetProductsEvent());
+          }
         }
       },
       child: AppScaffold(
