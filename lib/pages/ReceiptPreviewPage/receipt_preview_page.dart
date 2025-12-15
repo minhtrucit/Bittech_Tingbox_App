@@ -297,7 +297,7 @@ class ReceiptPreviewPage extends StatelessWidget {
     final printerService = PrinterService();
 
     // Kiểm tra đã kết nối máy in chưa
-    final isConnected = await printerService.isConnected();
+    // final isConnected = await printerService.isConnected();
 
     // if (!isConnected) {
     //   // Hiện dialog chọn máy in
