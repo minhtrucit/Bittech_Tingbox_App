@@ -18,9 +18,17 @@ class OrderDetailPage extends StatefulWidget {
 }
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
+  late Order _currentOrder;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentOrder = widget.order;
+  }
+
   void handleGenerateQRCode() {
     context.read<OrderBloc>().add(
-      OrderGenerateQRCodeEvent(orderId: widget.order.id.toString()),
+      OrderGenerateQRCodeEvent(orderId: _currentOrder.id.toString()),
     );
   }
 
@@ -32,9 +40,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           _showQrBottomSheet(context, state.paymentInfo!);
         } else if (state is OrderPaymentSuccess) {
           setState(() {
-            widget.order.paymentStatus = 'paid';
-            // Cập nhật số tiền đã thanh toán = tổng tiền
-            widget.order.paidAmount = widget.order.totalAmount ?? 0;
+            if (state.order != null) {
+              _currentOrder = state.order!;
+            } else {
+              _currentOrder.paymentStatus = 'paid';
+              _currentOrder.paidAmount = _currentOrder.totalAmount ?? 0;
+            }
           });
         }
       },
@@ -56,7 +67,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
           ),
         ),
-        bottomNavigationBar: _buildBottomButton(context, widget.order),
+        bottomNavigationBar: _buildBottomButton(context, _currentOrder),
       ),
     );
   }
@@ -72,7 +83,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildOrderInfoCard() {
-    final orderId = '#${widget.order.code}-${widget.order.id}';
+    final orderId = '#${_currentOrder.code}-${_currentOrder.id}';
     debugPrint('Order ID: $orderId');
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -109,19 +120,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
                 color:
-                    widget.order.paymentStatus == 'unpaid'
+                    _currentOrder.paymentStatus == 'unpaid'
                         ? Colors.orange.withValues(alpha: 0.1)
                         : Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
-                widget.order.paymentStatus == 'unpaid'
+                _currentOrder.paymentStatus == 'unpaid'
                     ? 'Chưa thanh toán'
                     : 'Đã thanh toán',
                 style: TextStyle(
                   fontSize: 13.sp,
                   color:
-                      widget.order.paymentStatus == 'unpaid'
+                      _currentOrder.paymentStatus == 'unpaid'
                           ? Colors.orange
                           : Colors.green,
                   fontWeight: FontWeight.w600,
@@ -137,12 +148,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           // Order Date
           _buildInfoRow(
             'Ngày đặt hàng',
-            _formatOrderDate(widget.order.createdAt),
+            _formatOrderDate(_currentOrder.createdAt),
           ),
           SizedBox(height: 12.h),
 
           // Payment Method
-          _buildInfoRow('Phương thức thanh toán', widget.order.paymentMethod),
+          _buildInfoRow('Phương thức thanh toán', _currentOrder.paymentMethod),
         ],
       ),
     );
@@ -199,7 +210,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           SizedBox(height: 16.h),
 
           // Product List
-          ...widget.order.items.map((item) => _buildProductItem(item)),
+          ..._currentOrder.items.map((item) => _buildProductItem(item)),
         ],
       ),
     );
@@ -285,11 +296,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildSummarySection() {
-    final subtotal = widget.order.subtotal ?? 0;
-    final discount = widget.order.discount;
-    final vat = widget.order.vat;
-    final paidAmount = widget.order.paidAmount;
-    final total = widget.order.totalAmount ?? 0;
+    final subtotal = _currentOrder.subtotal ?? 0;
+    final discount = _currentOrder.discount;
+    final vat = _currentOrder.vat;
+    final paidAmount = _currentOrder.paidAmount;
+    final total = _currentOrder.totalAmount ?? 0;
     final remaining = total - paidAmount; // Số tiền còn thiếu
     final change = paidAmount - total; // Số tiền thừa
 
@@ -387,7 +398,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     // Mở preview hóa đơn
                     await PrintHelper.openPreviewFromDetail(
                       context,
-                      order: widget.order,
+                      order: order,
                       config: currentConfig,
                     );
                   },
@@ -420,7 +431,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
             SizedBox(width: 12.w),
-            if (widget.order.paymentStatus != 'paid')
+            if (order.paymentStatus != 'paid')
               Expanded(
                 child: SizedBox(
                   height: 48.h,
@@ -468,9 +479,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
             child: _QrSheetContent(
               paymentInfo: paymentInfo,
-              orderCode: widget.order.code ?? widget.order.id.toString(),
-              createdAt: widget.order.createdAt,
-              orderId: widget.order.id ?? 0,
+              orderCode: _currentOrder.code ?? _currentOrder.id.toString(),
+              createdAt: _currentOrder.createdAt,
+              orderId: _currentOrder.id ?? 0,
             ),
           ),
     );
@@ -725,6 +736,7 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                               transactionDate:
                                   widget.createdAt?.toReadableDateTime() ??
                                   DateTime.now().toString(),
+                              paymentInfo: widget.paymentInfo,
                             ),
                           );
                         },

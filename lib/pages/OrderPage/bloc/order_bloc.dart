@@ -102,7 +102,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           order: order, // Truyền order để có thể in
         ),
       );
-
     } else {
       emit(OrderFailure(message: "Thanh toán thất bại!"));
     }
@@ -164,7 +163,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       List<Order> allOrders = [];
 
       // Nếu là load more (page > 1) và state hiện tại là success, merge với list cũ
-      if (event.page != null && event.page! > 1 && state is OrderGetAllOrdersSuccess) {
+      if (event.page != null &&
+          event.page! > 1 &&
+          state is OrderGetAllOrdersSuccess) {
         allOrders = List.from((state as OrderGetAllOrdersSuccess).orders)
           ..addAll(newOrders);
       } else {
@@ -204,7 +205,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     Emitter<OrderState> emit,
   ) async {
     try {
-
       final randomId = Random().nextInt(100000000);
       final body = {
         "id": randomId, // ID giao dịch trên SePay
@@ -212,7 +212,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "transactionDate":
             DateTime.now()
                 .toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
-        "accountNumber": "0123499999", // Số tài khoản ngân hàng
+        "accountNumber":
+            event.paymentInfo.accountNumber, // Số tài khoản ngân hàng
         "code":
             event
                 .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
@@ -222,7 +223,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         "accumulated": 19077000, // Số dư tài khoản (lũy kế)
         "subAccount": null, // Tài khoản ngân hàng phụ (tài khoản định danh),
         "referenceCode":
-            "MBVCB.hxtgw31a3fhxrh${event.orderCode}.$randomId", // Mã tham chiếu của tin nhắn sms
+            "MBVCB.hxtgwss31a3fhxrh${event.orderCode}.$randomId", // Mã tham chiếu của tin nhắn sms
         "description": "", // Toàn bộ nội dung tin nhắn sms
       };
 
@@ -233,7 +234,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         // Fetch orders to find the paid order
         Order? paidOrder;
         try {
-          final response = await orderService.getOrdersbyOrderId(orderId: event.orderId);
+          final response = await orderService.getOrdersbyOrderId(
+            orderId: event.orderId,
+          );
           paidOrder = response;
         } catch (e) {
           debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
@@ -247,6 +250,11 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           ),
         );
 
+        if (paidOrder != null) {
+          add(
+            OrderGetAllOrdersbyUserIdEvent(userId: paidOrder.userId, page: 1),
+          );
+        }
       } else {
         emit(OrderSePayWebHookFailed(message: result['message']));
       }

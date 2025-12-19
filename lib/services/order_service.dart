@@ -83,16 +83,14 @@ class OrderService {
     }
   }
 
-  Future<Order> getOrdersbyOrderId({
-    required int orderId,
-  }) async {
+  Future<Order> getOrdersbyOrderId({required int orderId}) async {
     try {
       final resp = await api.get('/orders/$orderId');
 
       debugPrint("📌 API RAW DATA: ${resp.data}");
 
       if (resp.statusCode == 200) {
-        return Order.fromJson(resp.data);
+        return Order.fromJson(resp.data['data']);
       }
 
       throw Exception('Failed to load orders');

@@ -1,3 +1,4 @@
+import '../../../models/payment_info.dart';
 import '../../../models/order.dart';
 
 sealed class OrderEvent {}
@@ -20,7 +21,12 @@ class OrderGetAllOrdersbyUserIdEvent extends OrderEvent {
   final int? paymentStatus;
   final int userId;
 
-  OrderGetAllOrdersbyUserIdEvent({this.page, this.limit = 10, this.paymentStatus, required this.userId});
+  OrderGetAllOrdersbyUserIdEvent({
+    this.page,
+    this.limit = 10,
+    this.paymentStatus,
+    required this.userId,
+  });
 }
 
 class OrderSePayWebHookEvent extends OrderEvent {
@@ -28,11 +34,13 @@ class OrderSePayWebHookEvent extends OrderEvent {
   final String orderCode;
   final int transferAmount;
   final String transactionDate;
+  final PaymentInfo paymentInfo;
   OrderSePayWebHookEvent({
     required this.orderId,
     required this.orderCode,
     required this.transferAmount,
     required this.transactionDate,
+    required this.paymentInfo,
   });
 }
 

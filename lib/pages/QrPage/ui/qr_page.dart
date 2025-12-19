@@ -9,7 +9,12 @@ import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
 
 class QrPage extends StatefulWidget {
-  const QrPage({required this.paymentInfo, required this.orderCode, required this.orderId, super.key});
+  const QrPage({
+    required this.paymentInfo,
+    required this.orderCode,
+    required this.orderId,
+    super.key,
+  });
   final PaymentInfo paymentInfo;
   final String orderCode;
   final int orderId;
@@ -389,6 +394,7 @@ class _QrPageState extends State<QrPage> {
                                     transferAmount:
                                         widget.paymentInfo.amount.toInt(),
                                     transactionDate: DateTime.now().toString(),
+                                    paymentInfo: widget.paymentInfo,
                                   ),
                                 );
                               },
