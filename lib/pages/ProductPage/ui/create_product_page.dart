@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
 import '../../../utils/currency_input_formatter.dart';
+import '../../Camera/take_picture_page.dart';
 
 class CreateProductPage extends StatefulWidget {
   const CreateProductPage({super.key});
@@ -42,17 +43,21 @@ class _CreateProductPageState extends State<CreateProductPage> {
   }
 
   Future<void> pickImageFromCamera() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
-    if (image != null) {
-      setState(() {
-        if (pickedImages.length < 5) {
-          pickedImages.add(image);
-        }
-      });
+    try {
+      final XFile? image = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TakePicturePage()),
+      );
+
+      if (image != null && mounted) {
+        setState(() {
+          if (pickedImages.length < 5) {
+            pickedImages.add(image);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image from camera: $e');
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
 import '../../../utils/currency_input_formatter.dart';
+import '../../Camera/take_picture_page.dart';
 
 class EditProductPage extends StatefulWidget {
   final Product product;
@@ -81,22 +82,25 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> pickImageFromCamera() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
-    if (image != null) {
-      setState(() {
-        int currentCount = existingImages.length + pickedImages.length;
-        if (currentCount < 5) {
-          pickedImages.add(image);
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Đã đạt tối đa 5 ảnh')));
-        }
-      });
+    try {
+      final XFile? image = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TakePicturePage()),
+      );
+      if (image != null && mounted) {
+        setState(() {
+          int currentCount = existingImages.length + pickedImages.length;
+          if (currentCount < 5) {
+            pickedImages.add(image);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã đạt tối đa 5 ảnh')),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image from camera: $e');
     }
   }
 
