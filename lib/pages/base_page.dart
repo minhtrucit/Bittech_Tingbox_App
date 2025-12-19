@@ -50,7 +50,7 @@ class _BasePageState extends State<BasePage> {
   List<Widget> get _pages => [
     const HomePage(),
     if (_isPremium) ...[
-      const OrdersListPage(),
+      OrdersListPage(isVisible: _selectedIndex == 1),
       const HomePage(), // Placeholder
       const ProductsListPage(),
     ],

@@ -7,7 +7,9 @@ import '../../../ting_box.dart';
 import 'orders_list_skeleton.dart';
 
 class OrdersListPage extends StatefulWidget {
-  const OrdersListPage({super.key});
+  final bool isVisible;
+
+  const OrdersListPage({super.key, this.isVisible = false});
 
   @override
   State<OrdersListPage> createState() => _OrdersListPageState();
@@ -27,6 +29,20 @@ class _OrdersListPageState extends State<OrdersListPage>
   int _currentPage = 1;
   bool _canLoadMore = true;
   int? _userId;
+
+  @override
+  void didUpdateWidget(OrdersListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      if (_userId != null) {
+        _fetchOrders(
+          userId: _userId!,
+          page: 1,
+          paymentStatus: _currentPaymentStatus,
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
