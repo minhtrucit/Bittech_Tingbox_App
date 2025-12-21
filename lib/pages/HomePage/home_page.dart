@@ -199,7 +199,19 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   SizedBox(height: 20.h),
-                  QuickActionButtons(configId: int.tryParse(_configId) ?? 0),
+                  QuickActionButtons(
+                    configId: int.tryParse(_configId) ?? 0,
+                    onRefresh: () {
+                      if (_selectedDateRange != null) {
+                        _fetchStatistics(
+                          startDate: _selectedDateRange!.start,
+                          endDate: _selectedDateRange!.end,
+                        );
+                      } else {
+                        _handleFilterChanged(_selectedFilter ?? 'Hôm nay');
+                      }
+                    },
+                  ),
                   SizedBox(height: 24.h),
                   Text(
                     'Nguồn Thu',
@@ -251,7 +263,18 @@ class _HomePageState extends State<HomePage> {
                                     transactions: transactions,
                                   ),
                             ),
-                          );
+                          ).then((_) {
+                            if (_selectedDateRange != null) {
+                              _fetchStatistics(
+                                startDate: _selectedDateRange!.start,
+                                endDate: _selectedDateRange!.end,
+                              );
+                            } else {
+                              _handleFilterChanged(
+                                _selectedFilter ?? 'Hôm nay',
+                              );
+                            }
+                          });
                         },
                         label: const Text('Xem tất cả'),
                         style: TextButton.styleFrom(

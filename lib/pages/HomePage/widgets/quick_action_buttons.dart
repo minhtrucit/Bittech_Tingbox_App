@@ -3,9 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../ting_box.dart';
 
 class QuickActionButtons extends StatelessWidget {
-  const QuickActionButtons({super.key, required this.configId});
+  const QuickActionButtons({super.key, required this.configId, this.onRefresh});
 
   final int configId;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +20,7 @@ class QuickActionButtons extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ReportPage()),
-            );
+            ).then((_) => onRefresh?.call());
           },
         ),
         SizedBox(width: 12.w),
@@ -32,7 +33,7 @@ class QuickActionButtons extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => StartingBalancePage(configId: configId),
               ),
-            );
+            ).then((_) => onRefresh?.call());
           },
         ),
         SizedBox(width: 12.w),
@@ -43,7 +44,7 @@ class QuickActionButtons extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ExpensePage()),
-            );
+            ).then((_) => onRefresh?.call());
           },
         ),
       ],

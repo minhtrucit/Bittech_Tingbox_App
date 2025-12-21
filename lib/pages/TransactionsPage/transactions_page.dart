@@ -109,6 +109,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
       ),
       bottomNavigationBar: Container(
         height: 60.h,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).systemGestureInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),

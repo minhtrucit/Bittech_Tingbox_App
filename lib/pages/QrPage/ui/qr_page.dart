@@ -179,12 +179,12 @@ class _QrPageState extends State<QrPage> {
     }
   }
 
-  void showSuccessDialog({required bool isManualPrint}) {
+  void showSuccessDialog({required BuildContext dialogContext, required bool isManualPrint}) {
     showDialog(
-      context: context,
+      context: dialogContext,
       barrierDismissible: false,
       builder:
-          (context) => Dialog(
+          (childContext) => Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16.r),
             ),
@@ -227,7 +227,7 @@ class _QrPageState extends State<QrPage> {
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => _handlePrint(context),
+                          onPressed: () => _handlePrint(dialogContext),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2962FF), // Blue
                             elevation: 0,
@@ -253,8 +253,11 @@ class _QrPageState extends State<QrPage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
+                        // Đóng dialog thành công
+                        Navigator.of(childContext).pop();
+                        Navigator.of(dialogContext).pop();
+                        Navigator.of(dialogContext).pop();
+
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE3F2FD), // Light Blue
@@ -298,6 +301,7 @@ class _QrPageState extends State<QrPage> {
           }
 
           showSuccessDialog(
+            dialogContext: context,
             isManualPrint: currentConfig?.printMode == PrintMode.manual,
           );
         }

@@ -95,8 +95,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
           });
           Navigator.pop(context);
           final paymentInfo = state.paymentInfo;
-
-          if (state.paymentMethod == PaymentMethod.BANK_TRANSFER) {
+          if (_selectedPaymentMethod == PaymentMethod.BANK_TRANSFER) {
             Future.delayed(Duration(seconds: 1), () {});
             Navigator.push(
               widget.parentContext,
@@ -111,20 +110,20 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
             );
           } else {
             // Todo handle for cash method
-            DialogUtils.showAppDialog(
-              context: context,
-              title: 'Xác nhận đã thanh toán',
-              content:
-                  'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
-              onFirstAction: () {
-                Navigator.pop(context);
-              },
-              firstActionText: 'OK',
-              onSecondAction: () {
-                Navigator.pop(context);
-              },
-              secondActionText: 'Cancel',
-            );
+              DialogUtils.showAppDialog(
+                context: widget.parentContext,
+                title: 'Xác nhận đã thanh toán',
+                content:
+                    'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
+                onFirstAction: () {
+                  Navigator.pop(widget.parentContext);
+                },
+                firstActionText: 'OK',
+                onSecondAction: () {
+                  Navigator.pop(widget.parentContext);
+                },
+                secondActionText: 'Cancel',
+              );
           }
         }
 

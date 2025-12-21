@@ -50,11 +50,13 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // final order = response['data'
       final paymentData = response['data']['paymentInfo'];
       final paymentMethod = switch (response['data']['paymentMethod']
-          ?.toString()) {
-        'BANK_TRANSFER' => PaymentMethod.BANK_TRANSFER,
-        'CASH' => PaymentMethod.CASH,
+          ?.toString().toLowerCase()) {
+        'bank_transfer' => PaymentMethod.BANK_TRANSFER,
+        'cash' => PaymentMethod.CASH,
         _ => PaymentMethod.BANK_TRANSFER, // default
       }; // Nếu thành công trả về 201 (trong service đã check), emit success
+
+      debugPrint("📝 Payment method from bloc: $paymentMethod");
       emit(
         OrderCreateSuccess(
           orderId: response['data']['id'],

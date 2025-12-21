@@ -133,7 +133,9 @@ class _BasePageState extends State<BasePage> {
                     ),
                     if (_isPremium)
                       Positioned(
-                        bottom: 30,
+                        bottom:
+                            30 +
+                            MediaQuery.of(context).systemGestureInsets.bottom,
                         left: 0,
                         right: 0,
                         child: Center(

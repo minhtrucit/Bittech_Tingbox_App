@@ -129,7 +129,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             _buildInfoCard(user),
                             SizedBox(height: 40.h),
                             _buildLogoutButton(context),
-                            SizedBox(height: 60.h),
+                            SizedBox(height: 60.h + MediaQuery.of(context).systemGestureInsets.bottom),
                           ],
                         ),
                       ),

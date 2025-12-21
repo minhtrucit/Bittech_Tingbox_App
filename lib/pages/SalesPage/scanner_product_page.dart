@@ -370,7 +370,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
               SizedBox.expand(child: CameraPreview(_camera!)),
 
               Positioned(
-                bottom: 0,
+                bottom: 0 + MediaQuery.of(context).systemGestureInsets.bottom,
                 left: 0,
                 right: 0,
                 child: _buildProductBottomSheet(
@@ -499,7 +499,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     ValueNotifier<bool>? isLoading,
   }) {
     return Positioned(
-      bottom: 360.h,
+      bottom: 360.h + MediaQuery.of(context).systemGestureInsets.bottom,
       left: 0,
       right: 0,
       child: Center(
