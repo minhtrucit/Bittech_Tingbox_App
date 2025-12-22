@@ -24,6 +24,8 @@ class CashPaymentPage extends StatefulWidget {
 }
 
 class _CashPaymentPageState extends State<CashPaymentPage> {
+  bool _isSuccess = false;
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<OrderBloc, OrderState>(
@@ -32,6 +34,7 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
           // Show progress or handled by UI
         }
         if (state is OrderUpdateStatusSuccess) {
+          _isSuccess = true;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -59,12 +62,14 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
             context.read<OrderBloc>().add(
               OrderGetAllOrdersbyUserIdEvent(userId: widget.userId, page: 1),
             );
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
-                backgroundColor: Colors.orange,
-              ),
-            );
+            if (widget.paymentStatus != PaymentStatus.paid && !_isSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
           }
         },
         child: Stack(
@@ -79,18 +84,6 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
                     color: Colors.black,
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    context.read<OrderBloc>().add(
-                      OrderGetAllOrdersbyUserIdEvent(
-                        userId: widget.userId,
-                        page: 1,
-                      ),
-                    );
                     Navigator.pop(context);
                   },
                 ),

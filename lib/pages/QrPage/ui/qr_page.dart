@@ -31,6 +31,7 @@ class QrPage extends StatefulWidget {
 class _QrPageState extends State<QrPage> {
   late WebSocketManager webSocketManager = WebSocketManager();
   bool isDevMode = false;
+  bool _isSuccess = false;
 
   @override
   void initState() {
@@ -296,6 +297,7 @@ class _QrPageState extends State<QrPage> {
     return BlocListener<OrderBloc, OrderState>(
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
+          _isSuccess = true;
           final configState = context.read<ConfigBloc>().state;
           ConfigModel? currentConfig;
 
@@ -319,6 +321,14 @@ class _QrPageState extends State<QrPage> {
             context.read<OrderBloc>().add(
               OrderGetAllOrdersbyUserIdEvent(userId: widget.userId, page: 1),
             );
+            if (widget.paymentStatus != PaymentStatus.paid && !_isSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
           }
         },
         child: AppScaffold(
@@ -481,12 +491,6 @@ class _QrPageState extends State<QrPage> {
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () {
-                                  context.read<OrderBloc>().add(
-                                    OrderGetAllOrdersbyUserIdEvent(
-                                      userId: widget.userId,
-                                      page: 1,
-                                    ),
-                                  );
                                   Navigator.pop(context);
                                 },
                                 style: ElevatedButton.styleFrom(
