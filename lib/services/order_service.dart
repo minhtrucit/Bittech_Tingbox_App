@@ -100,6 +100,26 @@ class OrderService {
     }
   }
 
+
+  Future<Order> updateStatusOrdersbyOrderId({required int orderId, required String paymentStatus}) async {
+    try {
+      final resp = await api.put('/orders/$orderId', data: {
+        'paymentStatus': paymentStatus,
+      });
+
+      debugPrint("📌 Update Status Order: ${resp.data}");
+
+      if (resp.statusCode == 200) {
+        return Order.fromJson(resp.data['data']);
+      }
+
+      throw Exception('Failed to update status order: ${resp.data['message']}');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      throw Exception('Error: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> handleSePayWebHook({
     required dynamic body,
   }) async {

@@ -109,21 +109,19 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
               ),
             );
           } else {
-            // Todo handle for cash method
-              DialogUtils.showAppDialog(
-                context: widget.parentContext,
-                title: 'Xác nhận đã thanh toán',
-                content:
-                    'Hãy xác nhận đã thanh toán đầy đủ bằng tiền mặt',
-                onFirstAction: () {
-                  Navigator.pop(widget.parentContext);
-                },
-                firstActionText: 'OK',
-                onSecondAction: () {
-                  Navigator.pop(widget.parentContext);
-                },
-                secondActionText: 'Cancel',
-              );
+            // Navigate to CashPaymentPage for cash orders
+            Navigator.push(
+              widget.parentContext,
+              MaterialPageRoute(
+                builder:
+                    (_) => CashPaymentPage(
+                      orderId: state.orderId,
+                      userId: state.userId,
+                      orderCode: state.orderCode,
+                      amount: totalPrice,
+                    ),
+              ),
+            );
           }
         }
 

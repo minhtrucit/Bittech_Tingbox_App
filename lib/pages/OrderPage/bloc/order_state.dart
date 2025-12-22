@@ -10,12 +10,14 @@ final class OrderLoading extends OrderState {}
 final class OrderCreateSuccess extends OrderState {
   final bool success;
   final int orderId;
+  final int userId;
   final PaymentMethod? paymentMethod;
   final PaymentInfo? paymentInfo;
   final String orderCode;
   OrderCreateSuccess({
     required this.success,
     required this.orderId,
+    required this.userId,
     this.paymentInfo,
     this.paymentMethod,
     required this.orderCode,
@@ -77,4 +79,17 @@ final class OrderGenerateQRCodeSuccess extends OrderState {
   final String message;
   final PaymentInfo? paymentInfo;
   OrderGenerateQRCodeSuccess({required this.message, this.paymentInfo});
+}
+
+final class OrderUpdateStatusLoading extends OrderState {}
+
+final class OrderUpdateStatusSuccess extends OrderState {
+  final Order order;
+  final String message;
+  OrderUpdateStatusSuccess({required this.order, required this.message});
+}
+
+final class OrderUpdateStatusFailure extends OrderState {
+  final String message;
+  OrderUpdateStatusFailure({required this.message});
 }

@@ -48,3 +48,9 @@ class OrderGenerateQRCodeEvent extends OrderEvent {
   final String orderId;
   OrderGenerateQRCodeEvent({required this.orderId});
 }
+
+class OrderUpdateStatusEvent extends OrderEvent {
+  final int orderId;
+  final String status;
+  OrderUpdateStatusEvent({required this.orderId, required this.status});
+}

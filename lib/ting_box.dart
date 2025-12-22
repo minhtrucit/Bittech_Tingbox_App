@@ -31,6 +31,7 @@ export 'pages/ProductPage/ui/create_product_page.dart';
 export 'pages/ProductPage/ui/products_list_page.dart';
 export 'pages/ProductPage/ui/product_detail_page.dart';
 export 'pages/OrderPage/ui/orders_list_page.dart';
+export 'pages/OrderPage/ui/cash_payment_page.dart';
 export 'pages/OrderPage/ui/order_detail_page.dart';
 export 'pages/QrPage/ui/qr_page.dart';
 export 'pages/ReportPage/ui/report_page.dart';

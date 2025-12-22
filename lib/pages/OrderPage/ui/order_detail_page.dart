@@ -47,6 +47,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               _currentOrder.paidAmount = _currentOrder.totalAmount ?? 0;
             }
           });
+        } else if (state is OrderUpdateStatusSuccess) {
+          setState(() {
+            _currentOrder = state.order;
+          });
         }
       },
       child: AppScaffold(
@@ -153,10 +157,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           SizedBox(height: 12.h),
 
           // Payment Method
-          _buildInfoRow('Phương thức thanh toán', _currentOrder.paymentMethod),
+          _buildInfoRow(
+            'Phương thức thanh toán',
+            _translatePaymentMethod(_currentOrder.paymentMethod),
+          ),
         ],
       ),
     );
+  }
+
+  String _translatePaymentMethod(String method) {
+    switch (method.toUpperCase()) {
+      case 'CASH':
+        return 'Tiền mặt';
+      case 'BANK_TRANSFER':
+        return 'Chuyển khoản';
+      default:
+        return method;
+    }
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -437,9 +455,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   height: 48.h,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      context.read<OrderBloc>().add(
-                        OrderGenerateQRCodeEvent(orderId: order.id.toString()),
-                      );
+                      if (order.paymentMethod.toUpperCase() == 'CASH') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => CashPaymentPage(
+                                  orderId: order.id ?? 0,
+                                  userId: order.userId,
+                                  orderCode: order.code ?? '',
+                                  amount: order.totalAmount ?? 0,
+                                ),
+                          ),
+                        );
+                      } else {
+                        context.read<OrderBloc>().add(
+                          OrderGenerateQRCodeEvent(
+                            orderId: order.id.toString(),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
@@ -447,9 +482,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
-                    icon: const Icon(Icons.qr_code, color: Colors.white),
+                    icon: Icon(
+                      order.paymentMethod.toUpperCase() == 'CASH'
+                          ? Icons.payments_outlined
+                          : Icons.qr_code,
+                      color: Colors.white,
+                    ),
                     label: Text(
-                      'Tạo mã QR',
+                      order.paymentMethod.toUpperCase() == 'CASH'
+                          ? 'Thanh toán'
+                          : 'Tạo mã QR',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,

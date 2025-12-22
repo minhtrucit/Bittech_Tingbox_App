@@ -18,6 +18,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderGetAllOrdersbyUserIdEvent>(_onGetAllOrdersbyUserId);
     on<OrderSePayWebHookEvent>(_onSePayWebHook);
     on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
+    on<OrderUpdateStatusEvent>(_onUpdateOrderStatus);
   }
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
@@ -50,7 +51,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // final order = response['data'
       final paymentData = response['data']['paymentInfo'];
       final paymentMethod = switch (response['data']['paymentMethod']
-          ?.toString().toLowerCase()) {
+          ?.toString()
+          .toLowerCase()) {
         'bank_transfer' => PaymentMethod.BANK_TRANSFER,
         'cash' => PaymentMethod.CASH,
         _ => PaymentMethod.BANK_TRANSFER, // default
@@ -60,6 +62,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(
         OrderCreateSuccess(
           orderId: response['data']['id'],
+          userId: event.order.userId,
           orderCode: response['data']['code'],
           success: true,
           paymentInfo:
@@ -295,6 +298,27 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       debugPrint("Stacktrace: $stacktrace");
 
       emit(OrderFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateOrderStatus(
+    OrderUpdateStatusEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderUpdateStatusLoading());
+    try {
+      final updatedOrder = await orderService.updateStatusOrdersbyOrderId(
+        orderId: event.orderId,
+        paymentStatus: event.status,
+      );
+      emit(
+        OrderUpdateStatusSuccess(
+          order: updatedOrder,
+          message: "Cập nhật trạng thái đơn hàng thành công",
+        ),
+      );
+    } catch (e) {
+      emit(OrderUpdateStatusFailure(message: e.toString()));
     }
   }
 }

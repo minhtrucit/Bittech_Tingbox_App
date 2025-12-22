@@ -46,11 +46,14 @@ class _AuthPageState extends State<AuthPage> {
       hasSafeArea: false,
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
-          _buildHotline(),
-        ],
+      body: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).systemGestureInsets.bottom),
+        child: Column(
+          children: [
+            Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
+            _buildHotline(),
+          ],
+        ),
       ),
     );
   }
