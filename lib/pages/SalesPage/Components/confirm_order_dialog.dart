@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/common/constants.dart';
 import '../../../ting_box.dart';
 
 // ignore: constant_identifier_names
@@ -105,6 +106,8 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                       orderId: state.orderId,
                       paymentInfo: paymentInfo!,
                       orderCode: state.orderCode,
+                      userId: state.userId,
+                      paymentStatus: PaymentStatus.unpaid,
                     ),
               ),
             );
@@ -118,6 +121,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                       orderId: state.orderId,
                       userId: state.userId,
                       orderCode: state.orderCode,
+                      paymentStatus: PaymentStatus.unpaid,
                       amount: totalPrice,
                     ),
               ),

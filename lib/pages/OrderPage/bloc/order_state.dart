@@ -65,6 +65,8 @@ final class OrderGetOrdersbyOrderIdSuccess extends OrderState {
   OrderGetOrdersbyOrderIdSuccess({required this.order});
 }
 
+final class OrderSePayWebHookLoading extends OrderState {}
+
 final class OrderSePayWebHookSuccess extends OrderState {
   final String message;
   OrderSePayWebHookSuccess({required this.message});

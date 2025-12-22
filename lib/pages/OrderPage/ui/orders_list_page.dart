@@ -447,7 +447,7 @@ class _OrdersListPageState extends State<OrdersListPage>
     );
     final paymentStatus = order.paymentStatus?.toLowerCase();
 
-    if (paymentStatus == 'paid') {
+    if (paymentStatus == PaymentStatus.paid) {
       return OrderStatusInfo(label: 'Đã thanh toán', color: Colors.green);
     } else {
       // Default to unpaid for null or 'unpaid' or any other value

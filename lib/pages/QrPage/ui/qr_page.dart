@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ting_box/common/constants.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
@@ -9,15 +10,20 @@ import '../../../services/websocket_manager.dart';
 import '../../../ting_box.dart';
 
 class QrPage extends StatefulWidget {
+  final PaymentInfo paymentInfo;
+  final String orderCode;
+  final int orderId;
+  final int userId;
+  final String paymentStatus;
+
   const QrPage({
     required this.paymentInfo,
     required this.orderCode,
     required this.orderId,
+    required this.userId,
+    required this.paymentStatus,
     super.key,
   });
-  final PaymentInfo paymentInfo;
-  final String orderCode;
-  final int orderId;
 
   @override
   State<QrPage> createState() => _QrPageState();
@@ -26,13 +32,13 @@ class QrPage extends StatefulWidget {
 class _QrPageState extends State<QrPage> {
   late WebSocketManager webSocketManager = WebSocketManager();
   bool isDevMode = false;
+
   @override
   void initState() {
     webSocketManager.on("payment.success", (data) {
       try {
         final jsonData = data as Map<String, dynamic>;
         debugPrint('event data from websocket json: $jsonData');
-
         context.read<OrderBloc>().add(OrderPaymentSuccessEvent(jsonData));
       } catch (e) {
         debugPrint('event data from websocket error $e');
@@ -179,7 +185,10 @@ class _QrPageState extends State<QrPage> {
     }
   }
 
-  void showSuccessDialog({required BuildContext dialogContext, required bool isManualPrint}) {
+  void showSuccessDialog({
+    required BuildContext dialogContext,
+    required bool isManualPrint,
+  }) {
     showDialog(
       context: dialogContext,
       barrierDismissible: false,
@@ -257,7 +266,6 @@ class _QrPageState extends State<QrPage> {
                         Navigator.of(childContext).pop();
                         Navigator.of(dialogContext).pop();
                         Navigator.of(dialogContext).pop();
-
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE3F2FD), // Light Blue
@@ -306,145 +314,205 @@ class _QrPageState extends State<QrPage> {
           );
         }
       },
-      child: AppScaffold(
-        backgroundColor: Colors.grey[100],
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Thanh toán đơn hàng",
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
+      child: PopScope(
+        onPopInvokedWithResult: (didPop, T) {
+          if (didPop) {
+            context.read<OrderBloc>().add(
+              OrderGetAllOrdersbyUserIdEvent(userId: widget.userId, page: 1),
+            );
+          }
+        },
+        child: AppScaffold(
+          backgroundColor: Colors.grey[100],
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
                     ),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // QR Code
-                  Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Image.network(
-                      widget.paymentInfo.qrCodeUrl,
-                      width: 200.w,
-                      height: 200.w,
-                      fit: BoxFit.contain,
-                      errorBuilder:
-                          (_, __, ___) => Icon(
-                            Icons.qr_code,
-                            size: 200.w,
-                            color: Colors.grey,
-                          ),
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Payment info
-                  _buildInfoRow("Ngân hàng", widget.paymentInfo.bankCode),
-                  _buildInfoRow(
-                    "Số tài khoản",
-                    widget.paymentInfo.accountNumber,
-                  ),
-                  _buildInfoRow(
-                    "Chủ tài khoản",
-                    widget.paymentInfo.accountName,
-                  ),
-                  _buildInfoRow(
-                    "Số tiền",
-                    "${formatMoney(widget.paymentInfo.amount)} đ",
-                  ),
-                  _buildInfoRow("Nội dung", widget.paymentInfo.content),
-                  SizedBox(height: 16.h),
-                  Text(
-                    widget.paymentInfo.note,
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  SizedBox(height: 24.h),
-                  Row(
-                    spacing: 8.w,
-                    children: [
-                      if (isDevMode)
-                        Expanded(
-                          child: SizedBox(
-                            height: 48.h,
-                            child: AppTextButton(
-                              onPressed: () {
-                                context.read<OrderBloc>().add(
-                                  OrderSePayWebHookEvent(
-                                    orderId: widget.orderId,
-                                    orderCode: widget.orderCode,
-                                    transferAmount:
-                                        widget.paymentInfo.amount.toInt(),
-                                    transactionDate: DateTime.now().toString(),
-                                    paymentInfo: widget.paymentInfo,
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlue
-                                    .withValues(alpha: 0.1),
-                                foregroundColor: AppColors.primaryBlue,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                              ),
-                              label: Text(
-                                'Demo thanh toán',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            minimumSize: Size(double.infinity, 48.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                          child: Text(
-                            "Đóng",
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Thanh toán đơn hàng",
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // QR Code
+                    Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Image.network(
+                        widget.paymentInfo.qrCodeUrl,
+                        width: 200.w,
+                        height: 200.w,
+                        fit: BoxFit.contain,
+                        errorBuilder:
+                            (_, __, ___) => Icon(
+                              Icons.qr_code,
+                              size: 200.w,
+                              color: Colors.grey,
+                            ),
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Payment info
+                    _buildInfoRow("Ngân hàng", widget.paymentInfo.bankCode),
+                    _buildInfoRow(
+                      "Số tài khoản",
+                      widget.paymentInfo.accountNumber,
+                    ),
+                    _buildInfoRow(
+                      "Chủ tài khoản",
+                      widget.paymentInfo.accountName,
+                    ),
+                    _buildInfoRow(
+                      "Số tiền",
+                      "${formatMoney(widget.paymentInfo.amount)} đ",
+                    ),
+                    _buildInfoRow("Nội dung", widget.paymentInfo.content),
+                    SizedBox(height: 16.h),
+                    Text(
+                      widget.paymentInfo.note,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey[700],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: 24.h),
+                    BlocBuilder<OrderBloc, OrderState>(
+                      builder: (context, state) {
+                        final isLoading = state is OrderSePayWebHookLoading;
+                        return Row(
+                          spacing: 8.w,
+                          children: [
+                            if (isDevMode)
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48.h,
+                                  child: AppTextButton(
+                                    onPressed:
+                                        isLoading
+                                            ? null
+                                            : () {
+                                              if (widget.paymentStatus !=
+                                                  PaymentStatus.unpaid) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Đơn hàng đã được thanh toán rồi',
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.orange,
+                                                  ),
+                                                );
+                                                return;
+                                              }
+                                              context.read<OrderBloc>().add(
+                                                OrderSePayWebHookEvent(
+                                                  orderId: widget.orderId,
+                                                  orderCode: widget.orderCode,
+                                                  transferAmount:
+                                                      widget.paymentInfo.amount
+                                                          .toInt(),
+                                                  transactionDate:
+                                                      DateTime.now().toString(),
+                                                  paymentInfo:
+                                                      widget.paymentInfo,
+                                                ),
+                                              );
+                                            },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryBlue
+                                          .withValues(alpha: 0.1),
+                                      foregroundColor: AppColors.primaryBlue,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
+                                      ),
+                                    ),
+                                    label:
+                                        isLoading
+                                            ? SizedBox(
+                                              width: 20.w,
+                                              height: 20.w,
+                                              child:
+                                                  const CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color:
+                                                        AppColors.primaryBlue,
+                                                  ),
+                                            )
+                                            : Text(
+                                              'Demo thanh toán',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.primaryBlue,
+                                              ),
+                                            ),
+                                  ),
+                                ),
+                              ),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  context.read<OrderBloc>().add(
+                                    OrderGetAllOrdersbyUserIdEvent(
+                                      userId: widget.userId,
+                                      page: 1,
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  minimumSize: Size(double.infinity, 48.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  "Đóng",
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -8,6 +8,7 @@ class CashPaymentPage extends StatefulWidget {
   final int orderId;
   final int userId;
   final String orderCode;
+  final String paymentStatus;
   final double amount;
 
   const CashPaymentPage({
@@ -15,6 +16,7 @@ class CashPaymentPage extends StatefulWidget {
     required this.orderId,
     required this.userId,
     required this.orderCode,
+    required this.paymentStatus,
     required this.amount,
   });
 
@@ -58,6 +60,12 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
             context.read<OrderBloc>().add(
               OrderGetAllOrdersbyUserIdEvent(userId: widget.userId, page: 1),
             );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
+                backgroundColor: Colors.orange,
+              ),
+            );
           }
         },
         child: Stack(
@@ -72,6 +80,12 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
                     color: Colors.black,
                   ),
                   onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
                     context.read<OrderBloc>().add(
                       OrderGetAllOrdersbyUserIdEvent(
                         userId: widget.userId,
@@ -137,35 +151,82 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
                         ),
                       ),
                       SizedBox(height: 16.h),
-                      _buildOptionCard(
-                        context: context,
-                        title: 'Chờ thanh toán',
-                        subtitle: 'Ghi nhận đơn hàng và thu tiền sau',
-                        icon: Icons.timer_outlined,
-                        color: Colors.orange,
-                        onTap: () {
-                          context.read<OrderBloc>().add(
-                            OrderGetAllOrdersbyUserIdEvent(
-                              userId: widget.userId,
-                              page: 1,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        },
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildOptionCard(
-                        context: context,
-                        title: 'Đã thanh toán',
-                        subtitle: 'Xác nhận đã thu đủ tiền mặt từ khách',
-                        icon: Icons.check_circle_outline,
-                        color: Colors.green,
-                        onTap: () {
-                          context.read<OrderBloc>().add(
-                            OrderUpdateStatusEvent(
-                              orderId: widget.orderId,
-                              status: PaymentStatus.paid,
-                            ),
+                      BlocBuilder<OrderBloc, OrderState>(
+                        builder: (context, state) {
+                          final isUpdating = state is OrderUpdateStatusLoading;
+                          return Column(
+                            children: [
+                              _buildOptionCard(
+                                context: context,
+                                title: 'Chờ thanh toán',
+                                subtitle: 'Ghi nhận đơn hàng và thu tiền sau',
+                                icon: Icons.timer_outlined,
+                                color: Colors.orange,
+                                onTap:
+                                    isUpdating
+                                        ? null
+                                        : () {
+                                          if (widget.paymentStatus !=
+                                              PaymentStatus.unpaid) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Đơn hàng không ở trạng thái cần cập nhật',
+                                                ),
+                                                backgroundColor: Colors.orange,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          context.read<OrderBloc>().add(
+                                            OrderGetAllOrdersbyUserIdEvent(
+                                              userId: widget.userId,
+                                              page: 1,
+                                            ),
+                                          );
+                                          Navigator.pop(context);
+                                        },
+                              ),
+                              SizedBox(height: 16.h),
+                              _buildOptionCard(
+                                context: context,
+                                title: 'Đã thanh toán',
+                                subtitle:
+                                    'Xác nhận đã thu đủ tiền mặt từ khách',
+                                icon:
+                                    isUpdating
+                                        ? Icons.hourglass_empty
+                                        : Icons.check_circle_outline,
+                                color: isUpdating ? Colors.grey : Colors.green,
+                                onTap:
+                                    isUpdating
+                                        ? null
+                                        : () {
+                                          if (widget.paymentStatus !=
+                                              PaymentStatus.unpaid) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Đơn hàng đã được thanh toán rồi',
+                                                ),
+                                                backgroundColor: Colors.orange,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          context.read<OrderBloc>().add(
+                                            OrderUpdateStatusEvent(
+                                              orderId: widget.orderId,
+                                              status: PaymentStatus.paid,
+                                            ),
+                                          );
+                                        },
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -194,7 +255,7 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
     required String subtitle,
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,
