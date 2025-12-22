@@ -35,11 +35,15 @@ class _ScanProductPageState extends State<ScanProductPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   bool _isCameraVisible = true;
+  bool _enteredEmpty = false;
+  bool _canPop = false;
 
   @override
   void initState() {
     _initCamera();
-    _isCameraVisible = context.read<CartBloc>().state.items.isEmpty;
+    final cartItems = context.read<CartBloc>().state.items;
+    _enteredEmpty = cartItems.isEmpty;
+    _isCameraVisible = _enteredEmpty;
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         context.read<ProductBloc>().add(GetProductsEvent());
@@ -175,8 +179,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
         TextButton(
           onPressed: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            context.read<CartBloc>().add(ClearCartEvent());
+            Navigator.pop(context, true);
           },
           child: Text(
             "Thoát",
@@ -274,6 +278,49 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
+  Future<void> _handleBack(List<Product> scannedProducts) async {
+    if (_isCameraVisible) {
+      if (scannedProducts.isNotEmpty) {
+        if (_enteredEmpty) {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return _buildDialogConfirmWidget();
+            },
+          );
+
+          if (shouldExit == true && mounted) {
+            Navigator.pop(context);
+          }
+        } else {
+          setState(() {
+            _isCameraVisible = false;
+          });
+        }
+      } else {
+        Navigator.pop(context);
+      }
+    } else {
+      if (scannedProducts.isNotEmpty) {
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return _buildDialogConfirmWidget();
+          },
+        );
+
+        if (shouldExit == true && mounted) {
+          context.read<CartBloc>().add(ClearCartEvent());
+          setState(() => _canPop = true);
+          Navigator.pop(context);
+        }
+      } else {
+        setState(() => _canPop = true);
+        Navigator.pop(context);
+      }
+    }
+  }
+
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -301,24 +348,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
           'Building ScanProductPage with ${scannedProducts.length} products',
         );
         return PopScope(
-          canPop: false,
+          canPop: _canPop,
           onPopInvokedWithResult: (didPop, e) async {
             if (didPop) return;
-
-            if (scannedProducts.isNotEmpty) {
-              final shouldExit = await showDialog<bool>(
-                context: context,
-                builder: (context) {
-                  return _buildDialogConfirmWidget();
-                },
-              );
-
-              if (shouldExit == true && context.mounted) {
-                Navigator.pop(context);
-              }
-            } else {
-              Navigator.pop(context);
-            }
+            await _handleBack(scannedProducts);
           },
           child: MultiBlocListener(
             listeners: [
@@ -331,16 +364,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
               ),
               BlocListener<ProductBloc, ProductState>(
                 listener: (context, state) {
-                  debugPrint('Product state: $state');
                   if (state is ProductLoading) {
                     setState(() {
                       isLoadingProducts = true;
                     });
                   }
                   if (state is ProductLoadProductsSuccess) {
-                    debugPrint(
-                      'ProductLoadProductsSuccess: ${state.products.length} products',
-                    );
                     setState(() {
                       isLoadingProducts = false;
                       products.addAll(state.products);
@@ -490,18 +519,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     return Padding(
       padding: EdgeInsets.only(left: 18.w),
       child: GestureDetector(
-        onTap: () {
-          if (scannedProducts.isNotEmpty) {
-            showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return _buildDialogConfirmWidget();
-              },
-            );
-          } else {
-            Navigator.pop(context);
-          }
-        },
+        onTap: () => _handleBack(scannedProducts),
         child: DecoratedBox(
           decoration: const BoxDecoration(
             color: AppColors.white10,
@@ -762,125 +780,132 @@ class _ScanProductPageState extends State<ScanProductPage> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
+        _buildActionOrderButton(productItems, onConfirmButtonTap),
+      ],
+    );
+  }
+
+  Padding _buildActionOrderButton(
+    List<Widget> productItems,
+    VoidCallback onConfirmButtonTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        children: [
+          if (!_isCameraVisible && _currentTab == 0) _buildContinueScanButton(),
+          Row(
+            spacing: 12.w,
             children: [
-              if (!_isCameraVisible && _currentTab == 0)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 8.h),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.primaryBlue),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
+              Expanded(
+                child: AppTextButton(
+                  style: ButtonStyle(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _isCameraVisible = true;
-                        });
+                    ),
+                    backgroundColor: const WidgetStatePropertyAll(
+                      Color(0xFFFEE4E2),
+                    ),
+                  ),
+                  onPressed: () {
+                    if (productItems.isEmpty) return;
+                    DialogUtils.showAppDialog(
+                      context: context,
+                      title: 'Hủy đơn hàng',
+                      content:
+                          'Bạn có chắc chắn muốn hủy đơn hàng này không?',
+                      onSecondAction: () {
+                        context.read<CartBloc>().add(ClearCartEvent());
+                        Navigator.pop(context); // Close dialog
+                        setState(() => _canPop = true);
+                        Navigator.pop(context); // Close page
                       },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.camera_alt_outlined,
-                            color: AppColors.primaryBlue,
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            "Tiếp tục quét",
-                            style: TextStyle(
-                              color: AppColors.primaryBlue,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.sp,
-                            ),
-                          ),
-                        ],
-                      ),
+                      firstActionText: 'Không',
+                      onFirstAction: () => Navigator.pop(context),
+                      secondActionText: 'Hủy Đơn',
+                    );
+                  },
+                  label: Text(
+                    "Hủy đơn",
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
                     ),
                   ),
                 ),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: AppTextButton(
-                      style: ButtonStyle(
-                        shape: WidgetStatePropertyAll(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        backgroundColor: const WidgetStatePropertyAll(
-                          Color(0xFFFEE4E2),
-                        ),
+              ),
+              Expanded(
+                child: AppTextButton(
+                  style: ButtonStyle(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      onPressed: () {
-                        if (productItems.isEmpty) return;
-                        DialogUtils.showAppDialog(
-                          context: context,
-                          title: 'Xóa giỏ hàng',
-                          content:
-                              'Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng không?',
-                          onSecondAction: () {
-                            context.read<CartBloc>().add(ClearCartEvent());
-                            Navigator.pop(context);
-                          },
-                          firstActionText: 'Hủy',
-                          onFirstAction: () => Navigator.pop(context),
-                          secondActionText: 'Xóa',
-                        );
-                      },
-                      label: Text(
-                        "Xóa hết",
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
+                    ),
+                    backgroundColor: WidgetStatePropertyAll(
+                      AppColors.primaryBlue,
+                    ),
+                    textStyle: WidgetStatePropertyAll(
+                      Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppTextButton(
-                      style: ButtonStyle(
-                        shape: WidgetStatePropertyAll(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        backgroundColor: WidgetStatePropertyAll(
-                          AppColors.primaryBlue,
-                        ),
-                        textStyle: WidgetStatePropertyAll(
-                          Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      onPressed: onConfirmButtonTap,
-                      label: Text(
-                        "Hoàn tất",
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                  onPressed: onConfirmButtonTap,
+                  label: Text(
+                    "Hoàn tất",
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Padding _buildContinueScanButton() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: AppColors.primaryBlue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 14.h),
+          ),
+          onPressed: () {
+            setState(() {
+              _isCameraVisible = true;
+            });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.camera_alt_outlined, color: AppColors.primaryBlue),
+              SizedBox(width: 8.w),
+              Text(
+                "Tiếp tục quét",
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.sp,
+                ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 

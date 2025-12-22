@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ting_box/common/constants.dart';
 import '../../../ting_box.dart';
 
 // ignore: constant_identifier_names

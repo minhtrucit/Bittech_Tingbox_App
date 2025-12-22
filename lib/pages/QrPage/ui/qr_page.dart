@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ting_box/common/constants.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';

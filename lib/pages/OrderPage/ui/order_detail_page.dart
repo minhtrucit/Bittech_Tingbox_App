@@ -7,7 +7,6 @@ import 'package:ting_box/services/websocket_manager.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import '../../../ting_box.dart';
-import '../../../common/constants.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final Order order;
