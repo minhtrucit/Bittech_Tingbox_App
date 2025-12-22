@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
 import 'package:ting_box/ting_box.dart';
 
 import 'ConfigPage/bloc/config_bloc.dart';
@@ -139,35 +141,74 @@ class _BasePageState extends State<BasePage> {
                         left: 0,
                         right: 0,
                         child: Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ScanProductPage(),
+                          child: BlocBuilder<CartBloc, CartState>(
+                            builder: (context, cartState) {
+                              final hasItems = cartState.items.isNotEmpty;
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ScanProductPage(),
+                                    ),
+                                  );
+                                },
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      width: 72,
+                                      height: 72,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.primaryBlue,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            blurRadius: 18,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        hasItems
+                                            ? Icons.shopping_cart_rounded
+                                            : Icons.qr_code_scanner,
+                                        color: Colors.white,
+                                        size: 34,
+                                      ),
+                                    ),
+                                    if (hasItems)
+                                      Positioned(
+                                        right: -4,
+                                        top: -4,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          constraints: const BoxConstraints(
+                                            minWidth: 24,
+                                            minHeight: 24,
+                                          ),
+                                          child: Text(
+                                            '${cartState.totalItems}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               );
                             },
-                            child: Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.primaryBlue,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.15),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.qr_code_scanner,
-                                color: Colors.white,
-                                size: 34,
-                              ),
-                            ),
                           ),
                         ),
                       ),
