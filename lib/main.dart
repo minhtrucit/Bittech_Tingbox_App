@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/StartingBalancePage/bloc/cash_book_bloc.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
 
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
@@ -66,10 +67,7 @@ void main() async {
           create: (_) => ProductBloc(productApiService: productApiService),
         ),
         BlocProvider<OrderBloc>(
-          create:
-              (_) => OrderBloc(
-                orderService: orderService,
-              ),
+          create: (_) => OrderBloc(orderService: orderService),
         ),
         BlocProvider<UserProfileBloc>(
           create: (_) => UserProfileBloc(userService: userService),
@@ -83,6 +81,7 @@ void main() async {
         BlocProvider<CashBookBloc>(
           create: (_) => CashBookBloc(statisticServices: statisticServices),
         ),
+        BlocProvider<CartBloc>(create: (_) => CartBloc()),
       ],
       child: const MyApp(),
     ),

@@ -8,6 +8,7 @@ import 'package:ting_box/services/order_service.dart';
 
 import '../../../models/payment_info.dart';
 import '../../../models/order.dart';
+import '../../../common/constants.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderService orderService;
@@ -18,6 +19,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderGetAllOrdersbyUserIdEvent>(_onGetAllOrdersbyUserId);
     on<OrderSePayWebHookEvent>(_onSePayWebHook);
     on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
+    on<OrderUpdateStatusEvent>(_onUpdateOrderStatus);
   }
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
@@ -50,7 +52,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       // final order = response['data'
       final paymentData = response['data']['paymentInfo'];
       final paymentMethod = switch (response['data']['paymentMethod']
-          ?.toString().toLowerCase()) {
+          ?.toString()
+          .toLowerCase()) {
         'bank_transfer' => PaymentMethod.BANK_TRANSFER,
         'cash' => PaymentMethod.CASH,
         _ => PaymentMethod.BANK_TRANSFER, // default
@@ -60,6 +63,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(
         OrderCreateSuccess(
           orderId: response['data']['id'],
+          userId: event.order.userId,
           orderCode: response['data']['code'],
           success: true,
           paymentInfo:
@@ -206,65 +210,66 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     OrderSePayWebHookEvent event,
     Emitter<OrderState> emit,
   ) async {
+    emit(OrderSePayWebHookLoading());
     try {
+      // 1. Fetch latest status from API for double check
+      final currentOrder = await orderService.getOrdersbyOrderId(
+        orderId: event.orderId,
+      );
+
+      if (currentOrder.paymentStatus == PaymentStatus.paid) {
+        emit(OrderSePayWebHookSuccess(message: "Đơn hàng đã được thanh toán"));
+        emit(
+          OrderPaymentSuccess(
+            message: "Đơn hàng này đã được thanh toán trước đó!",
+            order: currentOrder,
+          ),
+        );
+        return;
+      }
+
+      // 2. Simulate WebHook data
       final randomId = Random().nextInt(100000000);
       final body = {
-        "id": randomId, // ID giao dịch trên SePay
-        "gateway": "Vietcombank", // Brand name của ngân hàng
-        "transactionDate":
-            DateTime.now()
-                .toIso8601String(), // Thời gian xảy ra giao dịch phía ngân hàng
-        "accountNumber":
-            event.paymentInfo.accountNumber, // Số tài khoản ngân hàng
-        "code":
-            event
-                .orderCode, // Mã code thanh toán (sepay tự nhận diện dựa vào cấu hình tại Công ty -> Cấu hình chung)
-        "content": "${event.orderCode}_251121-0001", // Nội dung chuyển khoản
-        "transferType": "in", // Loại giao dịch. in là tiền vào, out là tiền ra
-        "transferAmount": event.transferAmount, // Số tiền giao dịch
-        "accumulated": 19077000, // Số dư tài khoản (lũy kế)
-        "subAccount": null, // Tài khoản ngân hàng phụ (tài khoản định danh),
-        "referenceCode":
-            "MBVCB.hxtgwss31a3fhxrh${event.orderCode}.$randomId", // Mã tham chiếu của tin nhắn sms
-        "description": "", // Toàn bộ nội dung tin nhắn sms
+        "id": randomId,
+        "gateway": "Vietcombank",
+        "transactionDate": DateTime.now().toIso8601String(),
+        "accountNumber": event.paymentInfo.accountNumber,
+        "code": event.orderCode,
+        "content": "${event.orderCode}_251121-0001",
+        "transferType": "in",
+        "transferAmount": event.transferAmount,
+        "accumulated": 19077000,
+        "subAccount": null,
+        "referenceCode": "MBVCB.hxtgwss31a3fhxrh${event.orderCode}.$randomId",
+        "description": "",
       };
 
-      // Gọi API từ service
+      // 3. Call API
       final result = await orderService.handleSePayWebHook(body: body);
 
       if (result['message'] == "Xử lý webhook SePay thành công") {
-        // Fetch orders to find the paid order
-        Order? paidOrder;
-        try {
-          final response = await orderService.getOrdersbyOrderId(
-            orderId: event.orderId,
-          );
-          paidOrder = response;
-        } catch (e) {
-          debugPrint("⚠️ [OrderBloc] Failed to fetch order for printing: $e");
-        }
+        // Fetch updated order
+        final updatedOrder = await orderService.getOrdersbyOrderId(
+          orderId: event.orderId,
+        );
 
         emit(OrderSePayWebHookSuccess(message: result['message']));
         emit(
           OrderPaymentSuccess(
             message: "Khách đã thanh toán thành công!",
-            order: paidOrder,
+            order: updatedOrder,
           ),
         );
 
-        if (paidOrder != null) {
-          add(
-            OrderGetAllOrdersbyUserIdEvent(userId: paidOrder.userId, page: 1),
-          );
-        }
+        add(
+          OrderGetAllOrdersbyUserIdEvent(userId: updatedOrder.userId, page: 1),
+        );
       } else {
         emit(OrderSePayWebHookFailed(message: result['message']));
       }
-    } catch (e, stacktrace) {
-      debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook:");
-      debugPrint("Error: $e");
-      debugPrint("Stacktrace: $stacktrace");
-
+    } catch (e) {
+      debugPrint("❌ [OrderBloc] Lỗi Sepay Webhook: $e");
       emit(OrderFailure(message: e.toString()));
     }
   }
@@ -295,6 +300,42 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       debugPrint("Stacktrace: $stacktrace");
 
       emit(OrderFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateOrderStatus(
+    OrderUpdateStatusEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderUpdateStatusLoading());
+    try {
+      // Fetch latest status from API for double check
+      final currentOrder = await orderService.getOrdersbyOrderId(
+        orderId: event.orderId,
+      );
+
+      if (currentOrder.paymentStatus == PaymentStatus.paid) {
+        emit(
+          OrderUpdateStatusSuccess(
+            order: currentOrder,
+            message: "Đơn hàng này đã được thanh toán trước đó",
+          ),
+        );
+        return;
+      }
+
+      final updatedOrder = await orderService.updateStatusOrdersbyOrderId(
+        orderId: event.orderId,
+        paymentStatus: event.status,
+      );
+      emit(
+        OrderUpdateStatusSuccess(
+          order: updatedOrder,
+          message: "Cập nhật trạng thái đơn hàng thành công",
+        ),
+      );
+    } catch (e) {
+      emit(OrderUpdateStatusFailure(message: e.toString()));
     }
   }
 }

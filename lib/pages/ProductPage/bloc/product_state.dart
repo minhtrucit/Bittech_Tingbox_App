@@ -38,3 +38,5 @@ final class ProductUpdateEmbeddingSuccess extends ProductState {
 final class ProductDeleteSuccess extends ProductState {
   ProductDeleteSuccess();
 }
+
+

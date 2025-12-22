@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_event.dart';
 import '../../../ting_box.dart';
 import 'products_list_skeleton.dart';
 
@@ -240,7 +242,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
         cacheExtent: 2,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.75,
+          childAspectRatio: 0.62,
           crossAxisSpacing: 12.w,
           mainAxisSpacing: 12.h,
         ),
@@ -273,7 +275,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
           context.read<ProductBloc>().add(GetProductsEvent());
         }
       },
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
@@ -308,6 +310,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                             ? Image.network(
                               product.images!.map((e) => e).toList()[0].url,
                               width: double.infinity,
+                              height: double.infinity,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return _buildPlaceholderImage();
@@ -327,19 +330,67 @@ class _ProductsListPageState extends State<ProductsListPage> {
                   Text(
                     product.name,
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '${formatMoney(product.price)} đ',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: Colors.grey.shade600,
+                  SizedBox(height: 6.h),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: formatMoney(product.price),
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: const Color(0xFF667085),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' đ',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: const Color(0xFF667085),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  GestureDetector(
+                    onTap: () {
+                      context.read<CartBloc>().add(AddToCartEvent(product));
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F4F7),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_shopping_cart_rounded,
+                            color: AppColors.primaryBlue,
+                            size: 20.sp,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Thêm',
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

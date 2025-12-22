@@ -8,6 +8,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/api_services.dart';
 import '../../services/order_service.dart';
 import '../../services/product_api_services.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_event.dart';
+import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
 import '../../ting_box.dart';
 
 class ScanProductPage extends StatefulWidget {
@@ -31,11 +34,17 @@ class _ScanProductPageState extends State<ScanProductPage> {
   int _currentTab = 0; // 0: Scanned, 1: All Products
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _isCameraVisible = true;
+  bool _enteredEmpty = false;
+  bool _canPop = false;
 
   @override
   void initState() {
     _initCamera();
-    Future.delayed(Duration(milliseconds: 300), () {
+    final cartItems = context.read<CartBloc>().state.items;
+    _enteredEmpty = cartItems.isEmpty;
+    _isCameraVisible = _enteredEmpty;
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         context.read<ProductBloc>().add(GetProductsEvent());
       }
@@ -90,44 +99,30 @@ class _ScanProductPageState extends State<ScanProductPage> {
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
 
-  List<Product> scannedProducts = [];
-  Future<void> _takePictureAndSend() async {
+  // List<Product> scannedProducts = []; // Removed local state
+  Future<void> _takePictureAndSend(List<Product> scannedProducts) async {
     _isLoading.value = true;
-    debugPrint('isLoading $_isLoading');
     try {
       final XFile file = await _camera!.takePicture();
-      debugPrint('Ảnh path: ${file.path}');
       final product = await apiService.sendImage(file.path);
-      debugPrint('API response: $product');
 
       if (product != null) {
-        debugPrint('Product match: ${product['name']} - ${product['price']}đ');
-        setState(() {
-          final name = product['name'];
+        final name = product['name'];
+        final index = scannedProducts.indexWhere((p) => p.name == name);
 
-          final index = scannedProducts.indexWhere((p) => p.name == name);
+        if (index != -1) {
+          if (!mounted) return;
 
-          if (index != -1) {
-            final existing = scannedProducts[index];
-
-            scannedProducts.removeAt(index);
-
-            scannedProducts.insert(
-              0,
-              Product(
-                id: existing.id,
-                name: existing.name,
-                price: existing.price,
-                quantity: existing.quantity + 1,
-                url: existing.url,
-                isEmbedded: existing.isEmbedded,
-                embeddingUrl: file.path,
-                images: existing.images,
-              ),
-            );
-          } else {
-            scannedProducts.insert(
-              0,
+          context.read<CartBloc>().add(
+            UpdateQuantityEvent(
+              scannedProducts[index],
+              scannedProducts[index].quantity + 1,
+            ),
+          );
+        } else {
+          if (!mounted) return;
+          context.read<CartBloc>().add(
+            AddToCartEvent(
               Product(
                 id: product['id'],
                 name: product['name'],
@@ -137,9 +132,9 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 isEmbedded: product['is_embedded'],
                 embeddingUrl: file.path,
               ),
-            );
-          }
-        });
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error taking picture or sending to API: $e');
@@ -158,8 +153,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
     }
   }
 
-  double _calculateTotalPrice() {
-    return scannedProducts.fold(
+  double _calculateTotalPrice(List<Product> items) {
+    return items.fold(
       0.0,
       (sum, product) => sum + product.price * product.quantity,
     );
@@ -184,8 +179,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
         TextButton(
           onPressed: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            context.read<CartBloc>().add(ClearCartEvent());
+            Navigator.pop(context, true);
           },
           child: Text(
             "Thoát",
@@ -198,25 +193,23 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
-  void handleUpdateQuantity({required int index, required bool isIncrease}) {
-    setState(() {
-      final product = scannedProducts[index];
-      scannedProducts[index] = Product(
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity:
-            isIncrease
-                ? product.quantity + 1
-                : (product.quantity > 1 ? product.quantity - 1 : 1),
-        url: product.url,
-      );
-    });
+  void handleUpdateQuantity({
+    required Product product,
+    required bool isIncrease,
+  }) {
+    final newQuantity =
+        isIncrease
+            ? product.quantity + 1
+            : (product.quantity > 1 ? product.quantity - 1 : 0);
+    context.read<CartBloc>().add(UpdateQuantityEvent(product, newQuantity));
   }
 
-  void replaceProductAtIndex(int oldIndex, Product newProduct) async {
+  void replaceProductAtIndex(
+    int oldIndex,
+    Product newProduct,
+    List<Product> scannedProducts,
+  ) async {
     final oldProduct = scannedProducts[oldIndex];
-
     if (oldProduct.id == newProduct.id) return;
 
     final existingIndex = scannedProducts.indexWhere(
@@ -224,39 +217,48 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
 
     if (existingIndex != -1) {
-      setState(() {
-        scannedProducts[existingIndex].quantity += oldProduct.quantity;
-        scannedProducts.removeAt(oldIndex);
-      });
-
+      context.read<CartBloc>().add(
+        UpdateQuantityEvent(
+          scannedProducts[existingIndex],
+          scannedProducts[existingIndex].quantity + oldProduct.quantity,
+        ),
+      );
+      context.read<CartBloc>().add(RemoveFromCartEvent(oldProduct));
       return;
     }
 
-    setState(() {
-      scannedProducts[oldIndex] = Product(
-        id: newProduct.id,
-        name: newProduct.name,
-        price: newProduct.price,
-        quantity: oldProduct.quantity,
-        url: newProduct.url,
-        images: newProduct.images,
-      );
-    });
+    context.read<CartBloc>().add(RemoveFromCartEvent(oldProduct));
+    context.read<CartBloc>().add(
+      AddToCartEvent(
+        Product(
+          id: newProduct.id,
+          name: newProduct.name,
+          price: newProduct.price,
+          quantity: oldProduct.quantity,
+          url: newProduct.url,
+          images: newProduct.images,
+        ),
+      ),
+    );
   }
 
   // show re select product bottom sheet
-  void showProductBottomSheet(BuildContext context, int oldIndex) {
+  void showProductBottomSheet(
+    BuildContext context,
+    int oldIndex,
+    List<Product> scannedProducts,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) {
         return ProductBottomSheet(
           products: products,
           onSelected: (newProduct) {
-            replaceProductAtIndex(oldIndex, newProduct);
+            replaceProductAtIndex(oldIndex, newProduct, scannedProducts);
           },
         );
       },
@@ -264,7 +266,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   // show confirm order dialog
-  void showConfirmOrderDialog() {
+  void showConfirmOrderDialog(List<Product> scannedProducts) {
     if (scannedProducts.isEmpty) return;
     showDialog(
       context: context,
@@ -276,6 +278,49 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
+  Future<void> _handleBack(List<Product> scannedProducts) async {
+    if (_isCameraVisible) {
+      if (scannedProducts.isNotEmpty) {
+        if (_enteredEmpty) {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return _buildDialogConfirmWidget();
+            },
+          );
+
+          if (shouldExit == true && mounted) {
+            Navigator.pop(context);
+          }
+        } else {
+          setState(() {
+            _isCameraVisible = false;
+          });
+        }
+      } else {
+        Navigator.pop(context);
+      }
+    } else {
+      if (scannedProducts.isNotEmpty) {
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return _buildDialogConfirmWidget();
+          },
+        );
+
+        if (shouldExit == true && mounted) {
+          context.read<CartBloc>().add(ClearCartEvent());
+          setState(() => _canPop = true);
+          Navigator.pop(context);
+        }
+      } else {
+        setState(() => _canPop = true);
+        Navigator.pop(context);
+      }
+    }
+  }
+
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
@@ -285,7 +330,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isCameraReady) {
+    // Only show full screen loading if camera is required but not ready
+    if (_isCameraVisible && !_isCameraReady) {
       return const AppScaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: AppColors.white,
@@ -294,137 +340,139 @@ class _ScanProductPageState extends State<ScanProductPage> {
         ),
       );
     }
-    debugPrint(
-      'Building ScanProductPage with ${scannedProducts.length} products',
-    );
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, e) async {
-        if (didPop) return;
 
-        if (scannedProducts.isNotEmpty) {
-          final shouldExit = await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return _buildDialogConfirmWidget();
-            },
-          );
-
-          if (shouldExit == true && context.mounted) {
-            Navigator.pop(context);
-          }
-        } else {
-          Navigator.pop(context);
-        }
-      },
-      child: MultiBlocListener(
-        listeners: [
-          BlocListener<OrderBloc, OrderState>(
-            listener: (context, state) {
-              if (state is OrderCreateSuccess) {
-                setState(() {
-                  scannedProducts.clear();
-                });
-              }
-            },
-          ),
-          BlocListener<ProductBloc, ProductState>(
-            listener: (context, state) {
-              debugPrint('Product state: $state');
-              if (state is ProductLoading) {
-                setState(() {
-                  isLoadingProducts = true;
-                });
-              }
-              if (state is ProductLoadProductsSuccess) {
-                debugPrint(
-                  'ProductLoadProductsSuccess: ${state.products.length} products',
-                );
-                setState(() {
-                  isLoadingProducts = false;
-                  products.addAll(state.products);
-                });
-              }
-            },
-          ),
-        ],
-        child: AppScaffold(
-          hasSafeArea: false,
-          resizeToAvoidBottomInset: false,
-          backgroundColor: Colors.black,
-          appBar:
-              _currentTab == 0
-                  ? AppAppBar(
-                    backgroundColor: Colors.transparent,
-                    leading: buildBackButton(context),
-                    actions: [
-                      if (_lenDirection == CameraLensDirection.back)
-                        buildFlashButton(),
-                      SizedBox(width: 8.w),
-                      buildChangeLenButton(),
-                    ],
-                  )
-                  : null,
-          body: Stack(
-            children: [
-              SizedBox.expand(child: CameraPreview(_camera!)),
-
-              Positioned(
-                bottom: 0 + MediaQuery.of(context).systemGestureInsets.bottom,
-                left: 0,
-                right: 0,
-                child: _buildProductBottomSheet(
-                  context: context,
-                  productItems:
-                      scannedProducts.map((product) {
-                        return buildProductCartItem(
-                          onTap: () {
-                            showProductBottomSheet(
-                              context,
-                              scannedProducts.indexOf(product),
-                            );
-                          },
-                          name: product.name,
-                          imageUrl:
-                              product.url ??
-                              (product.images != null &&
-                                      product.images!.isNotEmpty
-                                  ? product.images!.first.url
-                                  : ''),
-                          price: product.price,
-                          quantity: product.quantity,
-                          onIncrease: () {
-                            handleUpdateQuantity(
-                              index: scannedProducts.indexOf(product),
-                              isIncrease: true,
-                            );
-                          },
-                          onDecrease: () {
-                            handleUpdateQuantity(
-                              index: scannedProducts.indexOf(product),
-                              isIncrease: false,
-                            );
-                          },
-                          onDelete: () {
-                            setState(() {
-                              scannedProducts.remove(product);
-                            });
-                          },
-                        );
-                      }).toList(),
-                  onConfirmButtonTap: showConfirmOrderDialog,
-                  totalPrice: _calculateTotalPrice,
-                ),
+    return BlocBuilder<CartBloc, CartState>(
+      builder: (context, cartState) {
+        final scannedProducts = cartState.items;
+        debugPrint(
+          'Building ScanProductPage with ${scannedProducts.length} products',
+        );
+        return PopScope(
+          canPop: _canPop,
+          onPopInvokedWithResult: (didPop, e) async {
+            if (didPop) return;
+            await _handleBack(scannedProducts);
+          },
+          child: MultiBlocListener(
+            listeners: [
+              BlocListener<OrderBloc, OrderState>(
+                listener: (context, state) {
+                  if (state is OrderCreateSuccess) {
+                    context.read<CartBloc>().add(ClearCartEvent());
+                  }
+                },
               ),
-              if (_currentTab == 0)
-                _buildTakePhotoButton(
-                  onTap: _takePictureAndSend,
-                  isLoading: _isLoading,
-                ),
+              BlocListener<ProductBloc, ProductState>(
+                listener: (context, state) {
+                  if (state is ProductLoading) {
+                    setState(() {
+                      isLoadingProducts = true;
+                    });
+                  }
+                  if (state is ProductLoadProductsSuccess) {
+                    setState(() {
+                      isLoadingProducts = false;
+                      products.addAll(state.products);
+                    });
+                  }
+                },
+              ),
             ],
+            child: AppScaffold(
+              hasSafeArea: false,
+              resizeToAvoidBottomInset: false,
+              backgroundColor: Colors.black,
+              appBar:
+                  _currentTab == 0
+                      ? AppAppBar(
+                        backgroundColor: Colors.transparent,
+                        leading: buildBackButton(context, scannedProducts),
+                        actions:
+                            _isCameraVisible && _isCameraReady
+                                ? [
+                                  if (_lenDirection == CameraLensDirection.back)
+                                    buildFlashButton(),
+                                  SizedBox(width: 8.w),
+                                  buildChangeLenButton(),
+                                ]
+                                : [],
+                      )
+                      : null,
+              body: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: [
+                      if (_isCameraVisible && _isCameraReady)
+                        SizedBox.expand(child: CameraPreview(_camera!)),
+
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildProductBottomSheet(
+                          context: context,
+                          scannedProducts: scannedProducts,
+                          maxHeight:
+                              _currentTab == 0
+                                  ? constraints.maxHeight * 0.96
+                                  : constraints.maxHeight,
+                          productItems:
+                              scannedProducts.map((product) {
+                                return buildProductCartItem(
+                                  onTap: () {
+                                    showProductBottomSheet(
+                                      context,
+                                      scannedProducts.indexOf(product),
+                                      scannedProducts,
+                                    );
+                                  },
+                                  name: product.name,
+                                  imageUrl:
+                                      product.url ??
+                                      (product.images != null &&
+                                              product.images!.isNotEmpty
+                                          ? product.images!.first.url
+                                          : ''),
+                                  price: product.price,
+                                  quantity: product.quantity,
+                                  onIncrease: () {
+                                    handleUpdateQuantity(
+                                      product: product,
+                                      isIncrease: true,
+                                    );
+                                  },
+                                  onDecrease: () {
+                                    handleUpdateQuantity(
+                                      product: product,
+                                      isIncrease: false,
+                                    );
+                                  },
+                                  onDelete: () {
+                                    context.read<CartBloc>().add(
+                                      RemoveFromCartEvent(product),
+                                    );
+                                  },
+                                );
+                              }).toList(),
+                          onConfirmButtonTap:
+                              () => showConfirmOrderDialog(scannedProducts),
+                          totalPrice:
+                              () => _calculateTotalPrice(scannedProducts),
+                        ),
+                      ),
+                      if (_currentTab == 0 && _isCameraVisible)
+                        _buildTakePhotoButton(
+                          onTap: () => _takePictureAndSend(scannedProducts),
+                          isLoading: _isLoading,
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -467,22 +515,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
-  Padding buildBackButton(BuildContext context) {
+  Padding buildBackButton(BuildContext context, List<Product> scannedProducts) {
     return Padding(
       padding: EdgeInsets.only(left: 18.w),
       child: GestureDetector(
-        onTap: () {
-          if (scannedProducts.isNotEmpty) {
-            showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return _buildDialogConfirmWidget();
-              },
-            );
-          } else {
-            Navigator.pop(context);
-          }
-        },
+        onTap: () => _handleBack(scannedProducts),
         child: DecoratedBox(
           decoration: const BoxDecoration(
             color: AppColors.white10,
@@ -499,7 +536,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
     ValueNotifier<bool>? isLoading,
   }) {
     return Positioned(
-      bottom: 360.h + MediaQuery.of(context).systemGestureInsets.bottom,
+      bottom: 360.h,
       left: 0,
       right: 0,
       child: Center(
@@ -534,14 +571,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   Widget _buildProductBottomSheet({
     required BuildContext context,
+    required List<Product> scannedProducts,
+    required double maxHeight,
     required List<Widget> productItems,
     required VoidCallback onConfirmButtonTap,
     required double Function() totalPrice,
   }) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    final isFullscreen = !_isCameraVisible || _currentTab == 1;
     return AnimatedContainer(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).systemGestureInsets.bottom,
+      ),
       duration: const Duration(milliseconds: 300),
-      height: _currentTab == 0 ? 350.h : screenHeight,
+      height: isFullscreen ? maxHeight : 350.h,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -549,7 +591,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          if (_currentTab == 0)
+          if (_currentTab == 0 && _isCameraVisible)
             Container(
               width: 45,
               height: 5,
@@ -558,96 +600,102 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-          SizedBox(height: _currentTab == 0 ? 10 : 50.h),
+          SizedBox(height: isFullscreen ? 50.h : 10),
           // Tab Selector
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              padding: EdgeInsets.all(4.w),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _currentTab = 0),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color:
-                              _currentTab == 0
-                                  ? Colors.white
-                                  : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8.r),
-                          boxShadow:
-                              _currentTab == 0
-                                  ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ]
-                                  : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Đã quét (${scannedProducts.length})",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color:
-                                _currentTab == 0
-                                    ? Colors.black
-                                    : Colors.grey[600],
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    padding: EdgeInsets.all(4.w),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _currentTab = 0),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color:
+                                    _currentTab == 0
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8.r),
+                                boxShadow:
+                                    _currentTab == 0
+                                        ? [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ]
+                                        : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "Đã quét (${scannedProducts.length})",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _currentTab == 0
+                                          ? Colors.black
+                                          : Colors.grey[600],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _currentTab = 1),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color:
-                              _currentTab == 1
-                                  ? Colors.white
-                                  : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8.r),
-                          boxShadow:
-                              _currentTab == 1
-                                  ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ]
-                                  : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Tất cả sản phẩm",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color:
-                                _currentTab == 1
-                                    ? Colors.black
-                                    : Colors.grey[600],
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _currentTab = 1),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color:
+                                    _currentTab == 1
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8.r),
+                                boxShadow:
+                                    _currentTab == 1
+                                        ? [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ]
+                                        : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "Tất cả sản phẩm",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _currentTab == 1
+                                          ? Colors.black
+                                          : Colors.grey[600],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -732,37 +780,132 @@ class _ScanProductPageState extends State<ScanProductPage> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: AppTextButton(
-              style: ButtonStyle(
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+        _buildActionOrderButton(productItems, onConfirmButtonTap),
+      ],
+    );
+  }
+
+  Padding _buildActionOrderButton(
+    List<Widget> productItems,
+    VoidCallback onConfirmButtonTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        children: [
+          if (!_isCameraVisible && _currentTab == 0) _buildContinueScanButton(),
+          Row(
+            spacing: 12.w,
+            children: [
+              Expanded(
+                child: AppTextButton(
+                  style: ButtonStyle(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    backgroundColor: const WidgetStatePropertyAll(
+                      Color(0xFFFEE4E2),
+                    ),
                   ),
-                ),
-                backgroundColor: WidgetStatePropertyAll(AppColors.primaryBlue),
-                textStyle: WidgetStatePropertyAll(
-                  Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  onPressed: () {
+                    if (productItems.isEmpty) return;
+                    DialogUtils.showAppDialog(
+                      context: context,
+                      title: 'Hủy đơn hàng',
+                      content:
+                          'Bạn có chắc chắn muốn hủy đơn hàng này không?',
+                      onSecondAction: () {
+                        context.read<CartBloc>().add(ClearCartEvent());
+                        Navigator.pop(context); // Close dialog
+                        setState(() => _canPop = true);
+                        Navigator.pop(context); // Close page
+                      },
+                      firstActionText: 'Không',
+                      onFirstAction: () => Navigator.pop(context),
+                      secondActionText: 'Hủy Đơn',
+                    );
+                  },
+                  label: Text(
+                    "Hủy đơn",
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
                   ),
                 ),
               ),
-              onPressed: onConfirmButtonTap,
-              label: Text(
-                "Hoàn tất",
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Expanded(
+                child: AppTextButton(
+                  style: ButtonStyle(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    backgroundColor: WidgetStatePropertyAll(
+                      AppColors.primaryBlue,
+                    ),
+                    textStyle: WidgetStatePropertyAll(
+                      Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  onPressed: onConfirmButtonTap,
+                  label: Text(
+                    "Hoàn tất",
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Padding _buildContinueScanButton() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: AppColors.primaryBlue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            padding: EdgeInsets.symmetric(vertical: 14.h),
+          ),
+          onPressed: () {
+            setState(() {
+              _isCameraVisible = true;
+            });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.camera_alt_outlined, color: AppColors.primaryBlue),
+              SizedBox(width: 8.w),
+              Text(
+                "Tiếp tục quét",
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.sp,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -925,39 +1068,14 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   void _addProductToScannedList(Product product) {
-    setState(() {
-      final index = scannedProducts.indexWhere((p) => p.id == product.id);
-      if (index != -1) {
-        final existing = scannedProducts[index];
-        scannedProducts[index] = Product(
-          id: existing.id,
-          name: existing.name,
-          price: existing.price,
-          quantity: existing.quantity + 1,
-          url: existing.url,
-          images: existing.images,
-        );
-      } else {
-        scannedProducts.insert(
-          0,
-          Product(
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1,
-            url: product.url,
-            images: product.images,
-          ),
-        );
-      }
-      // Optional: Switch back to scanned list or show toast
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đã thêm ${product.name}'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    });
+    context.read<CartBloc>().add(AddToCartEvent(product));
+    // Optional: Switch back to scanned list or show toast
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã thêm ${product.name}'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   Widget buildProductCartItem({
