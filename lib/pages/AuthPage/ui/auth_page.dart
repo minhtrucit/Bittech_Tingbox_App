@@ -47,7 +47,12 @@ class _AuthPageState extends State<AuthPage> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).systemGestureInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.of(context).systemGestureInsets.bottom > 32
+                  ? MediaQuery.of(context).systemGestureInsets.bottom
+                  : 0,
+        ),
         child: Column(
           children: [
             Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
@@ -76,7 +81,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
           ),
 
-           Center(
+          Center(
             child: Image.asset(
               'assets/images/tingbox_login/tingbox_logo_login.png',
               fit: BoxFit.contain,

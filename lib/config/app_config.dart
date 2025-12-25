@@ -2,7 +2,12 @@ class AppConfig {
   // Toggle này để bật/tắt demo mode
   // true = Demo mode (có preview, mock printer)
   // false = Production mode (in trực tiếp, máy in thật)
-  static const bool isDemoMode = true;
+  static const bool isDemoMode = false;
+
+  // URL của Node.js Print Agent
+  // Nếu chạy trên emulator: dùng 10.0.2.2 thay cho localhost
+  // Nếu chạy trên máy thật: dùng IP của máy tính chạy Node.js
+  static const String printerAgentUrl = 'http://192.168.200.241:3000';
 
   // Có thể dùng environment variable
   // flutter run --dart-define=DEMO_MODE=false
