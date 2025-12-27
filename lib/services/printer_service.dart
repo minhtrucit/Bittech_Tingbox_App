@@ -1,8 +1,13 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ting_box/extension/date_time_extension.dart';
 import '../config/app_config.dart';
 import '../models/mock_bluetooth_device.dart';
 import '../models/order.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/config_model.dart';
 
 class PrinterService {
@@ -10,6 +15,7 @@ class PrinterService {
   static const String _printerNameKey = 'saved_printer_name';
 
   MockBluetoothDevice? _connectedDevice;
+  final Dio _dio = Dio();
 
   // ==================== PUBLIC METHODS ====================
 
@@ -36,7 +42,7 @@ class PrinterService {
     if (AppConfig.isDemoMode) {
       return _connectedDevice?.isConnected ?? false;
     } else {
-      return _isConnected();
+      return true; // Với Agent luôn coi là true
     }
   }
 
@@ -129,41 +135,161 @@ class PrinterService {
 
   // ==================== REAL METHODS (PRODUCTION MODE) ====================
 
-  
-
   Future<List<MockBluetoothDevice>> _scanDevices() async {
-    debugPrint('🔍 [REAL] Scanning for real Bluetooth devices...');
-    try {
-      return [];
-    } catch (e) {
-      debugPrint('❌ Error scanning devices: $e');
-      return [];
-    }
+    return [];
   }
 
   Future<bool> _connect(String address, String name) async {
-    debugPrint('🔌 [REAL] Connecting to real printer: $name ($address)');
-    try {
-      
-      return false;
-    } catch (e) {
-      debugPrint('❌ Error connecting to printer: $e');
-      return false;
-    }
+    return true;
   }
 
-  Future<bool> _isConnected() async {
+  Future<File> fetchReceiptPreviewPdf(Map<String, dynamic> receiptData) async {
     try {
-      return false;
+      debugPrint('📄 [PrinterService] Fetching receipt preview PDF...');
+      debugPrint('📤 [PrinterService] Receipt data: $receiptData');
+
+      final response = await _dio.post(
+        '${AppConfig.printerAgentUrl}/preview-pdf',
+        data: receiptData,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Không thể tạo preview PDF: ${response.statusCode}');
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File(
+        '${tempDir.path}/receipt_preview_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+
+      await file.writeAsBytes(response.data as List<int>);
+
+      debugPrint('✅ [PrinterService] PDF saved to: ${file.path}');
+      return file;
     } catch (e) {
-      return false;
+      debugPrint('❌ [PrinterService] Error fetching PDF: $e');
+      rethrow;
     }
   }
 
   Future<bool> _print(Order order, ConfigModel? config) async {
-    debugPrint('📄 [REAL] Printing to real printer...');
-    return false;
-      
+    debugPrint(
+      '📄 [REAL] Printing to Node.js Print Agent via Structured API...',
+    );
+    try {
+      final receiptData = _formatReceiptData(order, config);
+
+      debugPrint('Receipt data: $receiptData');
+      final response = await _dio.post(
+        '${AppConfig.printerAgentUrl}/print',
+        data: receiptData,
+      );
+
+      debugPrint('Print response: ${response.data}');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        debugPrint('✅ [REAL] Print request sent successfully');
+        return true;
+      } else {
+        debugPrint('❌ [REAL] Print request failed: ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ [REAL] Error calling Print Agent API: $e');
+      return false;
+    }
+  }
+
+  Map<String, String> _formatReceiptData(Order order, ConfigModel? config) {
+    final headerBuffer = StringBuffer();
+    final productsBuffer = StringBuffer();
+    final footerBuffer = StringBuffer();
+
+    final unitName = config?.unitName ?? 'TÊN CỬA HÀNG';
+    final address = config?.address ?? '';
+    final phone = config?.phone ?? '';
+    final date = order.createdAt?.toReadableDateTime() ?? '';
+
+    // --- HEADER: Thông tin cửa hàng + Tên hóa đơn ---
+    headerBuffer.writeln(unitName.toUpperCase());
+    if (address.isNotEmpty) headerBuffer.writeln(address);
+    if (phone.isNotEmpty) headerBuffer.writeln('DT: $phone');
+    headerBuffer.writeln('Hóa đơn bán hàng');
+
+    // --- PRODUCTS (BODY): Thông tin đơn hàng + Danh sách sản phẩm + Tổng tiền ---
+    productsBuffer.writeln('Mã đơn: #${order.code}-${order.id}');
+    productsBuffer.writeln('Ngày: $date');
+    if (order.customerName.isNotEmpty) {
+      productsBuffer.writeln('Khách hàng: ${order.customerName}');
+    }
+    productsBuffer.writeln('--------------------------------');
+
+    for (var item in order.items) {
+      final itemName = item.product?.name ?? 'Sản phẩm #${item.productId}';
+      productsBuffer.writeln(itemName);
+      final qtyPrice = '${item.quantity} x ${formatMoney(item.unitPrice)}';
+      final total = formatMoney(item.unitPrice * item.quantity);
+      final line = _justifyText(qtyPrice, total, 32);
+      productsBuffer.writeln(line);
+    }
+
+    productsBuffer.writeln('--------------------------------');
+    productsBuffer.writeln(
+      _justifyText('Tạm tính:', formatMoney(order.subtotal ?? 0), 32),
+    );
+    if (order.vat > 0) {
+      final vatAmount = (order.subtotal ?? 0) * order.vat / 100;
+      productsBuffer.writeln(
+        _justifyText(
+          'VAT (${order.vat.toInt()}%):',
+          formatMoney(vatAmount),
+          32,
+        ),
+      );
+    }
+    if (order.discount > 0) {
+      productsBuffer.writeln(
+        _justifyText('Giảm giá:', formatMoney(order.discount), 32),
+      );
+    }
+    productsBuffer.writeln('================================');
+    productsBuffer.writeln(
+      _justifyText('Tổng cộng:', formatMoney(order.totalAmount ?? 0), 32),
+    );
+    productsBuffer.writeln('--------------------------------');
+    productsBuffer.writeln(
+      _justifyText('Đã thanh toán:', formatMoney(order.paidAmount), 32),
+    );
+
+    final remaining = (order.totalAmount ?? 0) - order.paidAmount;
+    if (remaining > 0) {
+      productsBuffer.writeln(
+        _justifyText('Còn lại:', formatMoney(remaining), 32),
+      );
+    } else if (remaining < 0) {
+      productsBuffer.writeln(
+        _justifyText('Tiền thừa:', formatMoney(remaining.abs()), 32),
+      );
+    }
+
+    // --- FOOTER: Cảm ơn + Chào tạm biệt ---
+    footerBuffer.writeln('\nCảm ơn quý khách!');
+    footerBuffer.writeln('Hẹn gặp lại\n\n\n');
+
+    return {
+      'header': headerBuffer.toString(),
+      'products': productsBuffer.toString(),
+      'footer': footerBuffer.toString(),
+    };
+  }
+
+  String _justifyText(String left, String right, int width) {
+    final spaces = width - left.length - right.length;
+    if (spaces <= 0) return '$left $right';
+    return left + (' ' * spaces) + right;
   }
 
   String formatMoney(num amount) {

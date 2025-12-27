@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ting_box/extension/date_time_extension.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../ting_box.dart';
+import 'bloc/receipt_preview_bloc.dart';
+import 'bloc/receipt_preview_event.dart';
+import 'bloc/receipt_preview_state.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 
 class ReceiptPreviewPage extends StatelessWidget {
   final Order order;
@@ -11,257 +15,126 @@ class ReceiptPreviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      hasSafeArea: false,
-      backgroundColor: Colors.grey[200],
-      appBar: AppAppBar(title: TitleAppbarText(title: 'Xem trước hóa đơn')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.w),
-          child: Center(
-            child: Container(
-              width: 300.w, // Giả lập khổ giấy 58mm
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(10),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: _buildReceiptContent(context),
-            ),
+    return BlocProvider(
+      create:
+          (context) => ReceiptPreviewBloc(printerService: PrinterService())
+            ..add(FetchReceiptPreviewPdfEvent(order: order, config: config)),
+      child: AppScaffold(
+        hasSafeArea: false,
+        backgroundColor: Colors.grey[200],
+        appBar: AppAppBar(title: TitleAppbarText(title: 'Xem trước hóa đơn')),
+        body: SafeArea(
+          child: BlocBuilder<ReceiptPreviewBloc, ReceiptPreviewState>(
+            builder: (context, state) {
+              if (state is ReceiptPreviewLoading) {
+                return _buildLoadingView();
+              } else if (state is ReceiptPreviewSuccess) {
+                return _buildPdfView(state.pdfFile.path);
+              } else if (state is ReceiptPreviewFailure) {
+                return _buildErrorView(context, state.message);
+              }
+              return _buildLoadingView();
+            },
           ),
         ),
+        bottomNavigationBar: _buildActionButtons(context),
       ),
-      bottomNavigationBar: _buildActionButtons(context),
     );
   }
 
-  Widget _buildReceiptContent(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(16.w),
+  Widget _buildLoadingView() {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Logo (nếu có)
-          if (config?.logo != null && config!.logo!.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: Image.network(
-                config!.logo!,
-                height: 60.h,
-                errorBuilder: (context, error, stackTrace) => SizedBox(),
-              ),
-            ),
-
-          // Tên cửa hàng
-          Text(
-            config?.unitName ?? 'TÊN CỬA HÀNG',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-
-          SizedBox(height: 4.h),
-
-          // Địa chỉ
-          if (config?.address != null && config!.address!.isNotEmpty)
-            Text(
-              config!.address!,
-              style: TextStyle(fontSize: 11.sp, color: Colors.grey[700]),
-              textAlign: TextAlign.center,
-            ),
-
-          // Số điện thoại
-          if (config?.phone != null && config!.phone!.isNotEmpty)
-            Text(
-              'ĐT: ${config!.phone}',
-              style: TextStyle(fontSize: 11.sp, color: Colors.grey[700]),
-              textAlign: TextAlign.center,
-            ),
-          Text(
-            'Hóa đơn bán hàng',
-            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-
-          Divider(height: 24.h, thickness: 1),
-
-          // Thông tin đơn hàng
-          _buildInfoRow('Mã đơn:', '#${order.id}'),
-          SizedBox(height: 4.h),
-          _buildInfoRow('Ngày:', order.createdAt?.toReadableDateTime() ?? ''),
-          if (order.customerName.isNotEmpty) ...[
-            SizedBox(height: 4.h),
-            _buildInfoRow('Khách hàng:', order.customerName),
-          ],
-
-          Divider(height: 24.h, thickness: 1),
-
-          // Danh sách sản phẩm
-          ...order.items.map((item) => _buildProductRow(item)),
-
-          Divider(height: 24.h, thickness: 1),
-
-          // Tạm tính
-          _buildSummaryRow('Tạm tính:', order.subtotal ?? 0),
-          SizedBox(height: 8.h),
-
-          // VAT
-          if (order.vat > 0) ...[
-            _buildSummaryRow(
-              'VAT (${order.vat.toStringAsFixed(0)}%):',
-              (order.subtotal ?? 0) * order.vat / 100,
-            ),
-            SizedBox(height: 8.h),
-          ],
-
-          // Giảm giá
-          if (order.discount > 0) ...[
-            _buildSummaryRow('Giảm giá:', -order.discount, isNegative: true),
-            SizedBox(height: 8.h),
-          ],
-
-          Divider(height: 24.h, thickness: 2),
-
-          // Tổng tiền
-          _buildTotalRow('TỔNG CỘNG:', order.totalAmount ?? 0),
-
-          SizedBox(height: 12.h),
-
-          // Đã thanh toán
-          _buildSummaryRow('Đã thanh toán:', order.paidAmount),
-          SizedBox(height: 8.h),
-
-          // Còn lại / Tiền thừa
-          _buildSummaryRow(
-            (order.totalAmount ?? 0) > order.paidAmount
-                ? 'Còn lại:'
-                : 'Tiền thừa:',
-            ((order.totalAmount ?? 0) - order.paidAmount).abs(),
-            isHighlight: true,
-          ),
-
-          SizedBox(height: 16.h),
-
-          // Footer
-          Text(
-            'Cảm ơn quý khách!',
-            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
-          ),
-          Text('Hẹn gặp lại', style: TextStyle(fontSize: 12.sp)),
-
-          SizedBox(height: 8.h),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(fontSize: 12.sp, color: Colors.grey[700])),
-        Text(
-          value,
-          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProductRow(OrderItem item) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  item.product?.name ?? 'Sản phẩm #${item.productId}',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                formatMoney(item.unitPrice * item.quantity),
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          SizedBox(height: 2.h),
-          Row(
-            children: [
-              Text(
-                '${item.quantity} x ${formatMoney(item.unitPrice)}',
-                style: TextStyle(fontSize: 11.sp, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(
-    String label,
-    double amount, {
-    bool isNegative = false,
-    bool isHighlight = false,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: isHighlight ? Colors.black87 : Colors.grey[700],
-            fontWeight: isHighlight ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        Text(
-          '${isNegative ? "-" : ""}${formatMoney(amount)}',
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: isHighlight ? FontWeight.w600 : FontWeight.w500,
-            color:
-                isNegative
-                    ? Colors.red
-                    : isHighlight
-                    ? Colors.black87
-                    : Colors.black87,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTotalRow(String label, double amount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          formatMoney(amount),
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
+          CircularProgressIndicator(
             color: AppColors.primaryBlue,
+            strokeWidth: 2,
           ),
+          SizedBox(height: 16.h),
+          Text(
+            'Đang tạo bản xem trước...',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPdfView(String pdfPath) {
+    return Container(
+      margin: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8.r),
+        child: PDFView(
+          filePath: pdfPath,
+          enableSwipe: true,
+          swipeHorizontal: false,
+          autoSpacing: false,
+          pageFling: false,
+          pageSnap: true,
+          defaultPage: 0,
+          fitPolicy: FitPolicy.WIDTH,
+          onError: (error) {
+            debugPrint('❌ [PDFView] Error: $error');
+          },
+          onPageError: (page, error) {
+            debugPrint('❌ [PDFView] Page $page error: $error');
+          },
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildErrorView(BuildContext context, String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
+            SizedBox(height: 16.h),
+            Text(
+              'Không thể tạo bản xem trước',
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              errorMessage,
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<ReceiptPreviewBloc>().add(
+                  FetchReceiptPreviewPdfEvent(order: order, config: config),
+                );
+              },
+              icon: Icon(Icons.refresh),
+              label: Text('Thử lại'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
