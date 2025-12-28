@@ -133,6 +133,8 @@ class ReceiptPreviewPage extends StatelessWidget {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    if (config?.printMode == PrintMode.none) return const SizedBox.shrink();
+
     return SafeArea(
       child: Container(
         padding: EdgeInsets.all(16.w),

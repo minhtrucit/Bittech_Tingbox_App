@@ -20,12 +20,14 @@ class OrderGetAllOrdersbyUserIdEvent extends OrderEvent {
   final int limit;
   final int? paymentStatus;
   final int userId;
+  final String? searchQuery;
 
   OrderGetAllOrdersbyUserIdEvent({
     this.page,
     this.limit = 10,
     this.paymentStatus,
     required this.userId,
+    this.searchQuery,
   });
 }
 

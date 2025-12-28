@@ -162,6 +162,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         page: event.page,
         limit: event.limit,
         paymentStatus: event.paymentStatus,
+        searchQuery: event.searchQuery,
       );
       final newOrders = response.orders;
       final pagination = response.pagination;

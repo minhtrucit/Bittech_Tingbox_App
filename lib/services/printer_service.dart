@@ -230,14 +230,16 @@ class PrinterService {
       debugPrint('📄 [PrinterService] Fetching receipt preview PDF...');
       debugPrint('📤 [PrinterService] Receipt data: $receiptData');
 
-      final response = await _dio.post(
-        '${AppConfig.printerAgentUrl}/preview-pdf',
-        data: receiptData,
-        options: Options(
-          responseType: ResponseType.bytes,
-          headers: {'Content-Type': 'application/json'},
-        ),
-      );
+      final response = await _dio
+          .post(
+            '${AppConfig.printerAgentUrl}/preview-pdf',
+            data: receiptData,
+            options: Options(
+              responseType: ResponseType.bytes,
+              headers: {'Content-Type': 'application/json'},
+            ),
+          )
+          .timeout(Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception('Không thể tạo preview PDF: ${response.statusCode}');

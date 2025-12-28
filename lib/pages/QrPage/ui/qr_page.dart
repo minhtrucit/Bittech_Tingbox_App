@@ -51,6 +51,12 @@ class _QrPageState extends State<QrPage> {
     _setupWebSocket();
     _loadUserInfo();
     _setupPrinterDiscoveryListener();
+
+    // Only trigger discovery if printing is enabled
+    final currentConfig = _getCurrentConfig(context);
+    if (currentConfig?.printMode != PrintMode.none) {
+      PrinterDiscoveryService().discover();
+    }
   }
 
   @override
@@ -623,6 +629,11 @@ class _QrPageState extends State<QrPage> {
   }
 
   Widget _buildDiscoveryOverlay() {
+    // Don't show overlay if printing is disabled
+    final currentConfig = _getCurrentConfig(context);
+    if (currentConfig?.printMode == PrintMode.none)
+      return const SizedBox.shrink();
+
     return StreamBuilder<bool>(
       stream: PrinterDiscoveryService().discoveryStatusStream,
       builder: (context, snapshot) {

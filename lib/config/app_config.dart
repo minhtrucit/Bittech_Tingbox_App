@@ -17,8 +17,10 @@ class AppConfig {
   static String? _currentPrinterUrl;
 
   /// Update the current printer URL (called by discovery service)
-  static void updatePrinterUrl(String url) {
-    debugPrint('🔄 [AppConfig] Updating printerAgentUrl to: $url');
+  static void updatePrinterUrl(String? url) {
+    debugPrint(
+      '🔄 [AppConfig] Updating printerAgentUrl to: ${url ?? 'fallback (localhost:5050)'}',
+    );
     _currentPrinterUrl = url;
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -29,6 +30,9 @@ class _OrdersListPageState extends State<OrdersListPage>
   int _currentPage = 1;
   bool _canLoadMore = true;
   int? _userId;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String _searchQuery = '';
 
   @override
   void didUpdateWidget(OrdersListPage oldWidget) {
@@ -39,6 +43,7 @@ class _OrdersListPageState extends State<OrdersListPage>
           userId: _userId!,
           page: 1,
           paymentStatus: _currentPaymentStatus,
+          searchQuery: _searchQuery,
         );
       }
     }
@@ -67,6 +72,7 @@ class _OrdersListPageState extends State<OrdersListPage>
             userId: _userId!,
             page: 1,
             paymentStatus: _currentPaymentStatus,
+            searchQuery: _searchQuery,
           );
         }
       }
@@ -85,6 +91,7 @@ class _OrdersListPageState extends State<OrdersListPage>
           userId: _userId!,
           page: 1,
           paymentStatus: _currentPaymentStatus,
+          searchQuery: _searchQuery,
         );
       }
     }
@@ -105,14 +112,52 @@ class _OrdersListPageState extends State<OrdersListPage>
     }
   }
 
-  void _fetchOrders({required int userId, int? page, int? paymentStatus}) {
+  void _fetchOrders({
+    required int userId,
+    int? page,
+    int? paymentStatus,
+    String? searchQuery,
+    int limit = 10,
+  }) {
     context.read<OrderBloc>().add(
       OrderGetAllOrdersbyUserIdEvent(
         userId: userId,
         page: page,
         paymentStatus: paymentStatus,
+        searchQuery: searchQuery,
+        limit: limit,
       ),
     );
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchQuery = query;
+        _currentPage = 1;
+        _orders = null;
+        _canLoadMore = true;
+
+        // Nếu có tìm kiếm, chúng ta nên reset filter trạng thái về 'Tất cả'
+        // để người dùng không bị bối rối khi kết quả hiện ra ở mọi trạng thái.
+        if (query.isNotEmpty) {
+          _selectedStatusFilter = 'Tất cả';
+          _currentPaymentStatus = null;
+        }
+      });
+      if (_userId != null) {
+        _fetchOrders(
+          userId: _userId!,
+          page: 1,
+          // Khi tìm kiếm, chúng ta tìm toàn bộ trạng thái (paymentStatus = null)
+          // và tăng limit lên cao (100) để "tìm hết" và "chính xác" nhất.
+          paymentStatus: query.isNotEmpty ? null : _currentPaymentStatus,
+          searchQuery: _searchQuery,
+          limit: query.isNotEmpty ? 100 : 10,
+        );
+      }
+    });
   }
 
   void _loadMore() {
@@ -125,6 +170,7 @@ class _OrdersListPageState extends State<OrdersListPage>
         userId: _userId!,
         page: _currentPage + 1,
         paymentStatus: _currentPaymentStatus,
+        searchQuery: _searchQuery,
       );
     }
   }
@@ -153,6 +199,7 @@ class _OrdersListPageState extends State<OrdersListPage>
         userId: _userId!,
         page: 1,
         paymentStatus: _currentPaymentStatus,
+        searchQuery: _searchQuery,
       );
     }
   }
@@ -167,9 +214,50 @@ class _OrdersListPageState extends State<OrdersListPage>
       body: SafeArea(
         child: Column(
           children: [
+            _buildSearchBar(),
             _buildStatusFilterChips(),
             Expanded(child: _buildOrdersList()),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 4.h),
+      child: TextField(
+        controller: _searchController,
+        onChanged: _onSearchChanged,
+        decoration: InputDecoration(
+          hintText: 'Mã đơn, ID, Tên hoặc SĐT khách hàng...',
+          hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon:
+              _searchController.text.isNotEmpty
+                  ? IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      _searchController.clear();
+                      _onSearchChanged('');
+                    },
+                  )
+                  : null,
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16.w),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide(color: AppColors.primaryBlue, width: 1),
+          ),
         ),
       ),
     );
@@ -277,6 +365,7 @@ class _OrdersListPageState extends State<OrdersListPage>
                   userId: _userId!,
                   page: 1,
                   paymentStatus: _currentPaymentStatus,
+                  searchQuery: _searchQuery,
                 );
               }
               await Future.delayed(const Duration(milliseconds: 500));

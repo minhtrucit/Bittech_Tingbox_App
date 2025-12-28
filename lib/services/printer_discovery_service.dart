@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -32,6 +31,7 @@ class PrinterDiscoveryService {
 
   String? _discoveredUrl;
   bool _isScanning = false;
+  Timer? _retryTimer;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,10 +53,8 @@ class PrinterDiscoveryService {
       }
     });
 
-    // Initial search if none saved
-    if (_discoveredUrl == null) {
-      discover();
-    } else {
+    // Initial validation of saved URL (Low cost, only 1 request)
+    if (_discoveredUrl != null) {
       _validatePrinterUrl(_discoveredUrl!);
     }
   }
@@ -78,34 +76,51 @@ class PrinterDiscoveryService {
       final String? ip = await info.getWifiIP();
 
       if (ip == null) {
-        debugPrint('❌ Could not get WiFi IP');
+        debugPrint('❌ [Discovery] No WiFi IP found. Clearing printer URL...');
+        _discoveredUrl = null;
+        AppConfig.updatePrinterUrl(null);
         return;
       }
 
       final String subnet = ip.substring(0, ip.lastIndexOf('.'));
-      debugPrint('🔍 Scanning subnet: $subnet.0/24');
+
+      // Check if we are on a different subnet than the saved one
+      if (_discoveredUrl != null && !_discoveredUrl!.contains(subnet)) {
+        debugPrint(
+          '🌐 [Discovery] Subnet changed! Invaliding old printer URL.',
+        );
+        _discoveredUrl = null;
+        // Don't update AppConfig yet, let it stay until we find a new one or fail
+      }
+
+      debugPrint('🔍 [Discovery] Scanning subnet: $subnet.0/24');
 
       final List<String> ips = List.generate(254, (i) => '$subnet.${i + 1}');
-
       String? foundUrl;
 
-      // Parallel scan with concurrency limit
       for (var i = 0; i < ips.length; i += _concurrentScans) {
         final chunk = ips.skip(i).take(_concurrentScans);
         final results = await Future.wait(chunk.map((ip) => _checkIp(ip)));
-
         foundUrl = results.firstWhere((url) => url != null, orElse: () => null);
         if (foundUrl != null) break;
       }
 
       if (foundUrl != null) {
         await _savePrinterUrl(foundUrl);
-        debugPrint('✅ Printer found at: $foundUrl');
+        debugPrint('✅ [Discovery] Printer found at: $foundUrl');
+        _stopRetryTimer(); // Stop retrying once found
       } else {
-        debugPrint('⚠️ No Print Agent found in subnet');
+        debugPrint('⚠️ [Discovery] No Print Agent found in this subnet');
+        // If we were scanning because of a network change and found nothing,
+        // we should clear the old cached URL so it falls back to default.
+        if (_discoveredUrl == null) {
+          AppConfig.updatePrinterUrl(null);
+          _startRetryTimer(); // Start/Keep retrying if still nothing
+        }
       }
     } catch (e) {
-      debugPrint('❌ Discovery error: $e');
+      debugPrint('❌ [Discovery] error: $e');
+      _startRetryTimer(); // Start retrying on error
     } finally {
       _isScanning = false;
       _discoveryStatusController.add(false);
@@ -165,6 +180,29 @@ class PrinterDiscoveryService {
   /// Force re-discovery if a print request fails
   void handlePrintFailure() {
     debugPrint('🚨 Print failure detected, re-running discovery...');
+    _discoveredUrl = null;
+    AppConfig.updatePrinterUrl(null);
     discover();
+  }
+
+  void _startRetryTimer() {
+    if (_retryTimer != null && _retryTimer!.isActive) return;
+    debugPrint('⏲️ [Discovery] Starting background retry timer (30s)...');
+    _retryTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_discoveredUrl == null && !_isScanning) {
+        debugPrint('🔄 [Discovery] Periodic background scan starting...');
+        discover();
+      } else if (_discoveredUrl != null) {
+        _stopRetryTimer();
+      }
+    });
+  }
+
+  void _stopRetryTimer() {
+    if (_retryTimer != null) {
+      debugPrint('🛑 [Discovery] Stopping background retry timer.');
+      _retryTimer!.cancel();
+      _retryTimer = null;
+    }
   }
 }

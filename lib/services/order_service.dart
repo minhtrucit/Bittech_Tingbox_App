@@ -59,6 +59,7 @@ class OrderService {
     int? page,
     int limit = 10,
     int? paymentStatus,
+    String? searchQuery,
   }) async {
     try {
       final queryParams = {
@@ -66,6 +67,8 @@ class OrderService {
         if (page != null) 'page': page,
         'limit': limit,
         if (paymentStatus != null) 'paymentStatus': paymentStatus,
+        if (searchQuery != null && searchQuery.isNotEmpty)
+          'search': searchQuery,
       };
 
       final resp = await api.get('/orders', queryParameters: queryParams);
@@ -100,12 +103,15 @@ class OrderService {
     }
   }
 
-
-  Future<Order> updateStatusOrdersbyOrderId({required int orderId, required String paymentStatus}) async {
+  Future<Order> updateStatusOrdersbyOrderId({
+    required int orderId,
+    required String paymentStatus,
+  }) async {
     try {
-      final resp = await api.put('/orders/$orderId', data: {
-        'paymentStatus': paymentStatus,
-      });
+      final resp = await api.put(
+        '/orders/$orderId',
+        data: {'paymentStatus': paymentStatus},
+      );
 
       debugPrint("📌 Update Status Order: ${resp.data}");
 

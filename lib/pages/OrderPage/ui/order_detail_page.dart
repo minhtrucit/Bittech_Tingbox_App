@@ -380,7 +380,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildBottomButton(BuildContext context, Order order) {
+  Widget? _buildBottomButton(BuildContext context, Order order) {
+    // Lấy config hiện tại
+    final configState = context.read<ConfigBloc>().state;
+    ConfigModel? currentConfig;
+
+    if (configState is ConfigLoaded) {
+      currentConfig = configState.config;
+    } else if (configState is ConfigUpdateSuccess) {
+      currentConfig = configState.config;
+    } else if (configState is ConfigCreateSuccess) {
+      currentConfig = configState.config;
+    }
+
+    final bool showPrint = currentConfig?.printMode != PrintMode.none;
+    final bool showPayment = order.paymentStatus != PaymentStatus.paid;
+
+    if (!showPrint && !showPayment) return null;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -396,60 +413,49 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       child: SafeArea(
         child: Row(
           children: [
-            Expanded(
-              child: SizedBox(
-                height: 48.h,
-                child: IconButton(
-                  onPressed: () async {
-                    // Lấy config hiện tại
-                    final configState = context.read<ConfigBloc>().state;
-                    ConfigModel? currentConfig;
-
-                    if (configState is ConfigLoaded) {
-                      currentConfig = configState.config;
-                    } else if (configState is ConfigUpdateSuccess) {
-                      currentConfig = configState.config;
-                    } else if (configState is ConfigCreateSuccess) {
-                      currentConfig = configState.config;
-                    }
-
-                    // Mở preview hóa đơn
-                     await PrintHelper.openPreviewFromDetail(
-                      context,
-                      order: order,
-                      config: currentConfig,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue.withValues(
-                      alpha: 0.1,
-                    ),
-                    foregroundColor: AppColors.primaryBlue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  icon: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.print, size: 24.sp),
-                      SizedBox(width: 12.w),
-                      Text(
-                        'In hóa đơn',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryBlue,
-                        ),
+            if (showPrint)
+              Expanded(
+                child: SizedBox(
+                  height: 48.h,
+                  child: IconButton(
+                    onPressed: () async {
+                      // Mở preview hóa đơn
+                      await PrintHelper.openPreviewFromDetail(
+                        context,
+                        order: order,
+                        config: currentConfig,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue.withValues(
+                        alpha: 0.1,
                       ),
-                    ],
+                      foregroundColor: AppColors.primaryBlue,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    icon: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.print, size: 24.sp),
+                        SizedBox(width: 12.w),
+                        Text(
+                          'In hóa đơn',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(width: 12.w),
-            if (order.paymentStatus != PaymentStatus.paid)
+            if (showPrint && showPayment) SizedBox(width: 12.w),
+            if (showPayment)
               Expanded(
                 child: SizedBox(
                   height: 48.h,
@@ -517,7 +523,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       builder:
           (context) => Container(
             height: MediaQuery.of(context).size.height * 0.85,
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).systemGestureInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).systemGestureInsets.bottom,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),

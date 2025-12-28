@@ -46,8 +46,8 @@ void main() async {
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
   final webSocketManager = WebSocketManager();
 
-  // Initialize Printer Discovery Service
-  await PrinterDiscoveryService().init();
+  // Initialize Printer Discovery Service in background
+  PrinterDiscoveryService().init();
 
   webSocketManager.connect(dotenv.get('WEBSOCKET_BASE_URL'));
   if (accessToken != null && refreshToken != null) {
