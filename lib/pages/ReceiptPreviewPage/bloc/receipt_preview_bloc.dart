@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/services/printer_service.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
+import 'package:ting_box/config/app_config.dart';
 import 'receipt_preview_event.dart';
 import 'receipt_preview_state.dart';
 
@@ -21,6 +22,9 @@ class ReceiptPreviewBloc
     emit(ReceiptPreviewLoading());
 
     try {
+      debugPrint(
+        '🚀 [ReceiptPreviewBloc] Target URL: ${AppConfig.printerAgentUrl}',
+      );
       debugPrint('📄 [ReceiptPreviewBloc] Fetching receipt preview PDF...');
 
       // Tạo receiptData từ order và config

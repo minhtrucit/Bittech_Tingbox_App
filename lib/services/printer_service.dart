@@ -9,6 +9,7 @@ import '../models/mock_bluetooth_device.dart';
 import '../models/order.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/config_model.dart';
+import 'printer_discovery_service.dart';
 
 class PrinterService {
   static const String _printerAddressKey = 'saved_printer_address';
@@ -52,6 +53,84 @@ class PrinterService {
       return _mockPrint(order, config);
     } else {
       return _print(order, config);
+    }
+  }
+
+  /// Kiểm tra máy in có khả dụng không (với WMIC status check)
+  Future<Map<String, dynamic>?> checkPrinterAvailability() async {
+    try {
+      debugPrint(
+        '🚀 [PrinterService] Target URL: ${AppConfig.printerAgentUrl}',
+      );
+      debugPrint('🔍 [PrinterService] Checking printer availability...');
+
+      final response = await _dio.get(
+        '${AppConfig.printerAgentUrl}/health',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final printerData = data['printer'];
+
+        debugPrint('✅ [PrinterService] Printer status: $printerData');
+
+        return {
+          // Kiểm tra máy in ONLINE (không chỉ installed)
+          'available': (printerData['online'] ?? 0) > 0,
+          'defaultPrinter': printerData['default'] ?? 'N/A',
+          'defaultStatus': printerData['defaultStatus'] ?? 'Unknown',
+          'defaultIsOnline': printerData['defaultIsOnline'] ?? false,
+          'configuredPrinter': printerData['configured'] ?? '',
+          'totalPrinters': printerData['total'] ?? 0,
+          'onlinePrinters': printerData['online'] ?? 0,
+          'offlinePrinters': printerData['offline'] ?? 0,
+          'status': data['status'],
+        };
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('❌ [PrinterService] Error checking printer: $e');
+      return null;
+    }
+  }
+
+  /// Lấy danh sách tất cả máy in
+  Future<List<Map<String, dynamic>>> getPrintersList() async {
+    try {
+      debugPrint(
+        '🚀 [PrinterService] Target URL: ${AppConfig.printerAgentUrl}',
+      );
+      debugPrint('🔍 [PrinterService] Fetching printers list...');
+
+      final response = await _dio
+          .get(
+            '${AppConfig.printerAgentUrl}/printers',
+            options: Options(
+              receiveTimeout: const Duration(seconds: 5),
+              sendTimeout: const Duration(seconds: 5),
+            ),
+          )
+          .timeout(Duration(seconds: 30));
+
+      if (response.statusCode == 200 && response.data is List) {
+        final printers =
+            (response.data as List)
+                .map((p) => p as Map<String, dynamic>)
+                .toList();
+
+        debugPrint('✅ [PrinterService] Found ${printers.length} printer(s)');
+        return printers;
+      }
+
+      return [];
+    } catch (e) {
+      debugPrint('❌ [PrinterService] Error fetching printers: $e');
+      return [];
     }
   }
 
@@ -145,6 +224,9 @@ class PrinterService {
 
   Future<File> fetchReceiptPreviewPdf(Map<String, dynamic> receiptData) async {
     try {
+      debugPrint(
+        '🚀 [PrinterService] Target URL: ${AppConfig.printerAgentUrl}',
+      );
       debugPrint('📄 [PrinterService] Fetching receipt preview PDF...');
       debugPrint('📤 [PrinterService] Receipt data: $receiptData');
 
@@ -177,6 +259,7 @@ class PrinterService {
   }
 
   Future<bool> _print(Order order, ConfigModel? config) async {
+    debugPrint('🚀 [PrinterService] Target URL: ${AppConfig.printerAgentUrl}');
     debugPrint(
       '📄 [REAL] Printing to Node.js Print Agent via Structured API...',
     );
@@ -184,10 +267,9 @@ class PrinterService {
       final receiptData = _formatReceiptData(order, config);
 
       debugPrint('Receipt data: $receiptData');
-      final response = await _dio.post(
-        '${AppConfig.printerAgentUrl}/print',
-        data: receiptData,
-      );
+      final response = await _dio
+          .post('${AppConfig.printerAgentUrl}/print', data: receiptData)
+          .timeout(Duration(seconds: 30));
 
       debugPrint('Print response: ${response.data}');
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -195,10 +277,12 @@ class PrinterService {
         return true;
       } else {
         debugPrint('❌ [REAL] Print request failed: ${response.data}');
+        PrinterDiscoveryService().handlePrintFailure();
         return false;
       }
     } catch (e) {
       debugPrint('❌ [REAL] Error calling Print Agent API: $e');
+      PrinterDiscoveryService().handlePrintFailure();
       return false;
     }
   }

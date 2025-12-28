@@ -1,16 +1,27 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
-  // Toggle này để bật/tắt demo mode
-  // true = Demo mode (có preview, mock printer)
-  // false = Production mode (in trực tiếp, máy in thật)
   static const bool isDemoMode = false;
 
-  // URL của Node.js Print Agent
-  // Nếu chạy trên emulator: dùng 10.0.2.2 thay cho localhost
-  // Nếu chạy trên máy thật: dùng IP của máy tính chạy Node.js
-  static const String printerAgentUrl = 'http://192.168.200.241:3000';
+  /// Default fallback URL
+  static const String defaultPrinterUrl = 'http://localhost:5050';
 
-  // Có thể dùng environment variable
-  // flutter run --dart-define=DEMO_MODE=false
+  /// Synchronous access to the last discovered URL.
+  /// ⚠️ IMPORTANT: Call PrinterDiscoveryService().init() on app start.
+  static String get printerAgentUrl {
+    // We return the discovered URL if available, otherwise fallback.
+    // This allows existing sync code to work.
+    return _currentPrinterUrl ?? defaultPrinterUrl;
+  }
+
+  static String? _currentPrinterUrl;
+
+  /// Update the current printer URL (called by discovery service)
+  static void updatePrinterUrl(String url) {
+    debugPrint('🔄 [AppConfig] Updating printerAgentUrl to: $url');
+    _currentPrinterUrl = url;
+  }
+
   static bool get isDemo {
     const demoEnv = String.fromEnvironment('DEMO_MODE', defaultValue: 'true');
     return demoEnv == 'true';

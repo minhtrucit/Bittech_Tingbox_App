@@ -112,12 +112,6 @@ class ReceiptPreviewPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8.h),
-            Text(
-              errorMessage,
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 24.h),
             ElevatedButton.icon(
               onPressed: () {
                 context.read<ReceiptPreviewBloc>().add(

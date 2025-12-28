@@ -414,7 +414,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     }
 
                     // Mở preview hóa đơn
-                    await PrintHelper.openPreviewFromDetail(
+                     await PrintHelper.openPreviewFromDetail(
                       context,
                       order: order,
                       config: currentConfig,

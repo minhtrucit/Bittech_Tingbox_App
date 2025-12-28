@@ -32,7 +32,7 @@ final class OrderFailure extends OrderState {
 class OrderPaymentSuccess extends OrderState {
   final int? orderId;
   final String message;
-  final Order? order; // Thêm order object để có thể in hóa đơn
+  final Order? order;
 
   OrderPaymentSuccess({this.orderId, required this.message, this.order});
 }

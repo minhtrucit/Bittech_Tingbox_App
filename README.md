@@ -14,3 +14,21 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+
+### 1. Import formatter
+```dart
+import 'package:your_app/utils/currency_input_formatter.dart';
+```
+
+### 2. Áp dụng cho TextField
+```dart
+TextField(
+  controller: priceController,
+  keyboardType: TextInputType.number,
+  inputFormatters: [CurrencyInputFormatter()],
+  decoration: InputDecoration(
+    hintText: '0đ',
+  ),
+)
+```
