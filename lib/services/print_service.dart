@@ -35,7 +35,7 @@ class PrintService {
   static const String _prefKeyAgentId = 'remote_print_agent_id';
   static const String _prefKeyPrinterName = 'remote_print_printer_name';
 
-  String _currentServerUrl = dotenv.get('RELAY_SERVER_URL_LOCAL');
+  String _currentServerUrl = dotenv.get('RELAY_SERVER_URL');
   String _currentAgentId = '';
   String _currentApiKey = '';
 
