@@ -1,254 +1,428 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../ting_box.dart';
-import 'bloc/receipt_preview_bloc.dart';
-import 'bloc/receipt_preview_event.dart';
-import 'bloc/receipt_preview_state.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
+import '../../models/order.dart';
+import '../../services/print_service.dart';
+import '../../common/app_colors.dart';
+import '../../extension/date_time_extension.dart';
+import '../../extension/number_extension.dart';
+import '../ConfigPage/bloc/config_bloc.dart';
+import '../ConfigPage/bloc/config_state.dart';
 
-class ReceiptPreviewPage extends StatelessWidget {
+class ReceiptPreviewPage extends StatefulWidget {
   final Order order;
-  final ConfigModel? config;
 
-  const ReceiptPreviewPage({super.key, required this.order, this.config});
+  const ReceiptPreviewPage({super.key, required this.order});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (context) => ReceiptPreviewBloc(printerService: PrinterService())
-            ..add(FetchReceiptPreviewPdfEvent(order: order, config: config)),
-      child: AppScaffold(
-        hasSafeArea: false,
-        backgroundColor: Colors.grey[200],
-        appBar: AppAppBar(title: TitleAppbarText(title: 'Xem trước hóa đơn')),
-        body: SafeArea(
-          child: BlocBuilder<ReceiptPreviewBloc, ReceiptPreviewState>(
-            builder: (context, state) {
-              if (state is ReceiptPreviewLoading) {
-                return _buildLoadingView();
-              } else if (state is ReceiptPreviewSuccess) {
-                return _buildPdfView(state.pdfFile.path);
-              } else if (state is ReceiptPreviewFailure) {
-                return _buildErrorView(context, state.message);
-              }
-              return _buildLoadingView();
-            },
-          ),
-        ),
-        bottomNavigationBar: _buildActionButtons(context),
-      ),
-    );
+  State<ReceiptPreviewPage> createState() => _ReceiptPreviewPageState();
+}
+
+class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
+  final PrintService _printService = PrintService();
+  List<String> _availablePrinters = [];
+  String? _selectedPrinter;
+  bool _isLoadingPrinters = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrinters();
   }
 
-  Widget _buildLoadingView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            color: AppColors.primaryBlue,
-            strokeWidth: 2,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Đang tạo bản xem trước...',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
-          ),
-        ],
-      ),
-    );
+  Future<void> _loadPrinters() async {
+    final configState = context.read<ConfigBloc>().state;
+    if (configState is! ConfigLoaded) return;
+
+    final agentId =
+        configState.config.id != null
+            ? 'BITTECH_USER_${configState.config.id}'
+            : null;
+    final apiKey = configState.config.sepayApiKey;
+    if (agentId == null) return;
+
+    setState(() => _isLoadingPrinters = true);
+    try {
+      // Ensure service is initialized with latest credentials from API
+      await _printService.init(agentId: agentId, apiKey: apiKey);
+
+      final printers = await _printService.getPrinters(agentId);
+      final settings = await _printService.getSavedSettings();
+
+      if (mounted) {
+        setState(() {
+          _availablePrinters = printers;
+          _selectedPrinter =
+              settings['printerName'] ??
+              (printers.isNotEmpty ? printers.first : null);
+          _isLoadingPrinters = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPrinters = false);
+      }
+    }
   }
 
-  Widget _buildPdfView(String pdfPath) {
-    return Container(
-      margin: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.r),
-        child: PDFView(
-          filePath: pdfPath,
-          enableSwipe: true,
-          swipeHorizontal: false,
-          autoSpacing: false,
-          pageFling: false,
-          pageSnap: true,
-          defaultPage: 0,
-          fitPolicy: FitPolicy.WIDTH,
-          onError: (error) {
-            debugPrint('❌ [PDFView] Error: $error');
-          },
-          onPageError: (page, error) {
-            debugPrint('❌ [PDFView] Page $page error: $error');
-          },
-        ),
-      ),
-    );
-  }
+  Future<void> _handlePrint() async {
+    if (_selectedPrinter == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn máy in')));
+      return;
+    }
 
-  Widget _buildErrorView(BuildContext context, String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
-            SizedBox(height: 16.h),
-            Text(
-              'Không thể tạo bản xem trước',
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8.h),
-            ElevatedButton.icon(
-              onPressed: () {
-                context.read<ReceiptPreviewBloc>().add(
-                  FetchReceiptPreviewPdfEvent(order: order, config: config),
-                );
-              },
-              icon: Icon(Icons.refresh),
-              label: Text('Thử lại'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final configState = context.read<ConfigBloc>().state;
+    final config = configState is ConfigLoaded ? configState.config : null;
+    final agentId = config?.id != null ? 'BITTECH_USER_${config!.id}' : null;
 
-  Widget _buildActionButtons(BuildContext context) {
-    if (config?.printMode == PrintMode.none) return const SizedBox.shrink();
+    if (agentId == null) return;
 
-    return SafeArea(
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(10),
-              blurRadius: 10,
-              offset: Offset(0, -4),
-            ),
-          ],
-        ),
-        child: ElevatedButton.icon(
-          onPressed: () => _handlePrint(context),
-          icon: Icon(Icons.print),
-          label: Text('In hóa đơn'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: 14.h),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handlePrint(BuildContext context) async {
-    final printerService = PrinterService();
-
-    // Kiểm tra đã kết nối máy in chưa
-    // final isConnected = await printerService.isConnected();
-
-    // if (!isConnected) {
-    //   // Hiện dialog chọn máy in
-    //   if (!context.mounted) return;
-    //   final connected = await showDialog<bool>(
-    //     context: context,
-    //     builder: (context) => PrinterSelectorDialog(),
-    //   );
-
-    //   if (connected != true) return;
-    // }
-
-    // Hiển thị loading
-    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => Material(
-            color: Colors.transparent,
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.all(24.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(
-                      color: AppColors.primaryBlue,
-                      strokeWidth: 2,
-                    ),
-                    SizedBox(height: 16.h),
-                    Text('Đang in hóa đơn...'),
-                  ],
-                ),
-              ),
-            ),
-          ),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
-    // In hóa đơn
     try {
-      final success = await printerService.printReceipt(order, config: config);
+      final printData = _printService.formatOrderData(widget.order, config);
+      final result = await _printService.sendPrint(
+        targetAgentId: agentId,
+        printerName: _selectedPrinter!,
+        printData: printData,
+      );
 
-      if (!context.mounted) return;
-      Navigator.pop(context); // Đóng loading
+      Navigator.pop(context); // Close loading
 
-      if (success) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8.w),
-                Text('Đã in hóa đơn thành công'),
-              ],
-            ),
+          const SnackBar(
+            content: Text('Đã gửi lệnh in thành công'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Đóng preview page
+        Navigator.pop(context);
       } else {
-        throw Exception('In thất bại');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${result['error'] ?? 'Không rõ lý do'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // Đóng loading
-
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi in hóa đơn: $e'),
-          backgroundColor: Colors.red,
-          action: SnackBarAction(
-            label: 'Thử lại',
-            textColor: Colors.white,
-            onPressed: () => _handlePrint(context),
-          ),
-        ),
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text(
+          'Xem trước hóa đơn',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          // Connection Status
+          ValueListenableBuilder<bool>(
+            valueListenable: _printService.isConnected,
+            builder: (context, connected, _) {
+              return Container(
+                margin: EdgeInsets.only(right: 8.w),
+                width: 12.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: connected ? Colors.green : Colors.red,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (connected ? Colors.green : Colors.red)
+                          .withOpacity(0.4),
+                      blurRadius: 4,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // Printer Selection Dropdown
+          _isLoadingPrinters
+              ? const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+              : PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.print_outlined,
+                  color: AppColors.primaryBlue,
+                ),
+                onSelected: (value) {
+                  setState(() => _selectedPrinter = value);
+                  // Optionally save this as default
+                  final configState = context.read<ConfigBloc>().state;
+                  if (configState is ConfigLoaded &&
+                      configState.config.unitName != null) {
+                    _printService.savePrinterSettings(
+                      configState.config.unitName!,
+                      value,
+                    );
+                  }
+                },
+                itemBuilder:
+                    (context) =>
+                        _availablePrinters
+                            .map(
+                              (p) => PopupMenuItem(
+                                value: p,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check,
+                                      color:
+                                          _selectedPrinter == p
+                                              ? Colors.green
+                                              : Colors.transparent,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(p),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+              ),
+          SizedBox(width: 12.w),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20.w),
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 400.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildReceiptHeader(),
+                const Divider(indent: 16, endIndent: 16),
+                _buildReceiptItems(),
+                _buildDashedLine(),
+                _buildReceiptSummary(),
+                _buildReceiptFooter(),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_selectedPrinter != null)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: Text(
+                    'Máy in: $_selectedPrinter',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: ElevatedButton(
+                  onPressed: _handlePrint,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: Text(
+                    'XÁC NHẬN IN',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptHeader() {
+    final configState = context.read<ConfigBloc>().state;
+    final config = configState is ConfigLoaded ? configState.config : null;
+
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        children: [
+          Text(
+            config?.unitName?.toUpperCase() ?? 'TINGBOX STORE',
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          if (config?.phone != null)
+            Text('SĐT: ${config!.phone}', style: TextStyle(fontSize: 12.sp)),
+          if (config?.address != null)
+            Text(
+              config!.address!,
+              style: TextStyle(fontSize: 12.sp),
+              textAlign: TextAlign.center,
+            ),
+          SizedBox(height: 16.h),
+          Text(
+            'HÓA ĐƠN THANH TOÁN',
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w900),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Mã đơn: ${widget.order.code ?? widget.order.id}',
+                style: TextStyle(fontSize: 12.sp),
+              ),
+              Text(
+                DateTime.now().toIso8601String().toReadableDateTime(),
+                style: TextStyle(fontSize: 12.sp),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceiptItems() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      child: Column(
+        children:
+            widget.order.items.map((item) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        item.product?.name ?? 'Sản phẩm',
+                        style: TextStyle(fontSize: 13.sp),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'x${item.quantity}',
+                        style: TextStyle(fontSize: 13.sp),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        (item.unitPrice * item.quantity).comma,
+                        style: TextStyle(fontSize: 13.sp),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildReceiptSummary() {
+    return Padding(
+      padding: EdgeInsets.all(16.w),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'TỔNG CỘNG:',
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            widget.order.totalAmount?.comma ?? '0',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryBlue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceiptFooter() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 20.h, left: 16.w, right: 16.w),
+      child: Column(
+        children: [
+          Text(
+            'Cảm ơn quý khách!',
+            style: TextStyle(fontSize: 13.sp, fontStyle: FontStyle.italic),
+          ),
+          Text(
+            'Hẹn gặp lại!',
+            style: TextStyle(fontSize: 13.sp, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashedLine() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: List.generate(
+          30,
+          (index) => Expanded(
+            child: Container(
+              color: index % 2 == 0 ? Colors.transparent : Colors.grey[300],
+              height: 1,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

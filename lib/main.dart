@@ -16,9 +16,8 @@ import 'package:ting_box/services/product_api_services.dart';
 import 'package:ting_box/ting_box.dart';
 
 import 'services/websocket_manager.dart';
-
 import 'services/user_services.dart';
-import 'services/printer_discovery_service.dart';
+import 'services/print_service.dart';
 
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(
@@ -46,8 +45,7 @@ void main() async {
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
   final webSocketManager = WebSocketManager();
 
-  // Initialize Printer Discovery Service in background
-  PrinterDiscoveryService().init();
+
 
   webSocketManager.connect(dotenv.get('WEBSOCKET_BASE_URL'));
   if (accessToken != null && refreshToken != null) {

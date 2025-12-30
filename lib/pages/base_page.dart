@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
 import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
+import 'package:ting_box/services/print_service.dart';
 import 'package:ting_box/ting_box.dart';
 
 import 'ConfigPage/bloc/config_bloc.dart';
@@ -64,6 +65,12 @@ class _BasePageState extends State<BasePage> {
     return BlocListener<ConfigBloc, ConfigState>(
       listener: (context, state) {
         if (state is ConfigLoaded && state.config.id != null) {
+          // Initialize Remote Print Service with config from API
+          PrintService().init(
+            agentId: 'BITTECH_USER_${state.config.id}',
+            apiKey: state.config.sepayApiKey,
+          );
+
           // Fetch statistics when config is loaded
           final now = DateTime.now();
           context.read<StatisticsBloc>().add(
