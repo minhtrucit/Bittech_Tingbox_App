@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ting_box/common/components/app_appbar.dart';
+import 'package:ting_box/common/components/app_scaffold.dart';
+import 'package:ting_box/common/components/title_appbar_text.dart';
 import '../../services/print_service.dart';
 import '../../common/app_colors.dart';
 import '../ConfigPage/bloc/config_bloc.dart';
@@ -44,6 +47,7 @@ class _PrintPageState extends State<PrintPage> {
 
   Future<void> _loadSettings() async {
     final settings = await _printService.getSavedSettings();
+    if (!mounted) return;
     final configState = context.read<ConfigBloc>().state;
 
     String? agentId = settings['agentId'];
@@ -142,12 +146,12 @@ class _PrintPageState extends State<PrintPage> {
 
   Future<void> _handlePrint() async {
     if (_selectedPrinter == null) {
-      _showSnackBar('Please select a printer first', isError: true);
+      _showSnackBar('Hãy chọn máy in trước', isError: true);
       return;
     }
 
     setState(() => _isPrinting = true);
-    _showSnackBar('Sending print request...');
+    _showSnackBar('Đang gửi lệnh in...');
 
     try {
       final result = await _printService.sendPrint(
@@ -163,10 +167,10 @@ class _PrintPageState extends State<PrintPage> {
       if (mounted) {
         setState(() => _isPrinting = false);
         if (result['success'] == true) {
-          _showSnackBar('Print sent successfully!', isSuccess: true);
+          _showSnackBar('In thành công!', isSuccess: true);
         } else {
           _showSnackBar(
-            'Error: ${result['error'] ?? 'Relay failed'}',
+            'Error: ${result['error'] ?? 'Có lỗi khi in'}',
             isError: true,
           );
         }
@@ -198,7 +202,7 @@ class _PrintPageState extends State<PrintPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Select Printer',
+                      'Chọn máy in',
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
@@ -225,7 +229,7 @@ class _PrintPageState extends State<PrintPage> {
                           ),
                           SizedBox(height: 12.h),
                           Text(
-                            'No printers found for this agent',
+                            'Không tìm thấy máy in',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
@@ -294,7 +298,7 @@ class _PrintPageState extends State<PrintPage> {
                               _targetAgentController.text,
                               printer,
                             );
-                            if (mounted) Navigator.pop(context);
+                            if (context.mounted) Navigator.pop(context);
                           },
                         );
                       },
@@ -308,34 +312,34 @@ class _PrintPageState extends State<PrintPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: AppColors.bgLightGrey,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
+      hasSafeArea: false,
+      appBar: AppAppBar(
         centerTitle: false,
-        title: Text(
-          'Remote Printing',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
-        ),
+        title: TitleAppbarText(title: 'Kết nối máy in'),
         actions: [_buildConnectionStatus(), SizedBox(width: 16.w)],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          children: [
-            _buildAgentConfigurationCard(),
-            SizedBox(height: 20.h),
-            _buildPrintFormDataCard(),
-            SizedBox(height: 32.h),
-            _buildMainActionButton(),
-            SizedBox(height: 20.h),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            children: [
+              _buildAgentConfigurationCard(),
+              SizedBox(height: 20.h),
+              _buildPrintFormDataCard(),
+              SizedBox(height: 32.h),
+              _buildMainActionButton(),
+              SizedBox(
+                height:
+                    MediaQuery.of(context).systemGestureInsets.bottom > 32
+                        ? MediaQuery.of(context).systemGestureInsets.bottom +
+                            20.h
+                        : 20.h,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -424,7 +428,7 @@ class _PrintPageState extends State<PrintPage> {
               ),
               SizedBox(width: 12.w),
               Text(
-                'Relay Settings',
+                'Cài đặt máy in',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
@@ -435,11 +439,12 @@ class _PrintPageState extends State<PrintPage> {
           ),
           SizedBox(height: 20.h),
           _buildTextField(
-            label: 'Target Agent ID',
+            label: 'Mã khách hàng',
             controller: _targetAgentController,
             hint: 'Example: USER_01',
             icon: Icons.alternate_email,
           ),
+          // Todo bổ sung api key để config 
           SizedBox(height: 20.h),
           Row(
             children: [
@@ -558,7 +563,7 @@ class _PrintPageState extends State<PrintPage> {
               ),
               SizedBox(width: 12.w),
               Text(
-                'Receipt Data',
+                'Hóa đơn mẫu',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
@@ -569,23 +574,23 @@ class _PrintPageState extends State<PrintPage> {
           ),
           SizedBox(height: 20.h),
           _buildTextField(
-            label: 'Header',
+            label: 'Tiêu đề',
             controller: _headerController,
-            hint: 'Store Name, Address...',
+            hint: 'Tên cửa hàng, Địa chỉ...',
             maxLines: 2,
           ),
           SizedBox(height: 16.h),
           _buildTextField(
-            label: 'Products / Body',
+            label: 'Sản phẩm / Nội dung',
             controller: _productsController,
             hint: 'Items list...',
             maxLines: 4,
           ),
           SizedBox(height: 16.h),
           _buildTextField(
-            label: 'Footer',
+            label: 'Chữ ký',
             controller: _footerController,
-            hint: 'Thank you message...',
+            hint: 'Cám ơn bạn đã mua hàng...',
             maxLines: 2,
           ),
         ],
@@ -638,7 +643,7 @@ class _PrintPageState extends State<PrintPage> {
                         ),
                         SizedBox(width: 12.w),
                         Text(
-                          'SEND PRINT COMMAND',
+                          'Gửi lệnh in',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,

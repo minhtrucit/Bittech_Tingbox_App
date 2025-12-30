@@ -363,8 +363,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
             },
             child: _buildInfoTile(
               icon: Icons.print_outlined,
-              title: "In từ xa (Remote Print)",
-              subtitle: "Kết nối và in qua TingBox Relay",
+              title: "Kết nối máy in",
+              subtitle: "Kết nối máy in và in thử",
               isLink: true,
             ),
           ),
