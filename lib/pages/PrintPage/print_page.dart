@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/common/components/app_appbar.dart';
@@ -55,7 +56,8 @@ class _PrintPageState extends State<PrintPage> {
 
     if (configState is ConfigLoaded) {
       final config = configState.config;
-      agentId ??= 'BITTECH_USER_${config.id}';
+      final prefix = dotenv.get('AGENT_ID_PREFIX', fallback: 'BITTECH_USER_');
+      agentId ??= '$prefix${config.id}';
       apiKey = config.sepayApiKey;
     }
 
@@ -442,7 +444,7 @@ class _PrintPageState extends State<PrintPage> {
             hint: 'Example: USER_01',
             icon: Icons.alternate_email,
           ),
-          // Todo bổ sung api key để config 
+          // Todo bổ sung api key để config
           SizedBox(height: 20.h),
           Row(
             children: [

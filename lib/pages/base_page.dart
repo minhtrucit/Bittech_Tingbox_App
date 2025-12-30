@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
 import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
@@ -66,8 +67,9 @@ class _BasePageState extends State<BasePage> {
       listener: (context, state) {
         if (state is ConfigLoaded && state.config.id != null) {
           // Initialize Remote Print Service with config from API
+          final prefix = dotenv.get('AGENT_ID_PREFIX');
           PrintService().init(
-            agentId: 'BITTECH_USER_${state.config.id}',
+            agentId: '$prefix${state.config.id}',
             apiKey: state.config.sepayApiKey,
           );
 

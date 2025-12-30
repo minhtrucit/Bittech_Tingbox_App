@@ -192,7 +192,7 @@ class _HomePageState extends State<HomePage> {
                           revenue: state.statistic.revenue,
                         );
                       } else if (state is StatisticsError) {
-                        return Text('Error: ${state.message}');
+                        return Text('Lỗi khi tải thống kê');
                       }
                       return const RevenueSummaryCard();
                     },
