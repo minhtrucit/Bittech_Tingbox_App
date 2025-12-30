@@ -17,7 +17,6 @@ import 'package:ting_box/ting_box.dart';
 
 import 'services/websocket_manager.dart';
 import 'services/user_services.dart';
-import 'services/print_service.dart';
 
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(

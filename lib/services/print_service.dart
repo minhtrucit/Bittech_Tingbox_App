@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../models/order.dart';
 import '../models/config_model.dart';
 import '../extension/date_time_extension.dart';
@@ -14,7 +15,7 @@ class PrintService {
   factory PrintService() => _instance;
   PrintService._internal();
 
-  IO.Socket? _socket;
+  io.Socket? _socket;
 
   // Reactive connection status
   final ValueNotifier<bool> isConnected = ValueNotifier<bool>(false);
@@ -31,9 +32,9 @@ class PrintService {
   static const String _prefKeyAgentId = 'remote_print_agent_id';
   static const String _prefKeyPrinterName = 'remote_print_printer_name';
 
-  String _currentServerUrl = 'ws://192.168.200.241:3000';
-  String _currentAgentId = 'USER_01'; // Default Agent ID
-  String _currentApiKey = 'TINGBOX_KEY_2024'; // Default API Key
+  String _currentServerUrl = dotenv.get('RELAY_SERVER_URL');
+  String _currentAgentId = '';
+  String _currentApiKey = '';
 
   /// Initialize the socket connection and load saved settings
   Future<void> init({
@@ -42,9 +43,16 @@ class PrintService {
     String? serverUrl,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final newAgentId = agentId ?? prefs.getString(_prefKeyAgentId) ?? 'USER_01';
-    final newApiKey = apiKey ?? 'TINGBOX_KEY_2024';
+
+    // Ưu tiên: Tham số truyền vào > SharedPreferences > Rỗng
+    final newAgentId = agentId ?? prefs.getString(_prefKeyAgentId) ?? '';
+    final newApiKey = apiKey ?? '';
     final newServerUrl = serverUrl ?? _currentServerUrl;
+
+    if (newAgentId.isEmpty || newApiKey.isEmpty) {
+      _log('⚠️ [PrintService] Bỏ qua khởi tạo: Thiếu AgentID hoặc ApiKey');
+      return;
+    }
 
     // Improved skipping logic: Only skip if parameters match AND we are already CONNECTED
     if (_socket != null &&
@@ -73,9 +81,9 @@ class PrintService {
       '📄 [PrintService] Credentials: { x-agent-id: $_currentAgentId, x-api-key: $_currentApiKey }',
     );
 
-    _socket = IO.io(
+    _socket = io.io(
       _currentServerUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket'])
           .setQuery({
             'agentId': _currentAgentId,

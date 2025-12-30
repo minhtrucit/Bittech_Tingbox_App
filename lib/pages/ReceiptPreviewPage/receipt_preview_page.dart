@@ -92,30 +92,33 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
         printerName: _selectedPrinter!,
         printData: printData,
       );
+      if (mounted) {
+        Navigator.pop(context); // Close loading
 
-      Navigator.pop(context); // Close loading
-
-      if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã gửi lệnh in thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${result['error'] ?? 'Không rõ lý do'}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã gửi lệnh in thành công'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${result['error'] ?? 'Không rõ lý do'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -145,7 +148,7 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
                   boxShadow: [
                     BoxShadow(
                       color: (connected ? Colors.green : Colors.red)
-                          .withOpacity(0.4),
+                          .withValues(alpha: .4),
                       blurRadius: 4,
                       spreadRadius: 2,
                     ),
@@ -216,7 +219,7 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
               borderRadius: BorderRadius.circular(4.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

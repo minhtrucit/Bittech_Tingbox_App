@@ -55,9 +55,7 @@ class _PrintPageState extends State<PrintPage> {
 
     if (configState is ConfigLoaded) {
       final config = configState.config;
-      // Use BITTECH_USER_{id} as default Agent ID if nothing is saved
       agentId ??= 'BITTECH_USER_${config.id}';
-      // Always use sepayApiKey for the connection if available
       apiKey = config.sepayApiKey;
     }
 

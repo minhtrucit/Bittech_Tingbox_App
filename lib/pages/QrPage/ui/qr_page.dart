@@ -9,7 +9,6 @@ import '../../../services/print_service.dart';
 import '../../../ting_box.dart';
 import '../../ConfigPage/bloc/config_bloc.dart';
 import '../../ConfigPage/bloc/config_state.dart';
-import '../../../models/config_model.dart';
 
 class QrPage extends StatefulWidget {
   final PaymentInfo paymentInfo;
@@ -186,7 +185,7 @@ class _QrPageState extends State<QrPage> {
         if (config.printMode == PrintMode.auto) {
           debugPrint('🖨️ [QrPage] Triggering automatic print...');
           PrintService().autoPrintOrder(order, config).then((success) {
-            if (mounted) {
+            if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
