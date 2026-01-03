@@ -14,6 +14,7 @@ import '../../ConfigPage/bloc/config_state.dart';
 import 'user_profile_skeleton.dart';
 import '../../ConfigPage/ui/config_page.dart';
 import '../../MyQrPage/ui/my_qr_page.dart';
+import '../../PrintPage/print_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -129,7 +130,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             _buildInfoCard(user),
                             SizedBox(height: 40.h),
                             _buildLogoutButton(context),
-                            SizedBox(height: 60.h + MediaQuery.of(context).systemGestureInsets.bottom),
+                            SizedBox(
+                              height:
+                                  60.h +
+                                  MediaQuery.of(
+                                    context,
+                                  ).systemGestureInsets.bottom,
+                            ),
                           ],
                         ),
                       ),
@@ -343,6 +350,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
               icon: Icons.settings,
               title: "Cấu hình",
               subtitle: "Thiết lập máy in, ngân hàng...",
+              isLink: true,
+            ),
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrintPage()),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.print_outlined,
+              title: "Kết nối máy in",
+              subtitle: "Kết nối máy in và in thử",
               isLink: true,
             ),
           ),

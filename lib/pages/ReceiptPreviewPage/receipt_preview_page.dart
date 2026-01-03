@@ -1,254 +1,353 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../ting_box.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:ting_box/common/components/app_appbar.dart';
+import 'package:ting_box/ting_box.dart';
+import '../../models/order.dart';
+import '../../services/print_service.dart';
+import '../../common/app_colors.dart';
+import '../ConfigPage/bloc/config_bloc.dart';
+import '../ConfigPage/bloc/config_state.dart';
 import 'bloc/receipt_preview_bloc.dart';
 import 'bloc/receipt_preview_event.dart';
 import 'bloc/receipt_preview_state.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
 
-class ReceiptPreviewPage extends StatelessWidget {
+class ReceiptPreviewPage extends StatefulWidget {
   final Order order;
-  final ConfigModel? config;
 
-  const ReceiptPreviewPage({super.key, required this.order, this.config});
+  const ReceiptPreviewPage({super.key, required this.order});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (context) => ReceiptPreviewBloc(printerService: PrinterService())
-            ..add(FetchReceiptPreviewPdfEvent(order: order, config: config)),
-      child: AppScaffold(
-        hasSafeArea: false,
-        backgroundColor: Colors.grey[200],
-        appBar: AppAppBar(title: TitleAppbarText(title: 'Xem trước hóa đơn')),
-        body: SafeArea(
-          child: BlocBuilder<ReceiptPreviewBloc, ReceiptPreviewState>(
-            builder: (context, state) {
-              if (state is ReceiptPreviewLoading) {
-                return _buildLoadingView();
-              } else if (state is ReceiptPreviewSuccess) {
-                return _buildPdfView(state.pdfFile.path);
-              } else if (state is ReceiptPreviewFailure) {
-                return _buildErrorView(context, state.message);
-              }
-              return _buildLoadingView();
-            },
-          ),
-        ),
-        bottomNavigationBar: _buildActionButtons(context),
-      ),
-    );
+  State<ReceiptPreviewPage> createState() => _ReceiptPreviewPageState();
+}
+
+class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
+  final PrintService _printService = PrintService();
+  List<String> _availablePrinters = [];
+  String? _selectedPrinter;
+  bool _isLoadingPrinters = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrinters();
   }
 
-  Widget _buildLoadingView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            color: AppColors.primaryBlue,
-            strokeWidth: 2,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Đang tạo bản xem trước...',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
-          ),
-        ],
-      ),
-    );
+  Future<void> _loadPrinters() async {
+    final configState = context.read<ConfigBloc>().state;
+    if (configState is! ConfigLoaded) return;
+
+    final prefix = dotenv.get('AGENT_ID_PREFIX');
+    final agentId =
+        configState.config.id != null
+            ? '$prefix${configState.config.id}'
+            : null;
+    final apiKey = configState.config.sepayApiKey;
+    if (agentId == null) return;
+
+    setState(() => _isLoadingPrinters = true);
+    try {
+      await _printService.init(agentId: agentId, apiKey: apiKey);
+      final printers = await _printService.getPrinters(agentId);
+      final settings = await _printService.getSavedSettings();
+
+      if (mounted) {
+        setState(() {
+          _availablePrinters = printers;
+          _selectedPrinter =
+              settings['printerName'] ??
+              (printers.isNotEmpty ? printers.first : null);
+          _isLoadingPrinters = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPrinters = false);
+      }
+    }
   }
 
-  Widget _buildPdfView(String pdfPath) {
-    return Container(
-      margin: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.r),
-        child: PDFView(
-          filePath: pdfPath,
-          enableSwipe: true,
-          swipeHorizontal: false,
-          autoSpacing: false,
-          pageFling: false,
-          pageSnap: true,
-          defaultPage: 0,
-          fitPolicy: FitPolicy.WIDTH,
-          onError: (error) {
-            debugPrint('❌ [PDFView] Error: $error');
-          },
-          onPageError: (page, error) {
-            debugPrint('❌ [PDFView] Page $page error: $error');
-          },
-        ),
-      ),
-    );
-  }
+  Future<void> _handlePrint() async {
+    if (_selectedPrinter == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn máy in')));
+      return;
+    }
 
-  Widget _buildErrorView(BuildContext context, String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
-            SizedBox(height: 16.h),
-            Text(
-              'Không thể tạo bản xem trước',
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8.h),
-            ElevatedButton.icon(
-              onPressed: () {
-                context.read<ReceiptPreviewBloc>().add(
-                  FetchReceiptPreviewPdfEvent(order: order, config: config),
-                );
-              },
-              icon: Icon(Icons.refresh),
-              label: Text('Thử lại'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final configState = context.read<ConfigBloc>().state;
+    final config = configState is ConfigLoaded ? configState.config : null;
+    final prefix = dotenv.get('AGENT_ID_PREFIX');
+    final agentId = config?.id != null ? '$prefix${config!.id}' : null;
 
-  Widget _buildActionButtons(BuildContext context) {
-    if (config?.printMode == PrintMode.none) return const SizedBox.shrink();
+    if (agentId == null) return;
 
-    return SafeArea(
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(10),
-              blurRadius: 10,
-              offset: Offset(0, -4),
-            ),
-          ],
-        ),
-        child: ElevatedButton.icon(
-          onPressed: () => _handlePrint(context),
-          icon: Icon(Icons.print),
-          label: Text('In hóa đơn'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: 14.h),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handlePrint(BuildContext context) async {
-    final printerService = PrinterService();
-
-    // Kiểm tra đã kết nối máy in chưa
-    // final isConnected = await printerService.isConnected();
-
-    // if (!isConnected) {
-    //   // Hiện dialog chọn máy in
-    //   if (!context.mounted) return;
-    //   final connected = await showDialog<bool>(
-    //     context: context,
-    //     builder: (context) => PrinterSelectorDialog(),
-    //   );
-
-    //   if (connected != true) return;
-    // }
-
-    // Hiển thị loading
-    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder:
-          (context) => Material(
-            color: Colors.transparent,
+          (_) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryBlue),
+          ),
+    );
+
+    try {
+      final printData = _printService.formatOrderData(widget.order, config);
+      final result = await _printService.sendPrint(
+        targetAgentId: agentId,
+        printerName: _selectedPrinter!,
+        printData: printData,
+      );
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã gửi lệnh in thành công'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${result['error'] ?? 'Không rõ lý do'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) {
+        final configState = context.read<ConfigBloc>().state;
+        final config = configState is ConfigLoaded ? configState.config : null;
+        return ReceiptPreviewBloc()..add(
+          FetchReceiptPreviewPdfEvent(order: widget.order, config: config),
+        );
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppAppBar(
+          title: TitleAppbarText(title: 'Xem trước hóa đơn'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          actions: [
+            ValueListenableBuilder<bool>(
+              valueListenable: _printService.isConnected,
+              builder: (context, connected, _) {
+                return Container(
+                  margin: EdgeInsets.only(right: 8.w),
+                  width: 12.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: connected ? Colors.green : Colors.red,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (connected ? Colors.green : Colors.red)
+                            .withValues(alpha: .4),
+                        blurRadius: 4,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            _isLoadingPrinters
+                ? const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                )
+                : PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.print_outlined,
+                    color: AppColors.primaryBlue,
+                  ),
+                  onSelected: (value) {
+                    setState(() => _selectedPrinter = value);
+                    final configState = context.read<ConfigBloc>().state;
+                    if (configState is ConfigLoaded &&
+                        configState.config.unitName != null) {
+                      _printService.savePrinterSettings(
+                        configState.config.unitName!,
+                        value,
+                      );
+                    }
+                  },
+                  itemBuilder:
+                      (context) =>
+                          _availablePrinters
+                              .map(
+                                (p) => PopupMenuItem(
+                                  value: p,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check,
+                                        color:
+                                            _selectedPrinter == p
+                                                ? Colors.green
+                                                : Colors.transparent,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(p),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                ),
+            SizedBox(width: 12.w),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
             child: Center(
               child: Container(
-                padding: EdgeInsets.all(24.w),
+                constraints: BoxConstraints(maxWidth: 400.w),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(
-                      color: AppColors.primaryBlue,
-                      strokeWidth: 2,
+                  borderRadius: BorderRadius.circular(4.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    SizedBox(height: 16.h),
-                    Text('Đang in hóa đơn...'),
                   ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: BlocBuilder<ReceiptPreviewBloc, ReceiptPreviewState>(
+                  builder: (context, state) {
+                    if (state is ReceiptPreviewLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryBlue,
+                        ),
+                      );
+                    } else if (state is ReceiptPreviewSuccess) {
+                      return PDFView(filePath: state.pdfFile.path);
+                    } else if (state is ReceiptPreviewFailure) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 48,
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              'Lỗi khi tải preview',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.red[700]),
+                            ),
+                            SizedBox(height: 16.h),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                              ),
+                              onPressed: () {
+                                final configState =
+                                    context.read<ConfigBloc>().state;
+                                final config =
+                                    configState is ConfigLoaded
+                                        ? configState.config
+                                        : null;
+                                context.read<ReceiptPreviewBloc>().add(
+                                  FetchReceiptPreviewPdfEvent(
+                                    order: widget.order,
+                                    config: config,
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Thử lại',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const Center(child: Text('Vui lòng chờ...'));
+                  },
                 ),
               ),
             ),
           ),
-    );
-
-    // In hóa đơn
-    try {
-      final success = await printerService.printReceipt(order, config: config);
-
-      if (!context.mounted) return;
-      Navigator.pop(context); // Đóng loading
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8.w),
-                Text('Đã in hóa đơn thành công'),
+                if (_selectedPrinter != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Text(
+                      'Máy in: $_selectedPrinter',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: _handlePrint,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    child: Text(
+                      'XÁC NHẬN IN',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Đóng preview page
-      } else {
-        throw Exception('In thất bại');
-      }
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // Đóng loading
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi in hóa đơn: $e'),
-          backgroundColor: Colors.red,
-          action: SnackBarAction(
-            label: 'Thử lại',
-            textColor: Colors.white,
-            onPressed: () => _handlePrint(context),
           ),
         ),
-      );
-    }
+      ),
+    );
   }
 }

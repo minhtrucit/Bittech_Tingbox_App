@@ -4,8 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/services/websocket_manager.dart';
-import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
-import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import '../../../ting_box.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -82,6 +80,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  void _handleManualPrint(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiptPreviewPage(order: _currentOrder),
       ),
     );
   }
@@ -381,22 +388,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget? _buildBottomButton(BuildContext context, Order order) {
-    // Lấy config hiện tại
-    final configState = context.read<ConfigBloc>().state;
-    ConfigModel? currentConfig;
-
-    if (configState is ConfigLoaded) {
-      currentConfig = configState.config;
-    } else if (configState is ConfigUpdateSuccess) {
-      currentConfig = configState.config;
-    } else if (configState is ConfigCreateSuccess) {
-      currentConfig = configState.config;
-    }
-
-    final bool showPrint = currentConfig?.printMode != PrintMode.none;
     final bool showPayment = order.paymentStatus != PaymentStatus.paid;
-
-    if (!showPrint && !showPayment) return null;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -411,95 +403,105 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ],
       ),
       child: SafeArea(
-        child: Row(
-          children: [
-            if (showPrint)
-              Expanded(
-                child: SizedBox(
-                  height: 48.h,
-                  child: IconButton(
-                    onPressed: () async {
-                      // Mở preview hóa đơn
-                      await PrintHelper.openPreviewFromDetail(
-                        context,
-                        order: order,
-                        config: currentConfig,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue.withValues(
-                        alpha: 0.1,
-                      ),
-                      foregroundColor: AppColors.primaryBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
-                    icon: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.print, size: 24.sp),
-                        SizedBox(width: 12.w),
-                        Text(
-                          'In hóa đơn',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
+        child: SizedBox(
+          width: double.infinity,
+          height: 48.h,
+          child:
+              showPayment
+                  ? Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleManualPrint(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 0),
+                            side: const BorderSide(
+                              color: AppColors.primaryBlue,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.print_outlined,
                             color: AppColors.primaryBlue,
                           ),
+                          label: Text(
+                            'In',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (showPrint && showPayment) SizedBox(width: 12.w),
-            if (showPayment)
-              Expanded(
-                child: SizedBox(
-                  height: 48.h,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      if (order.paymentMethod.toUpperCase() == 'CASH') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => CashPaymentPage(
-                                  orderId: order.id ?? 0,
-                                  userId: order.userId,
-                                  orderCode: order.code ?? '',
-                                  paymentStatus:
-                                      order.paymentStatus ?? 'unpaid',
-                                  amount: order.totalAmount ?? 0,
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (order.paymentMethod.toUpperCase() == 'CASH') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => CashPaymentPage(
+                                        orderId: order.id ?? 0,
+                                        userId: order.userId,
+                                        orderCode: order.code ?? '',
+                                        paymentStatus:
+                                            order.paymentStatus ?? 'unpaid',
+                                        amount: order.totalAmount ?? 0,
+                                      ),
                                 ),
+                              );
+                            } else {
+                              context.read<OrderBloc>().add(
+                                OrderGenerateQRCodeEvent(
+                                  orderId: order.id.toString(),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryBlue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
                           ),
-                        );
-                      } else {
-                        context.read<OrderBloc>().add(
-                          OrderGenerateQRCodeEvent(
-                            orderId: order.id.toString(),
+                          icon: Icon(
+                            order.paymentMethod.toUpperCase() == 'CASH'
+                                ? Icons.payments_outlined
+                                : Icons.qr_code,
+                            color: Colors.white,
                           ),
-                        );
-                      }
-                    },
+                          label: Text(
+                            order.paymentMethod.toUpperCase() == 'CASH'
+                                ? 'Thanh toán'
+                                : 'Tạo mã QR',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                  : ElevatedButton.icon(
+                    onPressed: () => _handleManualPrint(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
-                    icon: Icon(
-                      order.paymentMethod.toUpperCase() == 'CASH'
-                          ? Icons.payments_outlined
-                          : Icons.qr_code,
-                      color: Colors.white,
-                    ),
+                    icon: const Icon(Icons.print_outlined, color: Colors.white),
                     label: Text(
-                      order.paymentMethod.toUpperCase() == 'CASH'
-                          ? 'Thanh toán'
-                          : 'Tạo mã QR',
+                      'In hóa đơn',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
@@ -507,9 +509,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ),
                     ),
                   ),
-                ),
-              ),
-          ],
         ),
       ),
     );
@@ -599,7 +598,7 @@ class _QrSheetContentState extends State<_QrSheetContent> {
     super.dispose();
   }
 
-  void showSuccessDialog({required bool isManualPrint}) {
+  void showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -637,33 +636,6 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                     ),
                   ),
                   SizedBox(height: 24.h),
-                  if (isManualPrint)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close dialog
-                          Navigator.pop(context); // Close bottom sheet
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2962FF),
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: Text(
-                          "In hóa đơn",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 12.h),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -702,20 +674,7 @@ class _QrSheetContentState extends State<_QrSheetContent> {
     return BlocListener<OrderBloc, OrderState>(
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
-          final configState = context.read<ConfigBloc>().state;
-          ConfigModel? currentConfig;
-
-          if (configState is ConfigLoaded) {
-            currentConfig = configState.config;
-          } else if (configState is ConfigUpdateSuccess) {
-            currentConfig = configState.config;
-          } else if (configState is ConfigCreateSuccess) {
-            currentConfig = configState.config;
-          }
-
-          showSuccessDialog(
-            isManualPrint: currentConfig?.printMode == PrintMode.manual,
-          );
+          showSuccessDialog();
         } else if (state is OrderSePayWebHookFailed) {
           DialogUtils.showAppDialog(
             context: context,
