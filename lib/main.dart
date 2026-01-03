@@ -29,7 +29,7 @@ void main() async {
   );
   await dotenv.load(fileName: ".env");
   final baseUrl = dotenv.get('API_BASE_URL');
-  final detectUrl = dotenv.get('API_DETECT_URL');
+  final detectUrl = dotenv.get('API_DETECT_URL_LOCAL');
   final apiService = ApiService.getInstance(baseUrl: baseUrl);
   final authService = AuthService.getInstance(api: apiService);
   final userRepository = UserRepository();

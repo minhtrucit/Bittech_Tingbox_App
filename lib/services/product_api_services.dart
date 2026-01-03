@@ -24,13 +24,21 @@ class ProductApiService {
         const Duration(seconds: 60),
       );
 
+      final respStr = await response.stream.bytesToString();
+
       if (response.statusCode == 200) {
-        final respStr = await response.stream.bytesToString();
-        final data = json.decode(respStr);
-        return data; // JSON product
+        return json.decode(respStr);
       } else {
-        debugPrint('API Error: ${response.statusCode}');
-        return null;
+        debugPrint('API Error: ${response.statusCode} - $respStr');
+        try {
+          final data = json.decode(respStr);
+          return data; // Return the error response so the UI can handle it
+        } catch (e) {
+          return {
+            'status': 'error',
+            'message': 'Lỗi server (${response.statusCode})',
+          };
+        }
       }
     } catch (e) {
       debugPrint('Error sending image: $e');

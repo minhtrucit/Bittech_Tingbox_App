@@ -95,22 +95,52 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   final apiService = ProductApiService(
-    baseUrl: dotenv.get('API_DETECT_URL'),
+    baseUrl: dotenv.get('API_DETECT_URL_LOCAL'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
 
   // List<Product> scannedProducts = []; // Removed local state
   Future<void> _takePictureAndSend(List<Product> scannedProducts) async {
     _isLoading.value = true;
+    debugPrint('📸 [Camera] Bắt đầu chụp ảnh...');
     try {
       final XFile file = await _camera!.takePicture();
+      debugPrint('📸 [Camera] Chụp ảnh thành công: ${file.path}');
+
+      debugPrint('🌐 [API] Đang gửi ảnh lên server detect...');
       final product = await apiService.sendImage(file.path);
+      debugPrint('📩 [API] Phản hồi từ server: $product');
 
       if (product != null) {
+        if (product['status'] == 'error') {
+          debugPrint('⚠️ [Detect] Server báo lỗi: ${product['message']}');
+          if (mounted) {
+            DialogUtils.showAppDialog(
+              context: context,
+              title: 'Thông báo',
+              content: product['message'] ?? 'Không tìm thấy sản phẩm phù hợp',
+              onFirstAction: () => Navigator.pop(context),
+              firstActionText: 'Đóng',
+            );
+          }
+          return;
+        }
+
         final name = product['name'];
         final index = scannedProducts.indexWhere((p) => p.name == name);
 
+        // Parse price safely
+        final dynamic rawPrice = product['price'];
+        double price = 0.0;
+        if (rawPrice is num) {
+          price = rawPrice.toDouble();
+        } else if (rawPrice is String) {
+          price = double.tryParse(rawPrice) ?? 0.0;
+        }
+        debugPrint('✅ [Detect] Tìm thấy sản phẩm: $name - Giá: $price');
+
         if (index != -1) {
+          debugPrint('➕ [Cart] Sản phẩm đã có trong giỏ, tăng số lượng');
           if (!mounted) return;
 
           context.read<CartBloc>().add(
@@ -120,13 +150,14 @@ class _ScanProductPageState extends State<ScanProductPage> {
             ),
           );
         } else {
+          debugPrint('🛒 [Cart] Thêm sản phẩm mới vào giỏ hàng');
           if (!mounted) return;
           context.read<CartBloc>().add(
             AddToCartEvent(
               Product(
                 id: product['id'],
-                name: product['name'],
-                price: product['price'].toDouble(),
+                name: name,
+                price: price,
                 quantity: 1,
                 url: product['url'],
                 isEmbedded: product['is_embedded'],
@@ -135,9 +166,12 @@ class _ScanProductPageState extends State<ScanProductPage> {
             ),
           );
         }
+      } else {
+        debugPrint('❌ [API] Phản hồi null từ server');
       }
-    } catch (e) {
-      debugPrint('Error taking picture or sending to API: $e');
+    } catch (e, stack) {
+      debugPrint('❌ [Error] Lỗi khi chụp hoặc gửi ảnh: $e');
+      debugPrint('📚 [Stack] $stack');
       if (mounted) {
         DialogUtils.showAppDialog(
           context: context,
