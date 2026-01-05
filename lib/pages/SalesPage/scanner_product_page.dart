@@ -95,7 +95,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   final apiService = ProductApiService(
-    baseUrl: dotenv.get('API_DETECT_URL_LOCAL'),
+    baseUrl: dotenv.get('API_DETECT_URL'),
     api: ApiService.getInstance(baseUrl: dotenv.get('API_BASE_URL')),
   );
 
