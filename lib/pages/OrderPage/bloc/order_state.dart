@@ -14,6 +14,7 @@ final class OrderCreateSuccess extends OrderState {
   final PaymentMethod? paymentMethod;
   final PaymentInfo? paymentInfo;
   final String orderCode;
+  final String? createdAt;
   OrderCreateSuccess({
     required this.success,
     required this.orderId,
@@ -21,6 +22,7 @@ final class OrderCreateSuccess extends OrderState {
     this.paymentInfo,
     this.paymentMethod,
     required this.orderCode,
+    this.createdAt,
   });
 }
 

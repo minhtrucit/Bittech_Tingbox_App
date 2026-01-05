@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/services/print_service.dart';
+import '../../ConfigPage/bloc/config_bloc.dart';
+import '../../ConfigPage/bloc/config_state.dart';
 import '../../../ting_box.dart';
 
 class CashPaymentPage extends StatefulWidget {
@@ -35,6 +38,47 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
         }
         if (state is OrderUpdateStatusSuccess) {
           _isSuccess = true;
+          final order = state.order;
+
+          // Handle Auto Print if configured
+          final configState = context.read<ConfigBloc>().state;
+          if (configState is ConfigLoaded) {
+            final config = configState.config;
+            if (config.printMode == PrintMode.auto) {
+              PrintService().getSavedSettings().then((settings) {
+                final hasPrinter = settings['printerName'] != null;
+
+                if (!hasPrinter) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                } else {
+                  PrintService().autoPrintOrder(order, config).then((success) {
+                    if (success != null && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? 'Đã tự động gửi lệnh in'
+                                : 'Lỗi khi tự động in',
+                          ),
+                          backgroundColor: success ? Colors.green : Colors.red,
+                        ),
+                      );
+                    }
+                  });
+                }
+              });
+            }
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),

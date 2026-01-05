@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
 import 'package:flutter/services.dart';
+import 'package:ting_box/services/print_service.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key, this.config});
@@ -133,7 +134,6 @@ class _ConfigPageState extends State<ConfigPage> {
       logo: _logoFile != null ? _logoFile!.path : widget.config!.logo,
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
-      
     );
 
     context.read<ConfigBloc>().add(UpdateConfigEvent(config: updatedConfig));
@@ -424,7 +424,9 @@ class _ConfigPageState extends State<ConfigPage> {
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 context.read<ConfigBloc>().add(
-                                  GetSepayInfoEvent(configId: widget.config!.id!),
+                                  GetSepayInfoEvent(
+                                    configId: widget.config!.id!,
+                                  ),
                                 );
                               },
                               icon: const Icon(
@@ -835,8 +837,24 @@ class _ConfigPageState extends State<ConfigPage> {
               ),
             ),
           },
-          onValueChanged: (int? value) {
+          onValueChanged: (int? value) async {
             if (value != null) {
+              if (value == 0) {
+                final settings = await PrintService().getSavedSettings();
+                if (settings['printerName'] == null) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          '⚠️ Bạn đang bật in tự động nhưng chưa chọn máy in. Hãy vào mục "Kết nối máy in" để cấu hình.',
+                        ),
+                        backgroundColor: Colors.orange,
+                        duration: Duration(seconds: 4),
+                      ),
+                    );
+                  }
+                }
+              }
               setState(() {
                 _printModeGroupValue = value;
               });

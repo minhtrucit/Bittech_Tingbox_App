@@ -38,6 +38,7 @@ class PrintService {
   String _currentServerUrl = dotenv.get('RELAY_SERVER_URL');
   String _currentAgentId = '';
   String _currentApiKey = '';
+  final Map<int, DateTime> _lastPrintedOrders = {};
 
   /// Initialize the socket connection and load saved settings
   Future<void> init({
@@ -330,41 +331,97 @@ class PrintService {
   }
 
   /// Auto-print an order based on saved settings
-  Future<bool> autoPrintOrder(Order order, ConfigModel? config) async {
+  Future<bool?> autoPrintOrder(Order order, ConfigModel? config) async {
+    final orderId = order.id;
+    if (orderId == null) return false;
+
+    // Registry check: prevent printing the same order multiple times within 60 seconds
+    final lastPrintTime = _lastPrintedOrders[orderId];
+    if (lastPrintTime != null &&
+        DateTime.now().difference(lastPrintTime).inSeconds < 60) {
+      _log(
+        '🚫 [PrintService] Auto-print ignored: Order #$orderId was already printed recently',
+      );
+      return null;
+    }
+
+    _lastPrintedOrders[orderId] = DateTime.now();
+    _log(' [PrintService] Starting auto-print for order #${order.code}...');
     final settings = await getSavedSettings();
-    final printerName = settings['printerName'];
+    final savedPrinterName = settings['printerName'];
+    final savedAgentId = settings['agentId'];
+
+    _log(
+      ' [PrintService] Saved settings: { agentId: $savedAgentId, printerName: $savedPrinterName }',
+    );
 
     // Priorities: Saved setting > Stable ID (BITTECH_USER_{id})
     final prefix = dotenv.get('AGENT_ID_PREFIX', fallback: 'BITTECH_USER_');
     final agentId =
-        settings['agentId'] ??
-        (config?.id != null ? '$prefix${config!.id}' : null);
+        savedAgentId ?? (config?.id != null ? '$prefix${config!.id}' : null);
 
-    if (agentId == null || printerName == null) {
-      _log('⚠️ [PrintService] Auto-print skipped: No agent or printer saved');
+    _log(
+      ' [PrintService] Final Target Agent ID: $agentId (using prefix: $prefix)',
+    );
+
+    if (agentId == null || savedPrinterName == null) {
+      _log(
+        '⚠️ [PrintService] Auto-print skipped: Missing critical settings. AgentId: $agentId, Printer: $savedPrinterName',
+      );
       return false;
     }
 
     try {
       // Re-initialize if the API Key from config is different or if not connected
+      bool needReconnect = false;
       if (config?.sepayApiKey != null &&
           config?.sepayApiKey != _currentApiKey) {
-        _log('🔑 [PrintService] Key changed, re-initializing...');
-        await init(agentId: agentId, apiKey: config?.sepayApiKey);
+        _log('🔑 [PrintService] Reconnect reason: API Key changed');
+        needReconnect = true;
       } else if (!isConnected.value) {
+        _log(
+          '🔑 [PrintService] Reconnect reason: Socket currently disconnected',
+        );
+        needReconnect = true;
+      }
+
+      if (needReconnect) {
+        _log('🔄 [PrintService] Re-initializing connection before print...');
         await init(agentId: agentId, apiKey: config?.sepayApiKey);
       }
 
+      _log('📝 [PrintService] Formatting order data...');
       final printData = formatOrderData(order, config);
+      _log(
+        '📤 [PrintService] Sending print request to printer: $savedPrinterName',
+      );
+
       final result = await sendPrint(
         targetAgentId: agentId,
-        printerName: printerName,
+        printerName: savedPrinterName,
         printData: printData,
       );
-      return result['success'] == true;
-    } catch (e) {
-      _log('🚨 [PrintService] Auto-print failed: $e');
+
+      final isSuccess = result['success'] == true;
+      if (isSuccess) {
+        _log('✅ [PrintService] Auto-print successful for order #${order.code}');
+      } else {
+        _log(
+          '❌ [PrintService] Auto-print failed for order #${order.code}. Error: ${result['error']}',
+        );
+      }
+      return isSuccess;
+    } catch (e, stack) {
+      _log('🚨 [PrintService] Critical error during auto-print: $e');
+      debugPrint('$stack');
+      // On failure, we might want to allow a retry, so remove from registry
+      _lastPrintedOrders.remove(orderId);
       return false;
+    } finally {
+      // Cleanup old entries (older than 1 minute) to keep the map small
+      _lastPrintedOrders.removeWhere(
+        (key, value) => DateTime.now().difference(value).inSeconds > 60,
+      );
     }
   }
 

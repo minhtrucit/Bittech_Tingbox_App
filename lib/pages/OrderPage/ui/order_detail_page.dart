@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/services/websocket_manager.dart';
+import 'package:ting_box/services/print_service.dart';
+import '../../ConfigPage/bloc/config_bloc.dart';
+import '../../ConfigPage/bloc/config_state.dart';
 import '../../../ting_box.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -45,10 +48,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               _currentOrder.paidAmount = _currentOrder.totalAmount ?? 0;
             }
           });
+          // Chỉ in tự động nếu trang này đang ở trên cùng (không có sheet/page nào đè lên)
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            _handleAutoPrint(_currentOrder);
+          }
         } else if (state is OrderUpdateStatusSuccess) {
           setState(() {
             _currentOrder = state.order;
           });
+          // Chỉ in tự động nếu trang này đang ở trên cùng
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            _handleAutoPrint(_currentOrder);
+          }
         }
       },
       child: AppScaffold(
@@ -91,6 +102,44 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         builder: (_) => ReceiptPreviewPage(order: _currentOrder),
       ),
     );
+  }
+
+  void _handleAutoPrint(Order order) {
+    final configState = context.read<ConfigBloc>().state;
+    if (configState is ConfigLoaded) {
+      final config = configState.config;
+      if (config.printMode == PrintMode.auto) {
+        PrintService().getSavedSettings().then((settings) {
+          final hasPrinter = settings['printerName'] != null;
+
+          if (!hasPrinter) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
+                  ),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } else {
+            PrintService().autoPrintOrder(order, config).then((success) {
+              if (success != null && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success ? 'Đã tự động gửi lệnh in' : 'Lỗi khi tự động in',
+                    ),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            });
+          }
+        });
+      }
+    }
   }
 
   Widget _buildOrderInfoCard() {
@@ -674,6 +723,20 @@ class _QrSheetContentState extends State<_QrSheetContent> {
     return BlocListener<OrderBloc, OrderState>(
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
+          final order = state.order;
+          if (order != null) {
+            final configState = context.read<ConfigBloc>().state;
+            if (configState is ConfigLoaded) {
+              final config = configState.config;
+              if (config.printMode == PrintMode.auto) {
+                PrintService().getSavedSettings().then((settings) {
+                  if (settings['printerName'] != null) {
+                    PrintService().autoPrintOrder(order, config);
+                  }
+                });
+              }
+            }
+          }
           showSuccessDialog();
         } else if (state is OrderSePayWebHookFailed) {
           DialogUtils.showAppDialog(

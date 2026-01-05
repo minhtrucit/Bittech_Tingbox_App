@@ -107,6 +107,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                       orderCode: state.orderCode,
                       userId: state.userId,
                       paymentStatus: PaymentStatus.unpaid,
+                      createdAt: state.createdAt,
                     ),
               ),
             );

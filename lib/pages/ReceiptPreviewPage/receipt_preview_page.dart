@@ -54,11 +54,15 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
       final settings = await _printService.getSavedSettings();
 
       if (mounted) {
+        final printerToSave =
+            settings['printerName'] ??
+            (printers.isNotEmpty ? printers.first : null);
+        if (settings['printerName'] == null && printerToSave != null) {
+          await _printService.savePrinterSettings(agentId, printerToSave);
+        }
         setState(() {
           _availablePrinters = printers;
-          _selectedPrinter =
-              settings['printerName'] ??
-              (printers.isNotEmpty ? printers.first : null);
+          _selectedPrinter = printerToSave;
           _isLoadingPrinters = false;
         });
       }
@@ -189,11 +193,13 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
                     setState(() => _selectedPrinter = value);
                     final configState = context.read<ConfigBloc>().state;
                     if (configState is ConfigLoaded &&
-                        configState.config.unitName != null) {
-                      _printService.savePrinterSettings(
-                        configState.config.unitName!,
-                        value,
+                        configState.config.id != null) {
+                      final prefix = dotenv.get(
+                        'AGENT_ID_PREFIX',
+                        fallback: 'BITTECH_USER_',
                       );
+                      final agentId = '$prefix${configState.config.id}';
+                      _printService.savePrinterSettings(agentId, value);
                     }
                   },
                   itemBuilder:

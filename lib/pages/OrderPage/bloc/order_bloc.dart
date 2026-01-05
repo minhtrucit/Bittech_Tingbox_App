@@ -69,6 +69,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           paymentInfo:
               paymentData != null ? PaymentInfo.fromJson(paymentData) : null,
           paymentMethod: paymentMethod,
+          createdAt: response['data']['createdAt'],
         ),
       );
     } catch (e, st) {

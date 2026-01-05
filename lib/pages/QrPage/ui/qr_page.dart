@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/extension/date_time_extension.dart';
 
 import '../../../services/websocket_manager.dart';
 import '../../../services/print_service.dart';
@@ -16,6 +17,7 @@ class QrPage extends StatefulWidget {
   final int orderId;
   final int userId;
   final String paymentStatus;
+  final String? createdAt;
 
   const QrPage({
     required this.paymentInfo,
@@ -23,6 +25,7 @@ class QrPage extends StatefulWidget {
     required this.orderId,
     required this.userId,
     required this.paymentStatus,
+    this.createdAt,
     super.key,
   });
 
@@ -183,18 +186,39 @@ class _QrPageState extends State<QrPage> {
       if (configState is ConfigLoaded) {
         final config = configState.config;
         if (config.printMode == PrintMode.auto) {
-          debugPrint('🖨️ [QrPage] Triggering automatic print...');
-          PrintService().autoPrintOrder(order, config).then((success) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    success ? 'Đã tự động gửi lệnh in' : 'Lỗi khi tự động in',
+          debugPrint(
+            '🖨️ [QrPage] Auto-print is enabled, checking settings...',
+          );
+          PrintService().getSavedSettings().then((settings) {
+            final hasPrinter = settings['printerName'] != null;
+
+            if (!hasPrinter) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
+                    ),
+                    backgroundColor: Colors.orange,
                   ),
-                  backgroundColor: success ? Colors.green : Colors.red,
-                ),
-              );
+                );
+              }
+              return;
             }
+
+            debugPrint('🖨️ [QrPage] Triggering automatic print...');
+            PrintService().autoPrintOrder(order, config).then((success) {
+              if (success != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success ? 'Đã tự động gửi lệnh in' : 'Lỗi khi tự động in',
+                    ),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            });
           });
         }
       }
@@ -212,6 +236,16 @@ class _QrPageState extends State<QrPage> {
       listener: (context, state) {
         if (state is OrderPaymentSuccess) {
           _handlePaymentSuccessState(context, state);
+        } else if (state is OrderSePayWebHookFailed) {
+          DialogUtils.showAppDialog(
+            context: context,
+            title: "Lỗi",
+            content: state.message,
+            firstActionText: "Đóng",
+            onFirstAction: () {
+              Navigator.pop(context);
+            },
+          );
         }
       },
       child: PopScope(
@@ -373,19 +407,54 @@ class _QrPageState extends State<QrPage> {
       child: ElevatedButton(
         onPressed: isLoading ? null : _handleDemoPayment,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
+          foregroundColor: AppColors.primaryBlue,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
         ),
-        child: const Text("Demo Thành công"),
+        child:
+            isLoading
+                ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primaryBlue,
+                  ),
+                )
+                : FittedBox(
+                  child: Text(
+                    "Demo thanh toán",
+                    style: TextStyle(color: AppColors.primaryBlue),
+                  ),
+                ),
       ),
     );
   }
 
   void _handleDemoPayment() {
-    _handlePaymentSuccess({"orderId": widget.orderId});
+    if (widget.paymentStatus != PaymentStatus.unpaid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đơn hàng đã được thanh toán rồi'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    context.read<OrderBloc>().add(
+      OrderSePayWebHookEvent(
+        orderId: widget.orderId,
+        orderCode: widget.orderCode,
+        transferAmount: widget.paymentInfo.amount.toInt(),
+        transactionDate:
+            widget.createdAt?.toReadableDateTime() ?? DateTime.now().toString(),
+        paymentInfo: widget.paymentInfo,
+      ),
+    );
   }
 
   Widget _buildCloseButton() {
