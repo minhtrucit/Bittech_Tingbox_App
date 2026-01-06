@@ -64,7 +64,10 @@ class _QrPageState extends State<QrPage> {
     try {
       final jsonData = data as Map<String, dynamic>;
       debugPrint('Payment success event: $jsonData');
-      context.read<OrderBloc>().add(OrderPaymentSuccessEvent(jsonData));
+      debugPrint('Payment success event: ${jsonData['orderId']}');
+      if (jsonData['orderId'] == widget.orderId) {
+        context.read<OrderBloc>().add(OrderPaymentSuccessEvent(jsonData));
+      }
     } catch (e) {
       debugPrint('Error handling payment success: $e');
     }
