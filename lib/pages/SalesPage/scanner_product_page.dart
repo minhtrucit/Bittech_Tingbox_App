@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../utils/audio_manager.dart'; // Added import for AudioManager
 
 import '../../services/api_services.dart';
 import '../../services/order_service.dart';
@@ -20,9 +22,12 @@ class ScanProductPage extends StatefulWidget {
   State<ScanProductPage> createState() => _ScanProductPageState();
 }
 
+enum ScanMode { scan, photo }
+
 class _ScanProductPageState extends State<ScanProductPage> {
   CameraController? _camera;
   bool _isCameraReady = false;
+  ScanMode _scanMode = ScanMode.scan;
 
   CameraLensDirection _lenDirection = CameraLensDirection.back;
   bool _isFlashOn = false;
@@ -38,9 +43,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
   bool _enteredEmpty = false;
   bool _canPop = false;
 
+  // Barcode Scanner variables
+  MobileScannerController? _scannerController;
+  final bool _isScanning = true;
+  DateTime? _lastScanTime; // Timestamp of the last successful scan
+  String? _lastScannedBarcode; // Last scanned barcode value
+  static const Duration _duplicateCooldown = Duration(
+    seconds: 2,
+  ); // 2 seconds cooldown for duplicates
   @override
   void initState() {
-    _initCamera();
+    // Start with scanner
+    _initScanner();
+
     final cartItems = context.read<CartBloc>().state.items;
     _enteredEmpty = cartItems.isEmpty;
     _isCameraVisible = _enteredEmpty;
@@ -52,7 +67,23 @@ class _ScanProductPageState extends State<ScanProductPage> {
     super.initState();
   }
 
+  Future<void> _initScanner() async {
+    _disposeCamera(); // Ensure camera is disposed
+    _scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      returnImage: false,
+    );
+    setState(() {
+      _isCameraReady = true;
+      _scanMode = ScanMode.scan;
+      _isFlashOn = false;
+    });
+  }
+
   Future<void> _initCamera() async {
+    _scannerController?.dispose(); // Ensure scanner is disposed
+    _scannerController = null;
+
     final description = await CameraUtils.getCamera(_lenDirection);
     _camera = CameraController(
       description,
@@ -65,16 +96,31 @@ class _ScanProductPageState extends State<ScanProductPage> {
         debugPrint('Camera exception: ${e.description}');
       }
     });
+
     await CameraUtils.lockCaptureOrientation(_camera!);
     unawaited(_camera?.setFlashMode(FlashMode.off));
-    setState(() => _isCameraReady = true);
+
+    setState(() {
+      _isCameraReady = true;
+      _scanMode = ScanMode.photo;
+      _isFlashOn = false; // Reset flash state
+    });
+  }
+
+  void _disposeCamera() {
+    _camera?.dispose();
+    _camera = null;
   }
 
   void _toggleFlash() {
-    if (_isFlashOn) {
-      _camera?.setFlashMode(FlashMode.off);
+    if (_scanMode == ScanMode.photo) {
+      if (_isFlashOn) {
+        _camera?.setFlashMode(FlashMode.off);
+      } else {
+        _camera?.setFlashMode(FlashMode.torch);
+      }
     } else {
-      _camera?.setFlashMode(FlashMode.torch);
+      _scannerController?.toggleTorch();
     }
     setState(() {
       _isFlashOn = !_isFlashOn;
@@ -82,16 +128,20 @@ class _ScanProductPageState extends State<ScanProductPage> {
   }
 
   void _changeLenDirection() {
-    if (_lenDirection == CameraLensDirection.back) {
-      _lenDirection = CameraLensDirection.front;
-      _camera?.setFlashMode(FlashMode.off);
-      setState(() {
-        _isFlashOn = false;
-      });
+    if (_scanMode == ScanMode.photo) {
+      if (_lenDirection == CameraLensDirection.back) {
+        _lenDirection = CameraLensDirection.front;
+        _camera?.setFlashMode(FlashMode.off);
+        setState(() {
+          _isFlashOn = false;
+        });
+      } else {
+        _lenDirection = CameraLensDirection.back;
+      }
+      _initCamera();
     } else {
-      _lenDirection = CameraLensDirection.back;
+      _scannerController?.switchCamera();
     }
-    _initCamera();
   }
 
   final apiService = ProductApiService(
@@ -184,6 +234,81 @@ class _ScanProductPageState extends State<ScanProductPage> {
       }
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  Future<void> _scanBarCodeAndSend(
+    String barcode,
+    List<Product> scannedProducts,
+  ) async {
+    if (barcode.isEmpty) return;
+    debugPrint('🔎 Finding product with barcode: $barcode');
+
+    // Play scan sound
+    await AudioManager().playScanSound();
+
+    // Find product in the cached list
+    final normalizedBarcode = barcode.trim();
+
+    // Debug info: print all barcodes in list to see if match exists
+    // debugPrint('📋 Available barcodes in list: ${products.map((p) => '"${p.barcode}"').toList()}');
+
+    final product = products.firstWhere(
+      (p) {
+        final pBarcode = (p.barcode ?? '').trim();
+        final isMatch = pBarcode == normalizedBarcode;
+        if (isMatch) {
+          debugPrint(
+            '🎯 Match found! DB: "$pBarcode" vs Scan: "$normalizedBarcode"',
+          );
+        }
+        return isMatch;
+      },
+      orElse: () {
+        debugPrint('❌ NO MATCH for Scan: "$normalizedBarcode"');
+        return Product(id: -1, name: '', price: 0, quantity: 0);
+      },
+    );
+
+    if (product.id != -1) {
+      debugPrint('✅ Product found locally: ${product.name}');
+      final index = scannedProducts.indexWhere((p) => p.id == product.id);
+      if (!mounted) return;
+      if (index != -1) {
+        // Product exists in cart, update quantity
+        context.read<CartBloc>().add(
+          UpdateQuantityEvent(
+            scannedProducts[index],
+            scannedProducts[index].quantity + 1,
+          ),
+        );
+      } else {
+        // Add new product to cart
+        context.read<CartBloc>().add(
+          AddToCartEvent(product.copyWith(quantity: 1)),
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã thêm sản phẩm: ${product.name}'),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      debugPrint('⚠️ Product not found for barcode: $barcode');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không tìm thấy sản phẩm với mã: $barcode'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
@@ -358,7 +483,8 @@ class _ScanProductPageState extends State<ScanProductPage> {
   @override
   void dispose() {
     debugPrint('Disposing camera controller');
-    _camera?.dispose();
+    _disposeCamera();
+    _scannerController?.dispose();
     super.dispose();
   }
 
@@ -422,10 +548,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         backgroundColor: Colors.transparent,
                         leading: buildBackButton(context, scannedProducts),
                         actions:
-                            _isCameraVisible && _isCameraReady
+                            _isCameraVisible && _scanMode == ScanMode.photo
                                 ? [
-                                  if (_lenDirection == CameraLensDirection.back)
-                                    buildFlashButton(),
+                                  // if (_lenDirection == CameraLensDirection.back)
+                                  buildFlashButton(),
                                   SizedBox(width: 8.w),
                                   buildChangeLenButton(),
                                 ]
@@ -436,8 +562,43 @@ class _ScanProductPageState extends State<ScanProductPage> {
                 builder: (context, constraints) {
                   return Stack(
                     children: [
-                      if (_isCameraVisible && _isCameraReady)
-                        SizedBox.expand(child: CameraPreview(_camera!)),
+                      if (_isCameraVisible) ...[
+                        if (_scanMode == ScanMode.scan &&
+                            _scannerController != null)
+                          SizedBox.expand(
+                            child: MobileScanner(
+                              controller: _scannerController!,
+                              onDetect: (capture) {
+                                if (!_isScanning) return;
+
+                                final now = DateTime.now();
+                                final List<Barcode> barcodes = capture.barcodes;
+
+                                for (final barcode in barcodes) {
+                                  if (barcode.rawValue != null) {
+                                    final code = barcode.rawValue!;
+
+                                    if (_lastScannedBarcode == code &&
+                                        _lastScanTime != null &&
+                                        now.difference(_lastScanTime!) <
+                                            _duplicateCooldown) {
+                                      continue;
+                                    }
+
+                                    _lastScanTime = now;
+                                    _lastScannedBarcode = code;
+                                    _scanBarCodeAndSend(code, scannedProducts);
+                                    break;
+                                  }
+                                }
+                              },
+                            ),
+                          )
+                        else if (_scanMode == ScanMode.photo &&
+                            _camera != null &&
+                            _camera!.value.isInitialized)
+                          SizedBox.expand(child: CameraPreview(_camera!)),
+                      ],
 
                       Positioned(
                         bottom: 0,
@@ -495,10 +656,7 @@ class _ScanProductPageState extends State<ScanProductPage> {
                         ),
                       ),
                       if (_currentTab == 0 && _isCameraVisible)
-                        _buildTakePhotoButton(
-                          onTap: () => _takePictureAndSend(scannedProducts),
-                          isLoading: _isLoading,
-                        ),
+                        _buildModeIncludedControls(scannedProducts),
                     ],
                   );
                 },
@@ -565,38 +723,83 @@ class _ScanProductPageState extends State<ScanProductPage> {
     );
   }
 
-  Widget _buildTakePhotoButton({
-    required VoidCallback? onTap,
-    ValueNotifier<bool>? isLoading,
-  }) {
+  Widget _buildModeIncludedControls(List<Product> scannedProducts) {
     return Positioned(
       bottom: 360.h,
       left: 0,
       right: 0,
-      child: Center(
-        child: GestureDetector(
-          onTap: onTap,
-          child: ValueListenableBuilder<bool>(
-            valueListenable: isLoading ?? ValueNotifier(false),
-            builder: (context, isLoadingState, child) {
-              return Container(
-                width: 65,
-                height: 65,
-                decoration: BoxDecoration(
-                  color: isLoadingState ? Colors.transparent : Colors.red,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
+      child: Column(
+        children: [
+          // Mode Switcher
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildModeButton(
+                  "Quét mã",
+                  _scanMode == ScanMode.scan,
+                  () => _initScanner(),
                 ),
-                child:
-                    isLoadingState
-                        ? const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primaryBlue,
-                          ),
-                        )
-                        : null,
-              );
-            },
+                _buildModeButton(
+                  "Chụp ảnh",
+                  _scanMode == ScanMode.photo,
+                  () => _initCamera(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Take Photo Button (Only visible in Photo mode)
+          if (_scanMode == ScanMode.photo)
+            GestureDetector(
+              onTap: () => _takePictureAndSend(scannedProducts),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isLoading,
+                builder: (context, isLoadingState, child) {
+                  return Container(
+                    width: 65,
+                    height: 65,
+                    decoration: BoxDecoration(
+                      color: isLoadingState ? Colors.transparent : Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                    ),
+                    child:
+                        isLoadingState
+                            ? const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryBlue,
+                              ),
+                            )
+                            : null,
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeButton(String text, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.yellow : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

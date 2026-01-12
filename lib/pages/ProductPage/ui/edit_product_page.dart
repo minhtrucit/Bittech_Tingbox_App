@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../utils/audio_manager.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +25,11 @@ class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController nameCtrl;
   late TextEditingController priceCtrl;
   late TextEditingController descCtrl;
+  late TextEditingController barcodeCtrl;
+
+  // Scanner
+  bool isScanning = false;
+  MobileScannerController? scannerController;
 
   // Images
   List<ProductImage> existingImages = [];
@@ -40,6 +47,7 @@ class _EditProductPageState extends State<EditProductPage> {
       text: CurrencyInputFormatter.formatValue(widget.product.price),
     );
     descCtrl = TextEditingController(text: widget.product.description ?? '');
+    barcodeCtrl = TextEditingController(text: widget.product.barcode ?? '');
 
     // Initialize category
     if (widget.product.category != null) {
@@ -58,6 +66,8 @@ class _EditProductPageState extends State<EditProductPage> {
     nameCtrl.dispose();
     priceCtrl.dispose();
     descCtrl.dispose();
+    barcodeCtrl.dispose();
+    scannerController?.dispose();
     super.dispose();
   }
 
@@ -126,12 +136,15 @@ class _EditProductPageState extends State<EditProductPage> {
     final hasPriceChanged = price != widget.product.price;
     final hasDescriptionChanged =
         descCtrl.text.trim() != (widget.product.description ?? '');
+    final hasBarcodeChanged =
+        barcodeCtrl.text.trim() != (widget.product.barcode ?? '');
     final hasNewImages = pickedImages.isNotEmpty;
 
     // If nothing changed, show message and return
     if (!hasNameChanged &&
         !hasPriceChanged &&
         !hasDescriptionChanged &&
+        !hasBarcodeChanged &&
         !hasNewImages) {
       DialogUtils.showAppDialog(
         context: context,
@@ -158,6 +171,7 @@ class _EditProductPageState extends State<EditProductPage> {
       description: descCtrl.text.trim(),
       categoryId: widget.product.categoryId,
       distributorId: widget.product.distributorId,
+      barcode: barcodeCtrl.text.trim(),
     );
 
     // Dispatch update event
@@ -248,6 +262,9 @@ class _EditProductPageState extends State<EditProductPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildBarcodeSection(),
+                    if (isScanning) _buildScannerView(),
+                    const SizedBox(height: 20),
                     _buildProductNameSection(),
                     const SizedBox(height: 20),
                     _buildPriceSection(),
@@ -298,6 +315,85 @@ class _EditProductPageState extends State<EditProductPage> {
       firstActionText: 'Xóa',
       onSecondAction: () => Navigator.pop(context),
       secondActionText: 'Hủy',
+    );
+  }
+
+  Widget _buildBarcodeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTitle("Mã sản phẩm"),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _buildInput(
+                hint: "Nhập hoặc quét mã sản phẩm",
+                controller: barcodeCtrl,
+                showClearButton: true, // Show clear button only for barcode
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  isScanning = !isScanning;
+                  if (isScanning) {
+                    scannerController = MobileScannerController();
+                  } else {
+                    scannerController?.dispose();
+                    scannerController = null;
+                  }
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(top: 6),
+                height: 48,
+                width: 48,
+                decoration: _boxDecoration().copyWith(
+                  color: isScanning ? Colors.red : AppColors.primaryBlue,
+                ),
+                child: Icon(
+                  isScanning ? Icons.close : Icons.qr_code_scanner,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScannerView() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      height: 200.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: MobileScanner(
+          controller: scannerController!,
+          onDetect: (capture) async {
+            final Barcode barcode = capture.barcodes.first;
+            if (barcode.rawValue != null) {
+              debugPrint('Barcode found! ${barcode.rawValue}');
+              await AudioManager().playScanSound();
+              setState(() {
+                barcodeCtrl.text = barcode.rawValue!;
+                isScanning = false;
+                scannerController?.dispose();
+                scannerController = null;
+              });
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -534,17 +630,34 @@ class _EditProductPageState extends State<EditProductPage> {
     TextEditingController? controller,
     int maxLines = 1,
     bool isCurrency = false,
+    bool showClearButton = false, // Default to false
   }) {
     return Container(
       margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: _boxDecoration(),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        keyboardType: keyboard,
-        inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              maxLines: maxLines,
+              keyboardType: keyboard,
+              inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
+              decoration: InputDecoration(
+                hintText: hint,
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          if (controller != null && showClearButton)
+            GestureDetector(
+              onTap: () {
+                controller.clear();
+              },
+              child: const Icon(Icons.cancel_outlined, color: Colors.grey),
+            ),
+        ],
       ),
     );
   }
