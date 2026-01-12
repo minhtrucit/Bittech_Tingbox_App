@@ -231,13 +231,43 @@ class PrintService {
     }
 
     // --- FOOTER ---
-    footerBuffer.writeln('\nCảm ơn quý khách!');
-    footerBuffer.writeln('Hẹn gặp lại\n\n\n');
+    ConfigBankAccount? defaultBank;
+    if (config?.bankAccounts != null && config!.bankAccounts.isNotEmpty) {
+      defaultBank = config.bankAccounts.firstWhere(
+        (e) => e.isDefault,
+        orElse: () => config.bankAccounts.first,
+      );
+    }
+
+    if (defaultBank != null) {
+      footerBuffer.writeln(_centerText(defaultBank.qrCode ?? '', 32));
+      footerBuffer.writeln(_centerText(defaultBank.accountName, 32));
+      footerBuffer.writeln(_centerText(defaultBank.accountNumber, 32));
+      footerBuffer.writeln(
+        _centerText(
+          defaultBank.bank?.shortName ?? defaultBank.bank?.name ?? '',
+          32,
+        ),
+      );
+      footerBuffer.writeln('');
+    }
+
+    footerBuffer.writeln(_centerText('Cảm ơn quý khách!', 32));
+    footerBuffer.writeln(_centerText('Hẹn gặp lại', 32));
+    footerBuffer.writeln('');
+    footerBuffer.writeln(_centerText('TingBox - Một sản phẩm của Bittech', 32));
+    footerBuffer.writeln('\n\n\n');
 
     return {
       'header': headerBuffer.toString(),
       'products': productsBuffer.toString(),
       'footer': footerBuffer.toString(),
+      if (defaultBank != null) ...{
+        'bankBin': defaultBank.bank?.code ?? defaultBank.bank?.shortName ?? '',
+        'bankAccount': defaultBank.accountNumber,
+        'bankAccountName': defaultBank.accountName,
+        'transferContent': '${order.code}',
+      },
     };
   }
 
@@ -245,6 +275,12 @@ class PrintService {
     final spaces = width - left.length - right.length;
     if (spaces <= 0) return '$left $right';
     return left + (' ' * spaces) + right;
+  }
+
+  String _centerText(String text, int width) {
+    if (text.length >= width) return text;
+    final padding = (width - text.length) ~/ 2;
+    return (' ' * padding) + text;
   }
 
   String formatMoney(num amount) {

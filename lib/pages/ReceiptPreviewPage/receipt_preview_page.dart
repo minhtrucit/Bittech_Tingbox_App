@@ -182,6 +182,8 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
                   ),
                 )
                 : PopupMenuButton<String>(
+                  position: PopupMenuPosition.under,
+                  color: Colors.white,
                   icon: const Icon(
                     Icons.print_outlined,
                     color: AppColors.primaryBlue,
@@ -215,7 +217,13 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
                                                 : Colors.transparent,
                                       ),
                                       SizedBox(width: 8.w),
-                                      Text(p),
+                                      Expanded(
+                                        child: Text(
+                                          p,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
