@@ -58,7 +58,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     CreateProductEvent event,
     Emitter<ProductState> emit,
   ) async {
-
     try {
       final body = {
         "name": event.productData.name,
@@ -67,7 +66,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         "description": event.productData.description,
         "images": event.productData.images,
         "distributorId": 1,
+        "barcode": event.productData.barcode,
       };
+
+      debugPrint('=== CREATE PRODUCT PAYLOAD ===');
+      debugPrint(body.toString());
       final response = await productApiService.createProduct(
         body: body,
         images: event.images,
@@ -148,7 +151,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         "categoryId": event.productData.categoryId,
         "description": event.productData.description,
         "distributorId": event.productData.distributorId ?? 1,
+        "barcode": event.productData.barcode,
       };
+
+      debugPrint('=== UPDATE PRODUCT PAYLOAD ===');
+      debugPrint(body.toString());
 
       final response = await productApiService.updateProduct(
         productId: event.productData.id,

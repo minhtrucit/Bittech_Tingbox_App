@@ -437,6 +437,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
               child: _buildInput(
                 hint: "Nhập hoặc quét mã sản phẩm",
                 controller: barcodeCtrl,
+                showClearButton: true,
               ),
             ),
             const SizedBox(width: 8),
@@ -726,17 +727,34 @@ class _CreateProductPageState extends State<CreateProductPage> {
     TextEditingController? controller,
     int maxLines = 1,
     bool isCurrency = false,
+    bool showClearButton = false, // Default to false
   }) {
     return Container(
       margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: _boxDecoration(),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        keyboardType: keyboard,
-        inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              maxLines: maxLines,
+              keyboardType: keyboard,
+              inputFormatters: isCurrency ? [CurrencyInputFormatter()] : null,
+              decoration: InputDecoration(
+                hintText: hint,
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          if (controller != null && showClearButton)
+            GestureDetector(
+              onTap: () {
+                controller.clear();
+              },
+              child: const Icon(Icons.cancel_outlined, color: Colors.grey),
+            ),
+        ],
       ),
     );
   }

@@ -44,6 +44,50 @@ class Product {
     this.embeddingUrl = "",
   });
 
+  Product copyWith({
+    int? id,
+    String? name,
+    double? price,
+    String? url,
+    int? quantity,
+    String? sku,
+    int? distributorId,
+    Distributor? distributor,
+    String? barcode,
+    double? costPrice,
+    List<ProductImage>? images,
+    String? description,
+    int? categoryId,
+    Category? category,
+    bool? isActive,
+    String? createdAt,
+    String? updatedAt,
+    bool? isEmbedded,
+    String? embeddingUrl,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      url: url ?? this.url,
+      quantity: quantity ?? this.quantity,
+      sku: sku ?? this.sku,
+      distributorId: distributorId ?? this.distributorId,
+      distributor: distributor ?? this.distributor,
+      barcode: barcode ?? this.barcode,
+      costPrice: costPrice ?? this.costPrice,
+      images: images ?? this.images,
+      description: description ?? this.description,
+      categoryId: categoryId ?? this.categoryId,
+      category: category ?? this.category,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isEmbedded: isEmbedded ?? this.isEmbedded,
+      embeddingUrl: embeddingUrl ?? this.embeddingUrl,
+    );
+  }
+
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
