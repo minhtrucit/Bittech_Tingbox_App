@@ -40,6 +40,7 @@ dependencies:
   network_info_plus: ^7.0.0
   connectivity_plus: ^7.0.0
   mobile_scanner: ^7.1.4
+  flame_audio: ^2.11.8
 
   
 dependency_overrides:
@@ -88,6 +89,8 @@ flutter:
     - assets/images/tingbox_login/2x/tingbox_logo_login.png
     - assets/images/tingbox_login/3x/tingbox_logo_login.png
     - assets/images/tingbox_login/4x/tingbox_logo_login.png
+    - assets/audio/
+    - assets/audio/scanner_audio.mp3
 
   fonts:
     - family: montserrat

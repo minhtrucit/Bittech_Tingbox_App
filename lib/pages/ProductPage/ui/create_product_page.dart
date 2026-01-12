@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../utils/audio_manager.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -484,12 +485,16 @@ class _CreateProductPageState extends State<CreateProductPage> {
         borderRadius: BorderRadius.circular(12),
         child: MobileScanner(
           controller: scannerController!,
-          onDetect: (capture) {
+          onDetect: (capture) async {
             final Barcode barcode = capture.barcodes.first;
             if (barcode.rawValue != null) {
               debugPrint('Barcode found! ${barcode.rawValue}');
+              await AudioManager().playScanSound();
               setState(() {
                 barcodeCtrl.text = barcode.rawValue!;
+                isScanning = false;
+                scannerController?.dispose();
+                scannerController = null;
               });
             }
           },

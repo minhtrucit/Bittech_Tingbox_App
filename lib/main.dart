@@ -17,6 +17,7 @@ import 'package:ting_box/ting_box.dart';
 
 import 'services/websocket_manager.dart';
 import 'services/user_services.dart';
+import 'utils/audio_manager.dart';
 
 void main() async {
   SystemChrome.setSystemUIOverlayStyle(
@@ -44,7 +45,8 @@ void main() async {
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
   final webSocketManager = WebSocketManager();
 
-
+  // Initialize Audio Manager
+  AudioManager().init();
 
   webSocketManager.connect(dotenv.get('WEBSOCKET_BASE_URL'));
   if (accessToken != null && refreshToken != null) {
