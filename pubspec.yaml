@@ -4,7 +4,7 @@ description: "BitTech Ting Box Flutter Client"
 publish_to: 'none' 
 
 
-version: 1.0.1+9
+version: 1.0.1+10
 
 environment:
   sdk: ^3.7.2
@@ -39,6 +39,7 @@ dependencies:
   flutter_pdfview: ^1.4.3
   network_info_plus: ^7.0.0
   connectivity_plus: ^7.0.0
+  mobile_scanner: ^7.1.4
 
   
 dependency_overrides:

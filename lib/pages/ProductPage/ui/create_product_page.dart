@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,15 +20,28 @@ class CreateProductPage extends StatefulWidget {
 class _CreateProductPageState extends State<CreateProductPage> {
   String? selectedCategory;
   List<String> categories = [];
+  final barcodeCtrl = TextEditingController();
   final nameCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   List<XFile> pickedImages = [];
   bool isLoading = false;
+  bool isScanning = false;
+  MobileScannerController? scannerController;
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    barcodeCtrl.dispose();
+    nameCtrl.dispose();
+    priceCtrl.dispose();
+    descCtrl.dispose();
+    scannerController?.dispose();
+    super.dispose();
   }
 
   Future<void> pickImagesFromGallery() async {
@@ -93,6 +107,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
       description: descCtrl.text.trim(),
       categoryId: 2,
       url: images[0].path,
+      barcode: barcodeCtrl.text.trim(),
     );
 
     // Gọi bloc
@@ -106,6 +121,7 @@ class _CreateProductPageState extends State<CreateProductPage> {
 
   void clearForm() {
     setState(() {
+      barcodeCtrl.clear();
       nameCtrl.clear();
       descCtrl.clear();
       priceCtrl.clear();
@@ -171,6 +187,9 @@ class _CreateProductPageState extends State<CreateProductPage> {
                   children: [
                     // _buildCategorySection(context),
                     // const SizedBox(height: 20),
+                    _buildBarcodeSection(),
+                    if (isScanning) _buildScannerView(),
+                    const SizedBox(height: 20),
                     _buildProductNameSection(),
                     const SizedBox(height: 20),
                     _buildPriceSection(),
@@ -397,6 +416,83 @@ class _CreateProductPageState extends State<CreateProductPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // ✔ Section: Barcode
+  // ---------------------------------------------------------------------------
+  Widget _buildBarcodeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTitle("Mã sản phẩm"),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _buildInput(
+                hint: "Nhập hoặc quét mã sản phẩm",
+                controller: barcodeCtrl,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  isScanning = !isScanning;
+                  if (isScanning) {
+                    scannerController = MobileScannerController();
+                  } else {
+                    scannerController?.dispose();
+                    scannerController = null;
+                  }
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(top: 6),
+                height: 48,
+                width: 48,
+                decoration: _boxDecoration().copyWith(
+                  color: isScanning ? Colors.red : AppColors.primaryBlue,
+                ),
+                child: Icon(
+                  isScanning ? Icons.close : Icons.qr_code_scanner,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScannerView() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      height: 200.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: MobileScanner(
+          controller: scannerController!,
+          onDetect: (capture) {
+            final Barcode barcode = capture.barcodes.first;
+            if (barcode.rawValue != null) {
+              debugPrint('Barcode found! ${barcode.rawValue}');
+              setState(() {
+                barcodeCtrl.text = barcode.rawValue!;
+              });
+            }
+          },
         ),
       ),
     );
