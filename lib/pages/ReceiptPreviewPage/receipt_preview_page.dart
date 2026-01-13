@@ -33,7 +33,9 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
   }
 
   Future<void> _loadPrinters() async {
+    debugPrint('Loading printers...');
     final configState = context.read<ConfigBloc>().state;
+    debugPrint('Config state: $configState');
     if (configState is! ConfigLoaded) return;
 
     final prefix = dotenv.get('AGENT_ID_PREFIX');

@@ -233,7 +233,7 @@ class PrintService {
     // --- FOOTER ---
 
     final paymentInfo = order.paymentInfo;
-
+    debugPrint('Payment info: $paymentInfo');
     if (paymentInfo == null) {
       throw Exception('Payment info is null');
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'receipt_preview_event.dart';
@@ -26,7 +27,8 @@ class ReceiptPreviewBloc
       final prefix = dotenv.get('AGENT_ID_PREFIX', fallback: 'BITTECH_USER_');
       final targetAgentId =
           event.config?.id != null ? '$prefix${event.config!.id}' : '';
-
+      debugPrint('Target agent ID: $targetAgentId');
+      debugPrint('Receipt data: $receiptData');
       final pdfFile = await _printService.fetchReceiptPreviewPdf(
         targetAgentId: targetAgentId,
         receiptData: receiptData,

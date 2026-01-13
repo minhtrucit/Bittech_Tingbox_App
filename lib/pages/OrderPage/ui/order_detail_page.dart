@@ -36,32 +36,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<OrderBloc, OrderState>(
-      listener: (context, state) {
-        if (state is OrderGenerateQRCodeSuccess && state.paymentInfo != null) {
-          _showQrBottomSheet(context, state.paymentInfo!);
-        } else if (state is OrderPaymentSuccess) {
-          setState(() {
-            if (state.order != null) {
-              _currentOrder = state.order!;
-            } else {
-              _currentOrder.paymentStatus = PaymentStatus.paid;
-              _currentOrder.paidAmount = _currentOrder.totalAmount ?? 0;
-            }
-          });
-          // Chỉ in tự động nếu trang này đang ở trên cùng (không có sheet/page nào đè lên)
-          if (ModalRoute.of(context)?.isCurrent ?? false) {
-            _handleAutoPrint(_currentOrder);
-          }
-        } else if (state is OrderUpdateStatusSuccess) {
-          setState(() {
-            _currentOrder = state.order;
-          });
-          // Chỉ in tự động nếu trang này đang ở trên cùng
-          if (ModalRoute.of(context)?.isCurrent ?? false) {
-            _handleAutoPrint(_currentOrder);
-          }
-        }
-      },
+      listener: (context, state) {},
       child: AppScaffold(
         backgroundColor: Colors.white,
         appBar: _buildAppBar(context),
@@ -95,51 +70,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  void _handleManualPrint(BuildContext context) {
+  void _handleManualPrint(BuildContext context, Order order) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ReceiptPreviewPage(order: _currentOrder),
-      ),
+      MaterialPageRoute(builder: (_) => ReceiptPreviewPage(order: order)),
     );
-  }
-
-  void _handleAutoPrint(Order order) {
-    final configState = context.read<ConfigBloc>().state;
-    if (configState is ConfigLoaded) {
-      final config = configState.config;
-      if (config.printMode == PrintMode.auto) {
-        PrintService().getSavedSettings().then((settings) {
-          final hasPrinter = settings['printerName'] != null;
-
-          if (!hasPrinter) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
-                  ),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          } else {
-            PrintService().autoPrintOrder(order, config).then((success) {
-              if (success != null && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success ? 'Đã tự động gửi lệnh in' : 'Lỗi khi tự động in',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
-              }
-            });
-          }
-        });
-      }
-    }
   }
 
   Widget _buildOrderInfoCard() {
@@ -461,30 +396,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     children: [
                       Expanded(
                         flex: 1,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _handleManualPrint(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 0),
-                            side: const BorderSide(
-                              color: AppColors.primaryBlue,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.print_outlined,
-                            color: AppColors.primaryBlue,
-                          ),
-                          label: Text(
-                            'In',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-                        ),
+                        child: _buildPrintActionButton(context, order),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
@@ -540,54 +452,31 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ),
                     ],
                   )
-                  : ElevatedButton.icon(
-                    onPressed: () => _handleManualPrint(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
-                    icon: const Icon(Icons.print_outlined, color: Colors.white),
-                    label: Text(
-                      'In hóa đơn',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  : _buildPrintActionButton(context, order),
         ),
       ),
     );
   }
 
-  void _showQrBottomSheet(BuildContext context, PaymentInfo paymentInfo) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            height: MediaQuery.of(context).size.height * 0.85,
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).systemGestureInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-            ),
-            child: _QrSheetContent(
-              paymentInfo: paymentInfo,
-              orderCode: _currentOrder.code ?? _currentOrder.id.toString(),
-              createdAt: _currentOrder.createdAt,
-              orderId: _currentOrder.id ?? 0,
-              paymentStatus:
-                  _currentOrder.paymentStatus ?? PaymentStatus.unpaid,
-              userId: _currentOrder.userId,
-            ),
-          ),
+  Widget _buildPrintActionButton(BuildContext context, Order order) {
+    return OutlinedButton.icon(
+      onPressed: () => _handleManualPrint(context, order),
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 0),
+        side: const BorderSide(color: AppColors.primaryBlue),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+      ),
+      icon: const Icon(Icons.print_outlined, color: AppColors.primaryBlue),
+      label: Text(
+        'In',
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: AppColors.primaryBlue,
+        ),
+      ),
     );
   }
 }
@@ -603,6 +492,7 @@ class _QrSheetContent extends StatefulWidget {
   const _QrSheetContent({
     required this.paymentInfo,
     required this.orderCode,
+    // ignore: unused_element_parameter
     this.createdAt,
     required this.orderId,
     required this.paymentStatus,
