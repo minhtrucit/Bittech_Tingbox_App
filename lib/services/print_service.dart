@@ -231,43 +231,29 @@ class PrintService {
     }
 
     // --- FOOTER ---
-    ConfigBankAccount? defaultBank;
-    if (config?.bankAccounts != null && config!.bankAccounts.isNotEmpty) {
-      defaultBank = config.bankAccounts.firstWhere(
-        (e) => e.isDefault,
-        orElse: () => config.bankAccounts.first,
-      );
-    }
 
-    if (defaultBank != null) {
-      footerBuffer.writeln(_centerText(defaultBank.qrCode ?? '', 32));
-      footerBuffer.writeln(_centerText(defaultBank.accountName, 32));
-      footerBuffer.writeln(_centerText(defaultBank.accountNumber, 32));
-      footerBuffer.writeln(
-        _centerText(
-          defaultBank.bank?.shortName ?? defaultBank.bank?.name ?? '',
-          32,
-        ),
-      );
-      footerBuffer.writeln('');
+    final paymentInfo = order.paymentInfo;
+
+    if (paymentInfo == null) {
+      throw Exception('Payment info is null');
     }
+    footerBuffer.writeln(_centerText(paymentInfo.accountName, 32));
+    footerBuffer.writeln(_centerText(paymentInfo.accountNumber, 32));
+    footerBuffer.writeln('');
 
     footerBuffer.writeln(_centerText('Cảm ơn quý khách!', 32));
     footerBuffer.writeln(_centerText('Hẹn gặp lại', 32));
     footerBuffer.writeln('');
-    footerBuffer.writeln(_centerText('TingBox - Một sản phẩm của Bittech', 32));
+    footerBuffer.writeln(
+      _centerText('TingBox Smart - Một sản phẩm của Bittech', 32),
+    );
     footerBuffer.writeln('\n\n\n');
 
     return {
       'header': headerBuffer.toString(),
       'products': productsBuffer.toString(),
       'footer': footerBuffer.toString(),
-      if (defaultBank != null) ...{
-        'bankBin': defaultBank.bank?.code ?? defaultBank.bank?.shortName ?? '',
-        'bankAccount': defaultBank.accountNumber,
-        'bankAccountName': defaultBank.accountName,
-        'transferContent': '${order.code}',
-      },
+      'qrCode': paymentInfo.qrCodeUrl,
     };
   }
 
@@ -427,6 +413,7 @@ class PrintService {
 
       _log('📝 [PrintService] Formatting order data...');
       final printData = formatOrderData(order, config);
+
       _log(
         '📤 [PrintService] Sending print request to printer: $savedPrinterName',
       );
