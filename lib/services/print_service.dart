@@ -52,9 +52,15 @@ class PrintService {
     final newApiKey = apiKey ?? '';
     final newServerUrl = serverUrl ?? _currentServerUrl;
 
-    if (newAgentId.isEmpty || newApiKey.isEmpty) {
-      _log('⚠️ [PrintService] Bỏ qua khởi tạo: Thiếu AgentID hoặc ApiKey');
+    if (newAgentId.isEmpty) {
+      _log('⚠️ [PrintService] Bỏ qua khởi tạo: Thiếu AgentID');
       return;
+    }
+
+    if (newApiKey.isEmpty) {
+      _log(
+        '⚠️ [PrintService] Cảnh báo: Thiếu ApiKey (SePay). Kết nối có thể bị từ chối bởi Server.',
+      );
     }
 
     // Improved skipping logic: Only skip if parameters match AND we are already CONNECTED
@@ -79,25 +85,30 @@ class PrintService {
       _socket!.dispose();
     }
 
-    _log('🚀 [PrintService] Connecting to Relay Server: $_currentServerUrl');
-    _log(
-      '📄 [PrintService] Credentials: { x-agent-id: $_currentAgentId, x-api-key: $_currentApiKey }',
+    // Xây dựng URL kèm Query String để đảm bảo Server luôn nhận được trong Handshake
+    final connectionUri = Uri.parse(_currentServerUrl).replace(
+      queryParameters: {'agentId': _currentAgentId, 'apiKey': _currentApiKey},
     );
+    final connectionUrl = connectionUri.toString();
+
+    _log('🚀 [PrintService] Connecting to: $connectionUrl');
 
     _socket = io.io(
-      _currentServerUrl,
+      connectionUrl,
       io.OptionBuilder()
           .setTransports(['websocket'])
-          .setQuery({
+          .setAuth({
             'agentId': _currentAgentId,
             'apiKey': _currentApiKey,
-          }) // BACK: Query is more stable for initial handshake
+          }) // THÊM: Cách chuẩn để gửi token trong Socket.io v4+
           .setExtraHeaders({
             'x-agent-id': _currentAgentId,
             'x-api-key': _currentApiKey,
+            'agentId': _currentAgentId, // Backup header không có x-
+            'apiKey': _currentApiKey, // Backup header không có x-
           })
-          .setReconnectionAttempts(99) // Try reconnecting almost indefinitely
-          .setReconnectionDelay(5000) // Wait 5 seconds between attempts
+          .setReconnectionAttempts(99)
+          .setReconnectionDelay(5000)
           .enableAutoConnect()
           .build(),
     );
@@ -140,6 +151,27 @@ class PrintService {
     _socket!.onError((data) {
       _log('🔴 [PrintService] Socket Error: $data');
     });
+  }
+
+  /// Helper to wait for the socket to be connected
+  Future<void> _untilConnected() async {
+    if (_socket != null && _socket!.connected) return;
+
+    final completer = Completer<void>();
+    void listener(_) {
+      if (!completer.isCompleted) completer.complete();
+      _socket?.off('connect', listener);
+    }
+
+    _socket?.on('connect', listener);
+
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        _socket?.off('connect', listener);
+        throw Exception('Không thể kết nối đến Relay Server (Timeout 10s)');
+      },
+    );
   }
 
   /// Save printer selection for auto-print
@@ -290,9 +322,7 @@ class PrintService {
 
       final completer = Completer<File>();
 
-      if (_socket == null || !_socket!.connected) {
-        throw Exception('Socket not connected to Relay Server');
-      }
+      await _untilConnected();
 
       final payload = {'targetAgentId': targetAgentId, 'data': receiptData};
 
@@ -448,13 +478,10 @@ class PrintService {
   }
 
   /// Get list of printers from a target Agent ID
-  Future<List<String>> getPrinters(String targetAgentId) {
+  Future<List<String>> getPrinters(String targetAgentId) async {
     _log('🔍 [PrintService] Requesting printers from agent: $targetAgentId');
     final completer = Completer<List<String>>();
-    if (_socket == null || !_socket!.connected) {
-      _log('❌ [PrintService] getPrinters failed: Socket not connected');
-      return Future.error('Not connected to Relay Server');
-    }
+    await _untilConnected();
 
     _log(
       '📤 [PrintService] >> EMIT: get-printers-request | Payload: {targetAgentId: $targetAgentId}',
@@ -494,14 +521,11 @@ class PrintService {
     required String targetAgentId,
     required String printerName,
     required Map<String, String> printData,
-  }) {
+  }) async {
     _log('🖨️ [PrintService] Preparing print job...');
     final completer = Completer<Map<String, dynamic>>();
 
-    if (_socket == null || !_socket!.connected) {
-      _log('❌ [PrintService] sendPrint failed: Socket not connected');
-      return Future.error('Not connected to Relay Server');
-    }
+    await _untilConnected();
 
     final payload = {
       'targetAgentId': targetAgentId,

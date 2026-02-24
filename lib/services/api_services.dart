@@ -12,7 +12,7 @@ class ApiService {
   String? _refreshToken;
 
   bool _isRefreshing = false;
-  final List<Function(String)> _tokenQueue = [];
+  final List<void Function(String?, DioException?)> _tokenQueue = [];
 
   ApiService._internal({required String baseUrl})
     : _dio = Dio(
@@ -74,10 +74,18 @@ class ApiService {
       if (_isRefreshing) {
         final completer = Completer<Response>();
 
-        _tokenQueue.add((newToken) async {
-          requestOptions.headers["Authorization"] = "Bearer $newToken";
-          final retryResponse = await _dio.fetch(requestOptions);
-          completer.complete(retryResponse);
+        _tokenQueue.add((newToken, error) async {
+          if (error != null) {
+            completer.completeError(error);
+          } else if (newToken != null) {
+            requestOptions.headers["Authorization"] = "Bearer $newToken";
+            try {
+              final retryResponse = await _dio.fetch(requestOptions);
+              completer.complete(retryResponse);
+            } catch (e) {
+              completer.completeError(e);
+            }
+          }
         });
 
         return handler.resolve(await completer.future);
@@ -88,12 +96,9 @@ class ApiService {
       try {
         final newAccessToken = await _performRefreshToken();
 
-        // update vào memory
-        _accessToken = newAccessToken;
-
-        // RUN QUEUE request
+        // RUN QUEUE request (with success)
         for (var callback in _tokenQueue) {
-          callback(newAccessToken);
+          callback(newAccessToken, null);
         }
         _tokenQueue.clear();
 
@@ -103,7 +108,14 @@ class ApiService {
 
         return handler.resolve(response);
       } catch (e) {
-        // refresh thất bại → logout user
+        debugPrint('[ApiService] Refresh failed, rejecting queue: $e');
+
+        // Reject all queued requests
+        for (var callback in _tokenQueue) {
+          callback(null, err); // Re-use the original 401 error
+        }
+        _tokenQueue.clear();
+
         return handler.reject(err);
       } finally {
         _isRefreshing = false;

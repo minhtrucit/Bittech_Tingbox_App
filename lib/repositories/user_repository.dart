@@ -60,7 +60,14 @@ class UserRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(keyToken);
+      await prefs.remove(keyRefreshToken);
+      await prefs.remove(_keyUser);
+      await prefs.remove(keyUserId);
+      await prefs.remove(keyQrCode);
       await prefs.remove('sepay_url');
+      debugPrint(
+        '[UserRepository] Logged out: All user data cleared from SharedPreferences',
+      );
     } catch (e, st) {
       debugPrint('UserRepository.clear error: $e\n$st');
     }

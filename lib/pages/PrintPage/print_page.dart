@@ -52,13 +52,18 @@ class _PrintPageState extends State<PrintPage> {
     final configState = context.read<ConfigBloc>().state;
 
     String? agentId = settings['agentId'];
-    String? apiKey;
+    String? apiKey = dotenv.get(
+      'SEPAY_API_KEY',
+      fallback: '',
+    ); // Lấy từ .env làm dự phòng
 
     if (configState is ConfigLoaded) {
       final config = configState.config;
       final prefix = dotenv.get('AGENT_ID_PREFIX', fallback: 'BITTECH_USER_');
       agentId ??= '$prefix${config.id}';
-      apiKey = config.sepayApiKey;
+      if (config.sepayApiKey != null && config.sepayApiKey!.isNotEmpty) {
+        apiKey = config.sepayApiKey;
+      }
     }
 
     if (mounted) {
@@ -68,7 +73,7 @@ class _PrintPageState extends State<PrintPage> {
         }
         _selectedPrinter = settings['printerName'];
       });
-      // Initialize with unitName and sepayApiKey credentials
+      // Khởi tạo socket
       _printService.init(agentId: _targetAgentController.text, apiKey: apiKey);
     }
   }
@@ -320,25 +325,32 @@ class _PrintPageState extends State<PrintPage> {
         title: TitleAppbarText(title: 'Kết nối máy in'),
         actions: [_buildConnectionStatus(), SizedBox(width: 16.w)],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            children: [
-              _buildAgentConfigurationCard(),
-              SizedBox(height: 20.h),
-              _buildPrintFormDataCard(),
-              SizedBox(height: 32.h),
-              _buildMainActionButton(),
-              SizedBox(
-                height:
-                    MediaQuery.of(context).systemGestureInsets.bottom > 32
-                        ? MediaQuery.of(context).systemGestureInsets.bottom +
-                            20.h
-                        : 20.h,
-              ),
-            ],
+      body: BlocListener<ConfigBloc, ConfigState>(
+        listener: (context, state) {
+          if (state is ConfigLoaded) {
+            _loadSettings(); // Tự động load lại settings và kết nối khi có config mới
+          }
+        },
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              children: [
+                _buildAgentConfigurationCard(),
+                SizedBox(height: 20.h),
+                _buildPrintFormDataCard(),
+                SizedBox(height: 32.h),
+                _buildMainActionButton(),
+                SizedBox(
+                  height:
+                      MediaQuery.of(context).systemGestureInsets.bottom > 32
+                          ? MediaQuery.of(context).systemGestureInsets.bottom +
+                              20.h
+                          : 20.h,
+                ),
+              ],
+            ),
           ),
         ),
       ),

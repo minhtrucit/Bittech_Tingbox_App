@@ -77,8 +77,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       debugPrint("❌ Failed to create order: $e");
       debugPrint("🛠 Stacktrace: $st");
 
-      // Có thể emit một state lỗi nếu muốn, ví dụ OrderError
-      emit(OrderFailure(message: e.toString()));
+      // Clean prefix "Exception: " if present
+      final errorMessage = e.toString().replaceAll("Exception: ", "");
+      emit(OrderFailure(message: errorMessage));
     }
   }
 

@@ -27,16 +27,43 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     _currentOrder = widget.order;
   }
 
-  void handleGenerateQRCode() {
-    context.read<OrderBloc>().add(
-      OrderGenerateQRCodeEvent(orderId: _currentOrder.id.toString()),
+  void _showQrSheet(PaymentInfo paymentInfo) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder:
+          (context) => _QrSheetContent(
+            paymentInfo: paymentInfo,
+            orderCode: _currentOrder.code ?? '',
+            orderId: _currentOrder.id ?? 0,
+            paymentStatus: _currentOrder.paymentStatus ?? 'unpaid',
+            userId: _currentOrder.userId,
+            createdAt: _currentOrder.createdAt,
+          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<OrderBloc, OrderState>(
-      listener: (context, state) {},
+      listener: (context, state) {
+        if (state is OrderGenerateQRCodeSuccess) {
+          if (state.paymentInfo != null) {
+            _showQrSheet(state.paymentInfo!);
+          }
+        } else if (state is OrderFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
       child: AppScaffold(
         backgroundColor: Colors.white,
         appBar: _buildAppBar(context),

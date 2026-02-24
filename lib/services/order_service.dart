@@ -27,11 +27,21 @@ class OrderService {
       }
 
       return resp.data;
+    } on DioException catch (e) {
+      debugPrint("❌ Create Order DioError: ${e.response?.data}");
+      String message = "Lỗi hệ thống (HTTP ${e.response?.statusCode})";
+      if (e.response?.data is Map) {
+        message =
+            e.response?.data['message'] ?? e.response?.data['error'] ?? message;
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        message = e.message!;
+      }
+      throw Exception(message);
     } catch (e, st) {
       debugPrint("❌ Create Order error: $e");
       debugPrint("STACK: $st");
 
-      throw Exception("Không thể tạo đơn hàng. Lỗi: $e");
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
