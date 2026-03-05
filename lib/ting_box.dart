@@ -4,6 +4,7 @@ export 'common/components/app_appbar.dart';
 export 'common/components/title_appbar_text.dart';
 export 'common/components/app_text_button.dart';
 export 'common/components/loading_overlay.dart';
+export 'common/components/ai_loading_overlay.dart';
 export 'common/theme.dart';
 export 'common/app_assets.dart';
 export 'common/app_colors.dart';
@@ -59,4 +60,3 @@ export 'models/product.dart';
 export 'models/config_model.dart';
 export 'models/mock_bluetooth_device.dart';
 export 'extension/number_extension.dart';
-

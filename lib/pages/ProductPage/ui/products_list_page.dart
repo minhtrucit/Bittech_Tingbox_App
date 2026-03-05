@@ -7,6 +7,7 @@ import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
 import 'package:ting_box/pages/SalesPage/bloc/cart_event.dart';
 import '../../../ting_box.dart';
 import 'products_list_skeleton.dart';
+import 'scan_menu_page.dart';
 
 class ProductsListPage extends StatefulWidget {
   const ProductsListPage({super.key});
@@ -441,19 +442,55 @@ class _ProductsListPageState extends State<ProductsListPage> {
     return Positioned(
       right: 16.w,
       bottom: 80.h,
-      child: IconButton(
-        onPressed: () {
-          Navigator.push(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Scan Menu Button
+          _buildActionLabelButton(
             context,
-            MaterialPageRoute(builder: (_) => const CreateProductPage()),
-          );
-        },
-        style: IconButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
-          padding: EdgeInsets.all(16.r),
-        ),
-        icon: const Icon(Icons.add, color: Colors.white),
+            icon: Icons.auto_fix_high_rounded,
+            color: Colors.amber.shade700,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ScanMenuPage()),
+              );
+            },
+          ),
+          SizedBox(height: 12.h),
+          // Standard Add Button
+          _buildActionLabelButton(
+            context,
+            icon: Icons.add,
+            color: AppColors.primaryBlue,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateProductPage()),
+              );
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildActionLabelButton(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+          onPressed: onPressed,
+          style: IconButton.styleFrom(
+            backgroundColor: color,
+            padding: EdgeInsets.all(14.r),
+            elevation: 4,
+            shadowColor: color.withValues(alpha: 0.4),
+          ),
+          icon: Icon(icon, color: Colors.white, size: 24.sp),
+        );
   }
 }
