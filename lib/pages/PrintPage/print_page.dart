@@ -392,7 +392,7 @@ class _PrintPageState extends State<PrintPage> {
               ),
               SizedBox(width: 8.w),
               Text(
-                connected ? 'CONNECTED' : 'OFFLINE',
+                connected ? 'Đã kết nối' : 'Chưa kết nối',
                 style: TextStyle(
                   color: connected ? Colors.green[700] : Colors.red[700],
                   fontSize: 10.sp,

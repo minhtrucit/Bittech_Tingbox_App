@@ -115,7 +115,7 @@ class _AuthPageState extends State<AuthPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back!',
+                'Chào mừng trở lại!',
                 style: TextStyle(
                   color: AppColors.primaryBlue,
                   fontSize: 24.sp,
@@ -124,7 +124,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
               SizedBox(height: 4.h),
               Text(
-                'Login to continue',
+                'Đăng nhập để tiếp tục',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
               SizedBox(height: 24.h),

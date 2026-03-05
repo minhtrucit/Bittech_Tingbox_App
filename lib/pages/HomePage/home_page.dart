@@ -38,6 +38,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  String _formatDateApi(DateTime date) {
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
@@ -61,8 +65,8 @@ class _HomePageState extends State<HomePage> {
     if (configId > 0) {
       context.read<StatisticsBloc>().add(
         GetStatisticsEvent(
-          startDate: _formatDate(startDate),
-          endDate: _formatDate(endDate),
+          startDate: _formatDateApi(startDate),
+          endDate: _formatDateApi(endDate),
           configId: configId,
         ),
       );
@@ -75,17 +79,62 @@ class _HomePageState extends State<HomePage> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       initialDateRange: _selectedDateRange,
+      locale: const Locale('vi', 'VN'),
+      helpText: 'CHỌN PHẠM VI NGÀY',
+      fieldStartHintText: 'dd/mm/yyyy',
+      fieldEndHintText: 'dd/mm/yyyy',
+      fieldStartLabelText: 'Ngày bắt đầu',
+      fieldEndLabelText: 'Ngày kết thúc',
+      switchToCalendarEntryModeIcon: const Icon(
+        Icons.calendar_today,
+        color: Colors.white,
+      ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             datePickerTheme: DatePickerThemeData(
-              backgroundColor: AppColors.white,
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              rangePickerSurfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24.r),
+              ),
+              headerBackgroundColor: AppColors.primaryBlue,
+              headerForegroundColor: Colors.white,
+              rangePickerHeaderBackgroundColor: AppColors.primaryBlue,
+              rangePickerHeaderForegroundColor: Colors.white,
+              rangeSelectionBackgroundColor: AppColors.primaryBlue.withValues(
+                alpha: 0.12,
+              ),
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) return Colors.white;
+                return Colors.black.withValues(alpha: 0.8);
+              }),
+              todayForegroundColor: WidgetStateProperty.all(
+                AppColors.primaryBlue,
+              ),
+              todayBorder: const BorderSide(
+                color: AppColors.primaryBlue,
+                width: 1,
+              ),
             ),
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppColors.primaryBlue,
               onPrimary: Colors.white,
-              onSurface: Colors.black,
+              onSurface: Colors.black.withValues(alpha: 0.8),
+              surface: Colors.white,
             ),
+
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryBlue,
+                textStyle: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );

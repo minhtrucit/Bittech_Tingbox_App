@@ -14,13 +14,14 @@ import 'package:ting_box/services/config_service.dart';
 import 'package:ting_box/services/order_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
 import 'package:ting_box/ting_box.dart';
-
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/websocket_manager.dart';
 import 'services/user_services.dart';
 import 'utils/audio_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -109,6 +110,13 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'BitTech Ting Box',
           theme: ThemeConfig.defaultLight,
+          locale: const Locale('vi', 'VN'),
+          supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: FutureBuilder<bool>(
             future: UserRepository.isLoggedIn(),
             builder: (context, snapshot) {
