@@ -34,11 +34,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadConfigId() async {
     _configId = await UserRepository.getConfigId() ?? '';
-    // Initial statistics fetch is now handled by BasePage
-  }
-
-  String _formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   String _formatDateApi(DateTime date) {
