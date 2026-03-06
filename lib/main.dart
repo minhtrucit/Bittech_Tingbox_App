@@ -11,12 +11,14 @@ import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
 import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/auth_services.dart';
 import 'package:ting_box/services/config_service.dart';
+import 'package:ting_box/services/ocr_service.dart';
 import 'package:ting_box/services/order_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
 import 'package:ting_box/ting_box.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/websocket_manager.dart';
 import 'services/user_services.dart';
+import 'services/sse_services.dart';
 import 'utils/audio_manager.dart';
 
 void main() async {
@@ -45,6 +47,7 @@ void main() async {
   final userService = UserService(api: apiService);
   final orderService = OrderService(api: apiService);
   final configService = ConfigService(api: apiService);
+  final ocrService = OcrService.getInstance();
   final statisticServices = StatisticServices(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
@@ -57,7 +60,8 @@ void main() async {
   webSocketManager.connect(dotenv.get('WEBSOCKET_BASE_URL'));
   if (accessToken != null && refreshToken != null) {
     apiService.setTokens(accessToken: accessToken, refreshToken: refreshToken);
-    debugPrint('[main] Loaded tokens from SharedPreferences');
+    SSEService.instance.connect();
+    debugPrint('[main] Loaded tokens and connecting SSE');
   } else {
     debugPrint('[main] No tokens found in SharedPreferences');
   }
@@ -73,7 +77,11 @@ void main() async {
               ),
         ),
         BlocProvider<ProductBloc>(
-          create: (_) => ProductBloc(productApiService: productApiService),
+          create:
+              (_) => ProductBloc(
+                productApiService: productApiService,
+                ocrService: ocrService,
+              ),
         ),
         BlocProvider<OrderBloc>(
           create: (_) => OrderBloc(orderService: orderService),

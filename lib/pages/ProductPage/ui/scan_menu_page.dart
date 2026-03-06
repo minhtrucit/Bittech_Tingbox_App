@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart'; // Keep this as TakePicturePage result is XFile
 import '../../../ting_box.dart';
 import '../../Camera/take_picture_page.dart';
 import 'menu_scan_result_page.dart';
@@ -14,65 +16,13 @@ class ScanMenuPage extends StatefulWidget {
 
 class _ScanMenuPageState extends State<ScanMenuPage> {
   bool _isProcessing = false;
-  final ImagePicker _picker = ImagePicker();
 
   Future<void> _processMenuImage(String imagePath) async {
     setState(() {
       _isProcessing = true;
     });
 
-    try {
-      // TODO: Implement actual OCR API call here
-      // For now, we simulate a delay and go to result page
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (!mounted) return;
-
-      // Mock data for demonstration
-      final mockDetectedProducts = [
-        {
-          'name': 'Cà phê đá',
-          'price': 25000.0,
-          'description': 'Cà phê truyền thống',
-        },
-        {
-          'name': 'Cà phê sữa',
-          'price': 29000.0,
-          'description': 'Cà phê với sữa đặc',
-        },
-        {'name': 'Trà đào', 'price': 35000.0, 'description': 'Trà đào miếng'},
-        {
-          'name': 'Bạc xỉu',
-          'price': 32000.0,
-          'description': 'Nhiều sữa ít cà phê',
-        },
-      ];
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => MenuScanResultPage(
-                imagePath: imagePath,
-                detectedProducts: mockDetectedProducts,
-              ),
-        ),
-      );
-    } catch (e) {
-      DialogUtils.showAppDialog(
-        context: context,
-        title: 'Lỗi',
-        content: 'Không thể xử lý ảnh menu: $e',
-        onFirstAction: () => Navigator.pop(context),
-        firstActionText: 'Đóng',
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    }
+    context.read<ProductBloc>().add(MenuUploadEvent(imagePath: imagePath));
   }
 
   Future<void> _takePicture() async {
@@ -87,70 +37,99 @@ class _ScanMenuPageState extends State<ScanMenuPage> {
   }
 
   Future<void> _pickFromGallery() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      _processMenuImage(image.path);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'docx', 'doc'],
+    );
+    if (result != null && result.files.single.path != null) {
+      _processMenuImage(result.files.single.path!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      hasSafeArea: false,
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.restaurant_menu_rounded,
-                  size: 100.sp,
-                  color: AppColors.primaryBlue.withValues(alpha: 0.2),
-                ),
-                SizedBox(height: 32.h),
-                Text(
-                  "Tự động thêm sản phẩm",
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  "Chụp ảnh menu của quán, hệ thống AI sẽ tự động bóc tách Tên và Giá sản phẩm để thêm vào danh mục của bạn.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
-                  ),
-                ),
-                SizedBox(height: 48.h),
-                _buildOptionButton(
-                  icon: Icons.camera_alt_rounded,
-                  label: "Chụp ảnh menu",
-                  onTap: _takePicture,
-                  isPrimary: true,
-                ),
-                SizedBox(height: 16.h),
-                _buildOptionButton(
-                  icon: Icons.photo_library_rounded,
-                  label: "Chọn từ thư viện",
-                  onTap: _pickFromGallery,
-                  isPrimary: false,
-                ),
-                SizedBox(height: 40.h),
-                _buildTipCard(),
-              ],
+    return BlocListener<ProductBloc, ProductState>(
+      listener: (context, state) {
+        if (state is ProductMenuScanResultState || state is MenuScanFailure) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        if (state is ProductMenuScanResultState) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MenuScanResultPage(menu: state.menu),
             ),
-          ),
-          if (_isProcessing)
-            const AILoadingOverlay(message: "AI đang phân tích menu..."),
-        ],
+          );
+        }
+        if (state is MenuScanFailure) {
+          DialogUtils.showAppDialog(
+            context: context,
+            title: 'Lỗi',
+            content: state.message,
+            onFirstAction: () => Navigator.pop(context),
+            firstActionText: 'Đóng',
+          );
+        }
+      },
+      child: AppScaffold(
+        hasSafeArea: false,
+        backgroundColor: Colors.white,
+        body: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.restaurant_menu_rounded,
+                    size: 100.sp,
+                    color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                  ),
+                  SizedBox(height: 32.h),
+                  Text(
+                    "Tự động thêm sản phẩm",
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    "Chụp ảnh menu của quán, hệ thống AI sẽ tự động bóc tách Tên và Giá sản phẩm để thêm vào danh mục của bạn.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 48.h),
+                  _buildOptionButton(
+                    icon: Icons.camera_alt_rounded,
+                    label: "Chụp ảnh menu",
+                    onTap: _takePicture,
+                    isPrimary: true,
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildOptionButton(
+                    icon: Icons.photo_library_rounded,
+                    label: "Chọn từ thư viện",
+                    onTap: _pickFromGallery,
+                    isPrimary: false,
+                  ),
+                  SizedBox(height: 40.h),
+                  _buildTipCard(),
+                ],
+              ),
+            ),
+            if (_isProcessing)
+              const AILoadingOverlay(message: "AI đang phân tích menu..."),
+          ],
+        ),
       ),
     );
   }

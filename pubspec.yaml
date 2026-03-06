@@ -43,6 +43,8 @@ dependencies:
   connectivity_plus: ^7.0.0
   mobile_scanner: ^7.1.4
   flame_audio: ^2.11.8
+  flutter_client_sse: ^2.0.3
+  file_picker: ^8.1.6
 
   
 dependency_overrides:

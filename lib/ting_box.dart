@@ -60,3 +60,4 @@ export 'models/product.dart';
 export 'models/config_model.dart';
 export 'models/mock_bluetooth_device.dart';
 export 'extension/number_extension.dart';
+export 'utils/currency_input_formatter.dart';

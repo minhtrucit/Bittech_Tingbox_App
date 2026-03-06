@@ -1,33 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/models/menu.dart';
 import '../../../ting_box.dart';
 
 class MenuScanResultPage extends StatefulWidget {
-  final String imagePath;
-  final List<Map<String, dynamic>> detectedProducts;
+  final Menu menu;
 
-  const MenuScanResultPage({
-    super.key,
-    required this.imagePath,
-    required this.detectedProducts,
-  });
+  const MenuScanResultPage({super.key, required this.menu});
 
   @override
   State<MenuScanResultPage> createState() => _MenuScanResultPageState();
 }
 
 class _MenuScanResultPageState extends State<MenuScanResultPage> {
-  late List<Map<String, dynamic>> _editableProducts;
+  late List<MenuItem> _editableProducts;
   bool _isSaving = false;
 
   @override
   void initState() {
+    _editableProducts = List<MenuItem>.from(widget.menu.menuItems);
     super.initState();
-    // Clone list to make it editable
-    _editableProducts = List<Map<String, dynamic>>.from(
-      widget.detectedProducts.map((p) => Map<String, dynamic>.from(p)),
-    );
   }
 
   void _removeProduct(int index) {
@@ -49,9 +43,9 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
       for (final p in _editableProducts) {
         final productData = Product(
           id: 0,
-          name: p['name'],
-          price: (p['price'] as num).toDouble(),
-          description: p['description'] ?? '',
+          name: p.name ?? '',
+          price: p.price,
+          description: p.description ?? '',
           categoryId: 2, // Default or selected category
           url: '',
         );
@@ -73,14 +67,18 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
             Navigator.of(context).popUntil((route) => route.isFirst);
             productBloc.add(GetProductsEvent());
           },
-          firstActionText: 'Tuyệt vời',
+          firstActionText: 'Đóng',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi khi lưu sản phẩm: $e')));
+        DialogUtils.showAppDialog(
+          context: context,
+          title: 'Lỗi',
+          content: 'Lỗi khi lưu sản phẩm',
+          onFirstAction: () => Navigator.pop(context),
+          firstActionText: 'Đóng',
+        );
       }
     } finally {
       if (mounted) {
@@ -247,8 +245,17 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                 children: [
                   _buildEditableField(
                     label: "Tên sản phẩm",
-                    initialValue: product['name'],
-                    onChanged: (val) => product['name'] = val,
+                    initialValue: product.name ?? '',
+                    onChanged: (val) {
+                      setState(() {
+                        _editableProducts[index] = MenuItem(
+                          name: val,
+                          price: product.price,
+                          description: product.description,
+                          thumbnailUrl: product.thumbnailUrl,
+                        );
+                      });
+                    },
                     icon: Icons.edit_note_rounded,
                     isBold: true,
                   ),
@@ -259,12 +266,21 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                         flex: 2,
                         child: _buildEditableField(
                           label: "Giá bán",
-                          initialValue: product['price'].toString(),
-                          onChanged:
-                              (val) =>
-                                  product['price'] = double.tryParse(val) ?? 0,
+                          initialValue: product.price.dot,
+                          onChanged: (val) {
+                            setState(() {
+                              _editableProducts[index] = MenuItem(
+                                name: product.name,
+                                price:
+                                    CurrencyInputFormatter.parseValue(val) ?? 0,
+                                description: product.description,
+                                thumbnailUrl: product.thumbnailUrl,
+                              );
+                            });
+                          },
                           icon: Icons.payments_rounded,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [CurrencyInputFormatter()],
                           suffix: "đ",
                         ),
                       ),
@@ -273,8 +289,17 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                         flex: 3,
                         child: _buildEditableField(
                           label: "Mô tả nhanh",
-                          initialValue: product['description'] ?? "",
-                          onChanged: (val) => product['description'] = val,
+                          initialValue: product.description ?? "",
+                          onChanged: (val) {
+                            setState(() {
+                              _editableProducts[index] = MenuItem(
+                                name: product.name,
+                                price: product.price,
+                                description: val,
+                                thumbnailUrl: product.thumbnailUrl,
+                              );
+                            });
+                          },
                           icon: Icons.description_rounded,
                         ),
                       ),
@@ -296,6 +321,7 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
     required IconData icon,
     bool isBold = false,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
     String? suffix,
   }) {
     return Column(
@@ -319,6 +345,7 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
           initialValue: initialValue,
           onChanged: onChanged,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w500,

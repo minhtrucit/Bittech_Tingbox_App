@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../models/user.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/auth_services.dart';
+import '../../../services/sse_services.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -44,7 +45,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await UserRepository.saveUser(user);
         debugPrint('[AuthBloc] _onLogin: user saved');
 
-        // 5️⃣ Emit success
+        // 5️⃣ Connect SSE early
+        SSEService.instance.connect();
+
+        // 6️⃣ Emit success
         emit(AuthSuccess(user));
         debugPrint('[AuthBloc] _onLogin: AuthSuccess emitted');
       } else {
@@ -70,6 +74,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final success = await authService.logout();
       await UserRepository.logout();
       if (success) {
+        SSEService.instance.disconnect();
         debugPrint('[AuthBloc] _onLogout: success: $success');
         emit(AuthLogoutSuccess(success: true));
       }
