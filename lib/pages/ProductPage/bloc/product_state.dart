@@ -68,3 +68,8 @@ final class ProductMenuScanResultState extends ProductState {
   final Menu menu;
   ProductMenuScanResultState({required this.menu});
 }
+
+final class ProductBatchCreateSuccess extends ProductState {
+  final int count;
+  ProductBatchCreateSuccess({required this.count});
+}

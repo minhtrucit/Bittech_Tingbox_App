@@ -48,3 +48,8 @@ final class MenuOcrStatusUpdatedEvent extends ProductEvent {
   final Menu menu;
   MenuOcrStatusUpdatedEvent({required this.menu});
 }
+
+final class CreateBatchProductsEvent extends ProductEvent {
+  final List<Product> products;
+  CreateBatchProductsEvent({required this.products});
+}

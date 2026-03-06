@@ -1,12 +1,19 @@
 class Menu {
+  final String? documentId;
   final String? businessName;
   final String? businessInfo;
   final List<MenuItem> menuItems;
 
-  Menu({this.businessName, this.businessInfo, required this.menuItems});
+  Menu({
+    this.documentId,
+    this.businessName,
+    this.businessInfo,
+    required this.menuItems,
+  });
 
-  factory Menu.fromJson(Map<String, dynamic> json) {
+  factory Menu.fromJson(Map<String, dynamic> json, {String? documentId}) {
     return Menu(
+      documentId: documentId ?? json['document_id'],
       businessName: json['business_name'],
       businessInfo: json['business_info'],
       menuItems:

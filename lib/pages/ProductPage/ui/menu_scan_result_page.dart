@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ting_box/models/menu.dart';
+import '../bloc/ocr_correction_bloc.dart';
+import '../bloc/ocr_correction_event.dart';
+import '../bloc/ocr_correction_state.dart';
 import '../../../ting_box.dart';
 
 class MenuScanResultPage extends StatefulWidget {
@@ -30,6 +33,20 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
     });
   }
 
+  bool _hasChanges() {
+    if (widget.menu.menuItems.length != _editableProducts.length) return true;
+    for (int i = 0; i < _editableProducts.length; i++) {
+      final original = widget.menu.menuItems[i];
+      final current = _editableProducts[i];
+      if (original.name != current.name ||
+          original.price != current.price ||
+          original.description != current.description) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<void> _saveAll() async {
     if (_editableProducts.isEmpty) return;
 
@@ -39,91 +56,123 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
 
     try {
       final productBloc = context.read<ProductBloc>();
+      final correctionBloc = context.read<OcrCorrectionBloc>();
 
-      for (final p in _editableProducts) {
-        final productData = Product(
-          id: 0,
-          name: p.name ?? '',
-          price: p.price,
-          description: p.description ?? '',
-          categoryId: 2, // Default or selected category
-          url: '',
+      // Submit feedback/correction if data changed
+      if (_hasChanges() && widget.menu.documentId != null) {
+        final correctedMenu = Menu(
+          businessName: widget.menu.businessName,
+          businessInfo: widget.menu.businessInfo,
+          menuItems: _editableProducts,
+          documentId: widget.menu.documentId,
         );
-
-        // We'll need to adapt CreateProductEvent to support batch or handle it sequentially
-        // For simplicity in UI demo, we show the process
-        productBloc.add(
-          CreateProductEvent(productData: productData, images: []),
-        );
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-
-      if (mounted) {
-        DialogUtils.showAppDialog(
-          context: context,
-          title: 'Thành công',
-          content: 'Đã thêm ${_editableProducts.length} sản phẩm vào danh mục.',
-          onFirstAction: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            productBloc.add(GetProductsEvent());
-          },
-          firstActionText: 'Đóng',
+        correctionBloc.add(
+          SubmitOcrCorrectionEvent(
+            documentId: widget.menu.documentId!,
+            correctedData: correctedMenu.toJson(),
+          ),
         );
       }
+
+      final List<Product> productsToCreate =
+          _editableProducts
+              .map(
+                (p) => Product(
+                  id: 0,
+                  name: p.name ?? '',
+                  price: p.price,
+                  description: p.description ?? '',
+                  categoryId: 2,
+                  url: '',
+                ),
+              )
+              .toList();
+
+      productBloc.add(CreateBatchProductsEvent(products: productsToCreate));
     } catch (e) {
       if (mounted) {
+        setState(() => _isSaving = false);
         DialogUtils.showAppDialog(
           context: context,
           title: 'Lỗi',
-          content: 'Lỗi khi lưu sản phẩm',
+          content: 'Lỗi khi chuẩn bị lưu sản phẩm: $e',
           onFirstAction: () => Navigator.pop(context),
           firstActionText: 'Đóng',
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      hasSafeArea: false,
-      appBar: AppAppBar(title: TitleAppbarText(title: "Sản phẩm tìm thấy")),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildSummaryHeader(),
-                Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 110.h),
-                    itemCount: _editableProducts.length,
-                    itemBuilder: (context, index) {
-                      return _buildModernProductCard(index);
-                    },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ProductBloc, ProductState>(
+          listener: (context, state) {
+            if (state is ProductBatchCreateSuccess) {
+              setState(() => _isSaving = false);
+              DialogUtils.showAppDialog(
+                context: context,
+                title: 'Thành công',
+                content: 'Đã thêm ${state.count} sản phẩm vào danh mục.',
+                onFirstAction: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  context.read<ProductBloc>().add(GetProductsEvent());
+                },
+                firstActionText: 'Đóng',
+              );
+            } else if (state is ProductFailure && _isSaving) {
+              setState(() => _isSaving = false);
+              DialogUtils.showAppDialog(
+                context: context,
+                title: 'Lỗi tạo sản phẩm',
+                content: 'Lỗi khi tạo sản phẩm: vui lòng thử lại',
+                onFirstAction: () => Navigator.pop(context),
+                firstActionText: 'Đóng',
+              );
+            }
+          },
+        ),
+        BlocListener<OcrCorrectionBloc, OcrCorrectionState>(
+          listener: (context, state) {
+            if (state is OcrCorrectionFailure && _isSaving) {
+              debugPrint('Correction failed: ${state.message}');
+              // We don't block the main flow if correction fails, just log it
+            }
+          },
+        ),
+      ],
+      child: AppScaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        hasSafeArea: false,
+        appBar: AppAppBar(title: TitleAppbarText(title: "Sản phẩm tìm thấy")),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildSummaryHeader(),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 110.h),
+                      itemCount: _editableProducts.length,
+                      itemBuilder: (context, index) {
+                        return _buildModernProductCard(index);
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-
-            // Fixed Bottom Action Bar
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomActionBar(),
-            ),
-
-            if (_isSaving)
-              const AILoadingOverlay(message: "Đang đồng bộ dữ liệu..."),
-          ],
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildBottomActionBar(),
+              ),
+              if (_isSaving)
+                const AILoadingOverlay(message: "Đang đồng bộ dữ liệu..."),
+            ],
+          ),
         ),
       ),
     );

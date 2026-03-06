@@ -19,6 +19,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/websocket_manager.dart';
 import 'services/user_services.dart';
 import 'services/sse_services.dart';
+import 'services/ocr_correction_service.dart';
+import 'pages/ProductPage/bloc/ocr_correction_bloc.dart';
 import 'utils/audio_manager.dart';
 
 void main() async {
@@ -48,6 +50,7 @@ void main() async {
   final orderService = OrderService(api: apiService);
   final configService = ConfigService(api: apiService);
   final ocrService = OcrService.getInstance();
+  final ocrCorrectionService = OcrCorrectionService();
   final statisticServices = StatisticServices(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
@@ -99,6 +102,10 @@ void main() async {
           create: (_) => CashBookBloc(statisticServices: statisticServices),
         ),
         BlocProvider<CartBloc>(create: (_) => CartBloc()),
+        BlocProvider<OcrCorrectionBloc>(
+          create:
+              (_) => OcrCorrectionBloc(correctionService: ocrCorrectionService),
+        ),
       ],
       child: const MyApp(),
     ),

@@ -21,9 +21,46 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<DeleteProductEvent>(_onDeleteProduct);
     on<MenuUploadEvent>(_onMenuOcrDetect);
     on<MenuOcrStatusUpdatedEvent>(_onMenuOcrStatusUpdated);
+    on<CreateBatchProductsEvent>(_onCreateBatchProducts);
   }
 
   StreamSubscription<SseEvent>? _sseSubscription;
+
+  Future<void> _onCreateBatchProducts(
+    CreateBatchProductsEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+    int successCount = 0;
+    List<String> errors = [];
+
+    for (final productData in event.products) {
+      try {
+        final body = {
+          "name": productData.name,
+          "price": productData.price,
+          "categoryId": productData.categoryId,
+          "description": productData.description,
+          "images": productData.images,
+          "distributorId": 1,
+          "barcode": productData.barcode,
+        };
+
+        await productApiService.createProduct(body: body, images: []);
+        successCount++;
+      } catch (e) {
+        errors.add("${productData.name}: $e");
+      }
+    }
+
+    if (errors.isEmpty) {
+      emit(ProductBatchCreateSuccess(count: successCount));
+    } else {
+      final message =
+          'Đã tạo $successCount sản phẩm. Lỗi ${errors.length} sản phẩm: ${errors.join(", ")}';
+      emit(ProductFailure(message));
+    }
+  }
 
   Future<void> _onLoadCategories(
     LoadCategoriesEvent event,
@@ -258,7 +295,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
               // Dữ liệu có thể nằm trong field 'result' hoặc 'data' tùy version API
               final menuData = data['result'] ?? data['data'];
               if (menuData != null) {
-                final menu = Menu.fromJson(menuData);
+                final documentId = data['document_id']?.toString();
+                final menu = Menu.fromJson(menuData, documentId: documentId);
                 add(MenuOcrStatusUpdatedEvent(menu: menu));
               } else {
                 debugPrint(
