@@ -507,7 +507,13 @@ class _TableManagementPageState extends State<TableManagementPage> {
                                 initialOrder: currentOrder,
                               ),
                         ),
-                      );
+                      ).then((updatedOrder) {
+                        if (updatedOrder is Order) {
+                          setState(() {
+                            _tempOrders[table.id] = updatedOrder;
+                          });
+                        }
+                      });
                     },
                   ),
                   _buildActionButton(

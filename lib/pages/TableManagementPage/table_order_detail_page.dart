@@ -83,39 +83,55 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      backgroundColor: AppColors.bgLightGrey,
-      appBar: AppAppBar(
-        title: TitleAppbarText(title: 'Bàn: ${widget.table.name}'),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.print_outlined,
-              color: AppColors.primaryBlue,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _currentOrder);
+      },
+      child: AppScaffold(
+        backgroundColor: AppColors.bgLightGrey,
+        hasSafeArea: false,
+        appBar: AppAppBar(
+          title: TitleAppbarText(title: 'Bàn: ${widget.table.name}'),
+          leading: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+            size: 20,
+          ),
+          onLeadingClick: () => Navigator.pop(context, _currentOrder),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.print_outlined,
+                color: AppColors.primaryBlue,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReceiptPreviewPage(order: _currentOrder),
+                  ),
+                );
+              },
+              tooltip: 'In tạm tính',
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ReceiptPreviewPage(order: _currentOrder),
-                ),
-              );
-            },
-            tooltip: 'In tạm tính',
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildOrderHeader(),
+              Expanded(
+                child:
+                    _currentOrder.items.isEmpty
+                        ? _buildEmptyState()
+                        : _buildItemList(),
+              ),
+              _buildBottomAction(),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildOrderHeader(),
-          Expanded(
-            child:
-                _currentOrder.items.isEmpty
-                    ? _buildEmptyState()
-                    : _buildItemList(),
-          ),
-          _buildBottomAction(),
-        ],
+        ),
       ),
     );
   }
@@ -396,7 +412,34 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                               (context) =>
                                   ProductsListPage(table: widget.table),
                         ),
-                      );
+                      ).then((data) {
+                        if (data is List<OrderItem>) {
+                          setState(() {
+                            for (var newItem in data) {
+                              // Check if item already exists in the order
+                              final existingIndex = _currentOrder.items
+                                  .indexWhere(
+                                    (item) =>
+                                        item.productId == newItem.productId,
+                                  );
+                              if (existingIndex != -1) {
+                                final existingItem =
+                                    _currentOrder.items[existingIndex];
+                                _currentOrder.items[existingIndex] = OrderItem(
+                                  productId: existingItem.productId,
+                                  quantity:
+                                      existingItem.quantity + newItem.quantity,
+                                  unitPrice: existingItem.unitPrice,
+                                  product: existingItem.product,
+                                );
+                              } else {
+                                _currentOrder.items.add(newItem);
+                              }
+                            }
+                            _recalculateTotal();
+                          });
+                        }
+                      });
                     },
                     icon: const Icon(Icons.add_rounded),
                     label: const Text('Thêm món'),
@@ -414,7 +457,38 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // Logic for checkout
+                      if (_currentOrder.items.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Vui lòng thêm món trước khi thanh toán',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Map OrderItems to Products for the existing flow
+                      final products =
+                          _currentOrder.items.map((item) {
+                            return Product(
+                              id: item.productId,
+                              name: item.product?.name ?? 'Sản phẩm',
+                              price: item.unitPrice,
+                              quantity: item.quantity,
+                              url: item.product?.url,
+                              images: item.product?.images,
+                            );
+                          }).toList();
+
+                      showDialog(
+                        context: context,
+                        builder:
+                            (_) => ConfirmOrderDialog(
+                              items: products,
+                              parentContext: context,
+                            ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF43A047),

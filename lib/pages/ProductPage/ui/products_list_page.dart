@@ -386,16 +386,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
                     GestureDetector(
                       onTap: () {
                         context.read<CartBloc>().add(AddToCartEvent(product));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Đã thêm ${product.name}'),
-                            duration: const Duration(milliseconds: 500),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                          ),
-                        );
                       },
                       child: Container(
                         width: double.infinity,
@@ -637,6 +627,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
       context: context,
       builder:
           (context) => AlertDialog(
+            backgroundColor: AppColors.white,
             title: const Text('Xác nhận gọi món'),
             content: Text(
               'Gửi ${products.length} món đã chọn vào ${widget.table?.name}?',
@@ -666,13 +657,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
 
                   // Return the items to table management
                   Navigator.pop(context, orderItems);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Đã gửi món vào ${widget.table?.name}'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
@@ -951,11 +935,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
                   onTap: () {
                     Navigator.pop(context);
                     context.read<CartBloc>().add(AddToCartEvent(product));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã thêm vào giỏ hàng Mang về'),
-                      ),
-                    );
                   },
                 ),
                 const Divider(),
