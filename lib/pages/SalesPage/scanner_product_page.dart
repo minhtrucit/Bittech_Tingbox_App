@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../utils/audio_manager.dart'; // Added import for AudioManager
 
 import '../../services/api_services.dart';
@@ -290,23 +290,19 @@ class _ScanProductPageState extends State<ScanProductPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Đã thêm sản phẩm: ${product.name}'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
+        NotificationUtils.showSuccess(
+          context: context,
+          title: 'Thành công',
+          description: 'Đã thêm sản phẩm: ${product.name}',
         );
       }
     } else {
       debugPrint('⚠️ Product not found for barcode: $barcode');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không tìm thấy sản phẩm với mã: $barcode'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.orange,
-          ),
+        NotificationUtils.showError(
+          context: context,
+          title: 'Không tìm thấy',
+          description: 'Không tìm thấy sản phẩm với mã: $barcode',
         );
       }
     }
@@ -1306,12 +1302,10 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
   void _addProductToScannedList(Product product) {
     context.read<CartBloc>().add(AddToCartEvent(product));
-    // Optional: Switch back to scanned list or show toast
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã thêm ${product.name}'),
-        duration: const Duration(seconds: 1),
-      ),
+    NotificationUtils.showSuccess(
+      context: context,
+      title: 'Thành công',
+      description: 'Đã thêm ${product.name}',
     );
   }
 

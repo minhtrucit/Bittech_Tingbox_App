@@ -627,15 +627,32 @@ class _ProductsListPageState extends State<ProductsListPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-            backgroundColor: AppColors.white,
-            title: const Text('Xác nhận gọi món'),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text(
+              'Xác nhận gọi món',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBlue,
+              ),
+            ),
             content: Text(
               'Gửi ${products.length} món đã chọn vào ${widget.table?.name}?',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Kiểm tra lại'),
+                child: Text(
+                  'Kiểm tra lại',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -660,10 +677,17 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  elevation: 0,
                 ),
                 child: const Text(
                   'Gửi lệnh gọi món',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

@@ -41,11 +41,10 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
         _hasError = true;
       });
       if (subject.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng nhập nội dung thu'),
-            backgroundColor: Colors.red,
-          ),
+        NotificationUtils.showError(
+          context: context,
+          title: 'Lỗi',
+          description: 'Vui lòng nhập nội dung thu',
         );
       }
       return;

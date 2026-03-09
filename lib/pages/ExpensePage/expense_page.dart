@@ -41,11 +41,10 @@ class _ExpensePageState extends State<ExpensePage> {
         _hasError = true;
       });
       if (subject.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng nhập nội dung chi'),
-            backgroundColor: Colors.red,
-          ),
+        NotificationUtils.showError(
+          context: context,
+          title: 'Lỗi',
+          description: 'Vui lòng nhập nội dung chi',
         );
       }
       return;
@@ -78,11 +77,10 @@ class _ExpensePageState extends State<ExpensePage> {
       child: BlocConsumer<ExpenseBloc, ExpenseState>(
         listener: (context, state) {
           if (state is ExpenseSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
-              ),
+            NotificationUtils.showSuccess(
+              context: context,
+              title: 'Thành công',
+              description: state.message,
             );
             // Clear form
             setState(() {
@@ -93,11 +91,10 @@ class _ExpensePageState extends State<ExpensePage> {
               _hasError = false;
             });
           } else if (state is ExpenseFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
+            NotificationUtils.showError(
+              context: context,
+              title: 'Lỗi',
+              description: state.message,
             );
           }
         },

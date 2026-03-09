@@ -50,28 +50,29 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
 
                 if (!hasPrinter) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
+                    NotificationUtils.showInfo(
+                      context: context,
+                      title: 'Thông báo',
+                      description:
                           '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
-                        ),
-                        backgroundColor: Colors.orange,
-                      ),
                     );
                   }
                 } else {
                   PrintService().autoPrintOrder(order, config).then((success) {
                     if (success != null && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            success
-                                ? 'Đã tự động gửi lệnh in'
-                                : 'Lỗi khi tự động in',
-                          ),
-                          backgroundColor: success ? Colors.green : Colors.red,
-                        ),
-                      );
+                      if (success) {
+                        NotificationUtils.showSuccess(
+                          context: context,
+                          title: 'Thành công',
+                          description: 'Đã tự động gửi lệnh in',
+                        );
+                      } else {
+                        NotificationUtils.showError(
+                          context: context,
+                          title: 'Lỗi',
+                          description: 'Lỗi khi tự động in',
+                        );
+                      }
                     }
                   });
                 }
@@ -79,11 +80,10 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
             }
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
+          NotificationUtils.showSuccess(
+            context: context,
+            title: 'Thành công',
+            description: state.message,
           );
           // Navigate to some result or back
           context.read<OrderBloc>().add(
@@ -95,8 +95,10 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
           Navigator.of(context).pop(); // Exit cash page
         }
         if (state is OrderUpdateStatusFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: state.message,
           );
         }
       },
@@ -107,11 +109,10 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
               OrderGetAllOrdersbyUserIdEvent(userId: widget.userId, page: 1),
             );
             if (widget.paymentStatus != PaymentStatus.paid && !_isSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
-                  backgroundColor: Colors.orange,
-                ),
+              NotificationUtils.showInfo(
+                context: context,
+                title: 'Thông báo',
+                description: 'Đã ghi nhận đơn hàng và thu tiền sau',
               );
             }
           }
@@ -204,15 +205,11 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
                                         : () {
                                           if (widget.paymentStatus !=
                                               PaymentStatus.unpaid) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
+                                            NotificationUtils.showInfo(
+                                              context: context,
+                                              title: 'Thông báo',
+                                              description:
                                                   'Đơn hàng không ở trạng thái cần cập nhật',
-                                                ),
-                                                backgroundColor: Colors.orange,
-                                              ),
                                             );
                                             return;
                                           }
@@ -242,15 +239,11 @@ class _CashPaymentPageState extends State<CashPaymentPage> {
                                         : () {
                                           if (widget.paymentStatus !=
                                               PaymentStatus.unpaid) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
+                                            NotificationUtils.showInfo(
+                                              context: context,
+                                              title: 'Thông báo',
+                                              description:
                                                   'Đơn hàng đã được thanh toán rồi',
-                                                ),
-                                                backgroundColor: Colors.orange,
-                                              ),
                                             );
                                             return;
                                           }

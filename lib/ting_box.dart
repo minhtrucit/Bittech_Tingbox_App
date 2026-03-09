@@ -46,6 +46,7 @@ export 'pages/TransactionsPage/transactions_page.dart';
 export 'pages/base_page.dart';
 export 'utils/camera_utils.dart';
 export 'utils/dialog_utils.dart';
+export 'utils/notification_utils.dart';
 export 'repositories/user_repository.dart';
 export 'pages/HomePage/bloc/statistics_bloc.dart';
 export 'pages/HomePage/bloc/statistics_event.dart';

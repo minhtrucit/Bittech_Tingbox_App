@@ -197,9 +197,11 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
           _currentOrder.items.removeAt(index);
           _recalculateTotal();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Đã xóa ${item.product?.name}')));
+        NotificationUtils.showInfo(
+          context: context,
+          title: 'Thông báo',
+          description: 'Đã xóa ${item.product?.name}',
+        );
       },
       confirmDismiss: (direction) async {
         return await showDialog(
@@ -458,12 +460,10 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_currentOrder.items.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Vui lòng thêm món trước khi thanh toán',
-                            ),
-                          ),
+                        NotificationUtils.showError(
+                          context: context,
+                          title: 'Lỗi',
+                          description: 'Vui lòng thêm món trước khi thanh toán',
                         );
                         return;
                       }

@@ -309,11 +309,10 @@ class _ConfigPageState extends State<ConfigPage> {
   void _copyToClipboard(String text) {
     if (text.isEmpty) return;
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.green,
-        content: Text('Đã sao chép vào bộ nhớ tạm'),
-      ),
+    NotificationUtils.showSuccess(
+      context: context,
+      title: 'Thành công',
+      description: 'Đã sao chép vào bộ nhớ tạm',
     );
   }
 
@@ -843,14 +842,11 @@ class _ConfigPageState extends State<ConfigPage> {
                 final settings = await PrintService().getSavedSettings();
                 if (settings['printerName'] == null) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
+                    NotificationUtils.showInfo(
+                      context: context,
+                      title: 'Thông báo',
+                      description:
                           '⚠️ Bạn đang bật in tự động nhưng chưa chọn máy in. Hãy vào mục "Kết nối máy in" để cấu hình.',
-                        ),
-                        backgroundColor: Colors.orange,
-                        duration: Duration(seconds: 4),
-                      ),
                     );
                   }
                 }

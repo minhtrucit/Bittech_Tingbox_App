@@ -59,8 +59,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             _showQrSheet(state.paymentInfo!);
           }
         } else if (state is OrderFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: state.message,
           );
         }
       },
@@ -743,15 +745,11 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                                       : () {
                                         if (widget.paymentStatus !=
                                             PaymentStatus.unpaid) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
+                                          NotificationUtils.showInfo(
+                                            context: context,
+                                            title: 'Thông báo',
+                                            description:
                                                 'Đơn hàng đã được thanh toán rồi',
-                                              ),
-                                              backgroundColor: Colors.orange,
-                                            ),
                                           );
                                           return;
                                         }

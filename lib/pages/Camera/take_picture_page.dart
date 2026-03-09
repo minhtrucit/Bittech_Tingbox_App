@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
-import '../../common/app_colors.dart';
+import 'package:ting_box/ting_box.dart';
 
 class TakePicturePage extends StatefulWidget {
   const TakePicturePage({super.key});
@@ -29,8 +29,10 @@ class _TakePicturePageState extends State<TakePicturePage> {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy camera')),
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: 'Không tìm thấy camera',
           );
         }
         return;

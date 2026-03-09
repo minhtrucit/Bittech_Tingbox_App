@@ -74,9 +74,11 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
 
   Future<void> _handlePrint() async {
     if (_selectedPrinter == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn máy in')));
+      NotificationUtils.showInfo(
+        context: context,
+        title: 'Thông báo',
+        description: 'Vui lòng chọn máy in',
+      );
       return;
     }
 
@@ -107,27 +109,27 @@ class _ReceiptPreviewPageState extends State<ReceiptPreviewPage> {
         Navigator.pop(context); // Close loading
 
         if (result['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã gửi lệnh in thành công'),
-              backgroundColor: Colors.green,
-            ),
+          NotificationUtils.showSuccess(
+            context: context,
+            title: 'Thành công',
+            description: 'Đã gửi lệnh in thành công',
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi: ${result['error'] ?? 'Không rõ lý do'}'),
-              backgroundColor: Colors.red,
-            ),
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: 'Lỗi: ${result['error'] ?? 'Không rõ lý do'}',
           );
         }
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        NotificationUtils.showError(
+          context: context,
+          title: 'Lỗi',
+          description: 'Lỗi: $e',
         );
       }
     }

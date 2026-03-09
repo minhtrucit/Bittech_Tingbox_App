@@ -176,32 +176,57 @@ class _TableManagementPageState extends State<TableManagementPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Xác nhận xóa'),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text(
+              'Xác nhận xóa',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.redAccent,
+              ),
+            ),
             content: Text(
               'Xóa toàn bộ món và đặt ${table.name} về trạng thái TRỐNG?',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Bỏ qua'),
+                child: Text(
+                  'Bỏ qua',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Close bottom sheet
                   _updateTableStatus(table.id, TableStatus.empty);
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Bàn ${table.name} đã được dọn trống'),
-                      backgroundColor: Colors.orange,
-                    ),
+                  NotificationUtils.showInfo(
+                    context: context,
+                    title: 'Thông báo',
+                    description: 'Bàn ${table.name} đã được dọn trống',
                   );
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  elevation: 0,
+                ),
                 child: const Text(
                   'Xác nhận xóa',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -224,12 +249,11 @@ class _TableManagementPageState extends State<TableManagementPage> {
                 color: AppColors.primaryBlue,
               ),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
+                NotificationUtils.showInfo(
+                  context: context,
+                  title: 'Thông báo',
+                  description:
                       'Chức năng dành cho Quản lý Doanh nghiệp: Thêm bàn mới',
-                    ),
-                  ),
                 );
               },
             ),
@@ -265,11 +289,15 @@ class _TableManagementPageState extends State<TableManagementPage> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        alignment: WrapAlignment.start,
+        spacing: 16.w,
+        runSpacing: 8.h,
         children:
             TableStatus.values.map((status) {
+              final count = _mockTables.where((t) => t.status == status).length;
               return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 10.w,
@@ -281,7 +309,7 @@ class _TableManagementPageState extends State<TableManagementPage> {
                   ),
                   SizedBox(width: 6.w),
                   Text(
-                    status.label,
+                    '${status.label} ($count)',
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500,
@@ -468,7 +496,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
                     ),
                   ),
                 SizedBox(height: 20.h),
-                if (table.status == TableStatus.empty)
+                if (table.status == TableStatus.empty ||
+                    table.status == TableStatus.reserved)
                   _buildActionButton(
                     icon: Icons.add_shopping_cart_rounded,
                     label: 'Tạo đơn hàng mới',
@@ -544,12 +573,11 @@ class _TableManagementPageState extends State<TableManagementPage> {
                     label: 'Sửa thông tin bàn',
                     color: Colors.orange.shade700,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
+                      NotificationUtils.showInfo(
+                        context: context,
+                        title: 'Thông báo',
+                        description:
                             'Chức năng Quản lý: Chỉnh sửa tên/sức chứa',
-                          ),
-                        ),
                       );
                     },
                   ),
@@ -558,12 +586,10 @@ class _TableManagementPageState extends State<TableManagementPage> {
                     label: 'Xóa bàn',
                     color: Colors.red.shade800,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Chức năng Quản lý: Xóa bàn khỏi sơ đồ',
-                          ),
-                        ),
+                      NotificationUtils.showInfo(
+                        context: context,
+                        title: 'Thông báo',
+                        description: 'Chức năng Quản lý: Xóa bàn khỏi sơ đồ',
                       );
                     },
                   ),
@@ -713,12 +739,11 @@ class _TableManagementPageState extends State<TableManagementPage> {
                                     TableStatus.occupied,
                                   );
                                   Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
+                                  NotificationUtils.showSuccess(
+                                    context: context,
+                                    title: 'Thành công',
+                                    description:
                                         'Đã ${action.toLowerCase()} từ ${fromTable.name} sang ${t.name}',
-                                      ),
-                                    ),
                                   );
                                 },
                               ),

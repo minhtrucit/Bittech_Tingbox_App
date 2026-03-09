@@ -15,6 +15,7 @@ import 'package:ting_box/models/config_model.dart';
 
 import '../../../models/user.dart';
 import '../../../services/share_services.dart';
+import 'package:ting_box/ting_box.dart';
 
 class MyQrPage extends StatefulWidget {
   final User user;
@@ -82,9 +83,19 @@ class _MyQrPageState extends State<MyQrPage> {
   }
 
   void _showSnackBar(String message, [Color? color]) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    if (color == Colors.red) {
+      NotificationUtils.showError(
+        context: context,
+        title: 'Lỗi',
+        description: message,
+      );
+    } else {
+      NotificationUtils.showSuccess(
+        context: context,
+        title: 'Thông báo',
+        description: message,
+      );
+    }
   }
 
   @override

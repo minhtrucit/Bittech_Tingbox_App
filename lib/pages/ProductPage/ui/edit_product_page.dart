@@ -83,9 +83,11 @@ class _EditProductPageState extends State<EditProductPage> {
         if (availableSlots > 0) {
           pickedImages.addAll(images.take(availableSlots));
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Đã đạt tối đa 5 ảnh')));
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: 'Đã đạt tối đa 5 ảnh',
+          );
         }
       });
     }
@@ -103,8 +105,10 @@ class _EditProductPageState extends State<EditProductPage> {
           if (currentCount < 5) {
             pickedImages.add(image);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã đạt tối đa 5 ảnh')),
+            NotificationUtils.showError(
+              context: context,
+              title: 'Lỗi',
+              description: 'Đã đạt tối đa 5 ảnh',
             );
           }
         });
@@ -461,8 +465,10 @@ class _EditProductPageState extends State<EditProductPage> {
         GestureDetector(
           onTap: () {
             if (totalImages >= 5) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đã đạt tối đa 5 ảnh')),
+              NotificationUtils.showError(
+                context: context,
+                title: 'Lỗi',
+                description: 'Đã đạt tối đa 5 ảnh',
               );
               return;
             }
