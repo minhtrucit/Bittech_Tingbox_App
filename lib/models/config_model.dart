@@ -6,11 +6,18 @@ enum PrintMode { none, auto, manual }
 
 enum SubscriptionPlan { basic, premium }
 
+enum BusinessMode {
+  financeOnly, // Chỉ quản lý thu chi
+  retail, // Bán hàng không bàn (Cửa hàng, Take-away)
+  fnb, // Bán hàng có bàn (Nhà hàng, Cafe)
+}
+
 class ConfigModel {
   final int? id;
   final String? unitName;
   final String? sepayApiKey;
   final PrintMode printMode;
+  final BusinessMode businessMode;
   SubscriptionPlan? subscriptionPlan;
   final String? logo;
   final String? phone;
@@ -25,6 +32,7 @@ class ConfigModel {
     this.unitName,
     this.sepayApiKey,
     required this.printMode,
+    this.businessMode = BusinessMode.fnb,
     this.subscriptionPlan,
     this.logo,
     this.phone,
@@ -46,6 +54,12 @@ class ConfigModel {
             e.name.toUpperCase() ==
             (json['printMode']?.toString() ?? 'NONE').toUpperCase(),
         orElse: () => PrintMode.none,
+      ),
+      businessMode: BusinessMode.values.firstWhere(
+        (e) =>
+            e.name.toUpperCase() ==
+            (json['businessMode']?.toString() ?? 'FNB').toUpperCase(),
+        orElse: () => BusinessMode.fnb,
       ),
       logo: json['logo']?.toString(),
       phone: json['phone']?.toString(),
@@ -79,6 +93,7 @@ class ConfigModel {
       'unitName': unitName,
       'sepayApiKey': sepayApiKey,
       'printMode': printMode.name.toUpperCase(),
+      'businessMode': businessMode.name.toUpperCase(),
       'logo': logo,
       'phone': phone,
       'address': address,

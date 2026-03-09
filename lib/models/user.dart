@@ -15,8 +15,9 @@ class User {
   final int roleId;
   final Role role;
   final String? token;
-  bool? isDevMode;
+  final bool? isDevMode;
   final String? qrCode;
+  final bool? isTable;
 
   User({
     required this.id,
@@ -33,6 +34,7 @@ class User {
     this.token,
     this.isDevMode,
     this.qrCode,
+    this.isTable,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class User {
       token: json['expenseManagerAccessToken']?.toString(),
       isDevMode: json['isDev'] ?? false,
       qrCode: json['qrCode']?.toString(),
+      isTable: json['isTable'] ?? false,
     );
   }
 
@@ -75,6 +78,7 @@ class User {
       'isDev': isDevMode,
       if (token != null) 'token': token,
       if (qrCode != null) 'qrCode': qrCode,
+      'isTable': isTable,
     };
   }
 

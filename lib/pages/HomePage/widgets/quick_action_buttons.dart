@@ -1,100 +1,157 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ting_box/models/config_model.dart';
+import 'package:ting_box/pages/ProductPage/ui/products_list_page.dart';
+import 'package:ting_box/pages/TableManagementPage/table_management_page.dart';
 import '../../../ting_box.dart';
 
 class QuickActionButtons extends StatelessWidget {
-  const QuickActionButtons({super.key, required this.configId, this.onRefresh});
+  const QuickActionButtons({
+    super.key,
+    required this.configId,
+    this.onRefresh,
+    this.businessMode = BusinessMode.fnb,
+    this.isTable = false,
+    this.isAdmin = false,
+  });
 
   final int configId;
   final VoidCallback? onRefresh;
+  final BusinessMode businessMode;
+  final bool isTable;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildActionButton(
-          icon: Icons.bar_chart_rounded,
-          label: 'Thống kê',
-          onTap: () {
-            Navigator.push(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          // Common action: Table Management (Only for FnB if isTable is true)
+          if (businessMode == BusinessMode.fnb && isTable) ...[
+            _buildActionButton(
               context,
-              MaterialPageRoute(builder: (context) => const ReportPage()),
-            ).then((_) => onRefresh?.call());
-          },
-        ),
-        SizedBox(width: 12.w),
-        _buildActionButton(
-          icon: Icons.account_balance_wallet_outlined,
-          label: 'Tạo phiếu thu',
-          onTap: () {
-            Navigator.push(
+              icon: Icons.grid_view_rounded,
+              label: 'Quản lý bàn',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TableManagementPage(),
+                  ),
+                ).then((_) => onRefresh?.call());
+              },
+            ),
+            SizedBox(width: 12.w),
+          ],
+
+          if (isAdmin) ...[
+            _buildActionButton(
               context,
-              MaterialPageRoute(
-                builder: (context) => StartingBalancePage(configId: configId),
+              icon: Icons.bar_chart_rounded,
+              label: 'Thống kê',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ReportPage()),
+                ).then((_) => onRefresh?.call());
+              },
+            ),
+            SizedBox(width: 12.w),
+            _buildActionButton(
+              context,
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Phiếu thu',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => StartingBalancePage(configId: configId),
+                  ),
+                ).then((_) => onRefresh?.call());
+              },
+            ),
+            SizedBox(width: 12.w),
+            _buildActionButton(
+              context,
+              icon: Icons.receipt_long_rounded,
+              label: 'Phiếu chi',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ExpensePage()),
+                ).then((_) => onRefresh?.call());
+              },
+            ),
+            if (businessMode != BusinessMode.financeOnly) ...[
+              SizedBox(width: 12.w),
+              _buildActionButton(
+                context,
+                icon: Icons.inventory_2_outlined,
+                label: 'Sản phẩm',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProductsListPage(),
+                    ),
+                  ).then((_) => onRefresh?.call());
+                },
               ),
-            ).then((_) => onRefresh?.call());
-          },
-        ),
-        SizedBox(width: 12.w),
-        _buildActionButton(
-          icon: Icons.receipt_long_rounded,
-          label: 'Tạo phiếu chi',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ExpensePage()),
-            ).then((_) => onRefresh?.call());
-          },
-        ),
-      ],
+            ],
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildActionButton(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 100.h,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(5),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 100.h,
+        width: (MediaQuery.of(context).size.width - 32.w - 24.w) / 3,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(5),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withAlpha(10),
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withAlpha(10),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: AppColors.primaryBlue, size: 24.sp),
+              child: Icon(icon, color: AppColors.primaryBlue, size: 24.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
               ),
-              SizedBox(height: 8.h),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

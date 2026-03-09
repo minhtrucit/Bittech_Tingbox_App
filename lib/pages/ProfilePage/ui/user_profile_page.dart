@@ -26,6 +26,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   ConfigModel? config;
   List<Bank> bankList = [];
   User? _currentUser;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -37,15 +38,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString(UserRepository.keyUserId);
-      debugPrint("👤 UserProfilePage: userId from prefs: $userId");
+      final user = await UserRepository.getUser();
+
+      if (mounted) {
+        setState(() {
+          _isAdmin = user?.roleId == 1 || user == null;
+        });
+      }
 
       if (userId != null) {
         if (mounted) {
           context.read<UserProfileBloc>().add(GetUserEvent(userId: userId));
           context.read<ConfigBloc>().add(GetConfigEvent(userId: userId));
         }
-      } else {
-        debugPrint("⚠️ UserProfilePage: userId is null");
       }
     } catch (e) {
       debugPrint("❌ UserProfilePage: Error loading user: $e");
@@ -80,9 +85,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ),
         BlocListener<ConfigBloc, ConfigState>(
           listener: (context, state) {
-            debugPrint("👤 UserProfilePage: Config state: $state");
             if (state is ConfigLoaded) {
-              debugPrint("👤 UserProfilePage: Config loaded: ${state.config}");
               config = state.config;
             } else if (state is ConfigUpdateSuccess) {
               config = state.config;
@@ -97,7 +100,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               setState(() {
                 _currentUser = state.user;
               });
-            } else if (state is UserProfileFailure) {}
+            }
           },
         ),
       ],
@@ -125,6 +128,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           children: [
                             _buildUserInfoHeader(user),
                             _buildInfoCard(user),
+                            if (!_isAdmin) _buildLogoutButton(context),
                             SizedBox(
                               height:
                                   60.h +
@@ -209,52 +213,112 @@ class _UserProfilePageState extends State<UserProfilePage> {
               isLink: true,
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MyQrPage(user: user, config: config!),
-                ),
-              );
-            },
-            child: _buildInfoTile(
-              icon: Icons.qr_code_scanner_outlined,
-              title: "QR của tôi",
-              subtitle: "Thông tin QR của bạn",
-              isLink: true,
+          if (_isAdmin) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MyQrPage(user: user, config: config!),
+                  ),
+                );
+              },
+              child: _buildInfoTile(
+                icon: Icons.qr_code_scanner_outlined,
+                title: "QR của tôi",
+                subtitle: "Thông tin QR của bạn",
+                isLink: true,
+              ),
             ),
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
-              );
-            },
-            child: _buildInfoTile(
-              icon: Icons.settings,
-              title: "Cấu hình",
-              subtitle: "Thiết lập máy in, ngân hàng...",
-              isLink: true,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
+                );
+              },
+              child: _buildInfoTile(
+                icon: Icons.settings,
+                title: "Cấu hình",
+                subtitle: "Thiết lập máy in, ngân hàng...",
+                isLink: true,
+              ),
             ),
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PrintPage()),
-              );
-            },
-            child: _buildInfoTile(
-              icon: Icons.print_outlined,
-              title: "Kết nối máy in",
-              subtitle: "Kết nối máy in và in thử",
-              isLink: true,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PrintPage()),
+                );
+              },
+              child: _buildInfoTile(
+                icon: Icons.print_outlined,
+                title: "Kết nối máy in",
+                subtitle: "Kết nối máy in và in thử",
+                isLink: true,
+              ),
             ),
-          ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: AppTextButton(
+          onPressed: () {
+            _showLogoutConfirmation(context);
+          },
+          style: TextButton.styleFrom(
+            backgroundColor: const Color(0xFFFFE5E5),
+            foregroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          label: const Text(
+            "Đăng xuất",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.red,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Xác nhận đăng xuất"),
+          content: const Text("Bạn có chắc chắn muốn đăng xuất?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.read<AuthBloc>().add(LogoutEvent());
+              },
+              child: const Text(
+                "Đăng xuất",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

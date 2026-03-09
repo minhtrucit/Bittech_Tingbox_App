@@ -11,6 +11,7 @@ import 'package:ting_box/ting_box.dart';
 import 'ConfigPage/bloc/config_bloc.dart';
 import 'ConfigPage/bloc/config_event.dart';
 import 'ConfigPage/bloc/config_state.dart';
+import 'TableManagementPage/table_management_page.dart';
 
 class BasePage extends StatefulWidget {
   const BasePage({super.key});
@@ -24,6 +25,8 @@ class _BasePageState extends State<BasePage> {
   ConfigModel? _configModel;
   bool _isPremium = false;
   bool _isLoading = true;
+  BusinessMode _businessMode = BusinessMode.fnb;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -34,6 +37,13 @@ class _BasePageState extends State<BasePage> {
   Future<void> _initData() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString(UserRepository.keyUserId);
+    final user = await UserRepository.getUser();
+    if (mounted) {
+      setState(() {
+        _isAdmin = user?.roleId == 1 || user == null;
+      });
+    }
+
     if (userId != null && mounted) {
       final userProfileBloc = BlocProvider.of<UserProfileBloc>(context);
       userProfileBloc.add(GetUserEvent(userId: userId));
@@ -51,15 +61,25 @@ class _BasePageState extends State<BasePage> {
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  List<Widget> get _pages => [
-    const HomePage(),
-    if (_isPremium) ...[
-      OrdersListPage(isVisible: _selectedIndex == 1),
-      const HomePage(), // Placeholder
-      const ProductsListPage(),
-    ],
-    const UserProfilePage(),
-  ];
+  List<Widget> get _pages {
+    if (!_isAdmin && _businessMode == BusinessMode.fnb) {
+      return [
+        const TableManagementPage(),
+        const SizedBox(), // Placeholder for index 1
+        const UserProfilePage(),
+      ];
+    }
+
+    return [
+      const HomePage(),
+      if (_isPremium) ...[
+        OrdersListPage(isVisible: _selectedIndex == 1),
+        const HomePage(), // Placeholder
+        const ProductsListPage(),
+      ],
+      const UserProfilePage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +104,8 @@ class _BasePageState extends State<BasePage> {
           );
           setState(() {
             _configModel = state.config;
-            _isPremium = _configModel?.checkPremium() ?? false;
+            _isPremium = true; // Forced for FnB testing
+            _businessMode = state.config.businessMode;
             // Ensure selected index is valid if items changed
             if (_selectedIndex >= _pages.length) {
               _selectedIndex = 0;
@@ -122,7 +143,6 @@ class _BasePageState extends State<BasePage> {
                         children: _pages,
                       ),
                     ),
-
                     Positioned(
                       left: 0,
                       right: 0,
@@ -139,10 +159,12 @@ class _BasePageState extends State<BasePage> {
                           onTap:
                               (index) => setState(() => _selectedIndex = index),
                           isPremium: _isPremium,
+                          isAdmin: _isAdmin,
                         ),
                       ),
                     ),
-                    if (_isPremium)
+                    if (_isPremium ||
+                        (_isAdmin && _businessMode == BusinessMode.fnb))
                       Positioned(
                         bottom:
                             MediaQuery.of(context).systemGestureInsets.bottom >
@@ -163,7 +185,11 @@ class _BasePageState extends State<BasePage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const ScanProductPage(),
+                                      builder:
+                                          (_) =>
+                                              _businessMode == BusinessMode.fnb
+                                                  ? const TableManagementPage()
+                                                  : const ScanProductPage(),
                                     ),
                                   );
                                 },
