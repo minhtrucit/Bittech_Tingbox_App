@@ -8,12 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:ting_box/common/components/app_appbar.dart';
-import 'package:ting_box/common/components/app_scaffold.dart';
-import 'package:ting_box/common/components/title_appbar_text.dart';
-import 'package:ting_box/models/config_model.dart';
-
-import '../../../models/user.dart';
 import '../../../services/share_services.dart';
 import 'package:ting_box/ting_box.dart';
 

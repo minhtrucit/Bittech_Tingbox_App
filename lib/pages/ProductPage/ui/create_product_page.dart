@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
-import '../../../utils/currency_input_formatter.dart';
 import '../../Camera/take_picture_page.dart';
 
 class CreateProductPage extends StatefulWidget {

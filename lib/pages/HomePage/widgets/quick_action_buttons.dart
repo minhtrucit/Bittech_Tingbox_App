@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ting_box/models/config_model.dart';
-import 'package:ting_box/pages/ProductPage/ui/products_list_page.dart';
 import 'package:ting_box/pages/TableManagementPage/table_management_page.dart';
 import '../../../ting_box.dart';
 

@@ -22,7 +22,6 @@ class BasePage extends StatefulWidget {
 
 class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
-  ConfigModel? _configModel;
   bool _isPremium = false;
   bool _isLoading = true;
   BusinessMode _businessMode = BusinessMode.fnb;
@@ -103,7 +102,6 @@ class _BasePageState extends State<BasePage> {
             ),
           );
           setState(() {
-            _configModel = state.config;
             _isPremium = true; // Forced for FnB testing
             _businessMode = state.config.businessMode;
             // Ensure selected index is valid if items changed

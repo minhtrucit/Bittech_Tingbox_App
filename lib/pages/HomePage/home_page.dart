@@ -37,6 +37,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadInitialData() async {
     _configId = await UserRepository.getConfigId() ?? '';
     final user = await UserRepository.getUser();
+    if (!mounted) return;
     final configState = context.read<ConfigBloc>().state;
     if (mounted) {
       setState(() {
