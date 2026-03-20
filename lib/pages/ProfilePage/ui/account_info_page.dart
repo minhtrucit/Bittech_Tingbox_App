@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ting_box/ting_box.dart';
 
@@ -86,7 +87,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthLogoutSuccess) {
+        if (state is AuthLogoutSuccess && mounted) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const Auth()),
@@ -349,9 +350,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                 context.read<AuthBloc>().add(LogoutEvent());
               },
               isDestructiveAction: true,
-              child: const Text(
+              child: Text(
                 "Đăng xuất",
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: Colors.red, fontSize: 15.sp),
               ),
             ),
           ],
@@ -359,7 +360,10 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: Text("Hủy", style: TextStyle(color: AppColors.primaryBlue)),
+            child: Text(
+              "Hủy",
+              style: TextStyle(color: AppColors.primaryBlue, fontSize: 15.sp),
+            ),
           ),
         );
       },

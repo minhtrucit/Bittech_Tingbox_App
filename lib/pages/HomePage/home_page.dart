@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   DateTimeRange? _selectedDateRange;
   String _configId = '';
   bool _isTable = false;
-  BusinessMode _businessMode = BusinessMode.fnb;
+  SubscriptionPlan _currentPlan = SubscriptionPlan.fnb;
   bool _isAdmin = false;
 
   @override
@@ -38,15 +38,19 @@ class _HomePageState extends State<HomePage> {
     _configId = await UserRepository.getConfigId() ?? '';
     final user = await UserRepository.getUser();
     if (!mounted) return;
-    final configState = context.read<ConfigBloc>().state;
     if (mounted) {
       setState(() {
-        _isAdmin = user?.roleId == 1 || user == null;
+        _isAdmin = user?.roleId == 1 || user?.roleId == 2 || user?.roleId == 5 || user == null;
         _isTable = true; // Forced for FnB testing
-        _businessMode = BusinessMode.fnb; // Forced for FnB mode
-        if (configState is ConfigLoaded) {
-          // If real data exists, we can still use it, but force fnb for now as requested
-          _businessMode = BusinessMode.fnb;
+        final roleId = user?.roleId ?? 0;
+        if (roleId == 1) {
+          _currentPlan = SubscriptionPlan.admin;
+        } else if (roleId == 2) {
+          _currentPlan = SubscriptionPlan.premium;
+        } else if (roleId == 5 || roleId == 6) {
+          _currentPlan = SubscriptionPlan.fnb;
+        } else {
+          _currentPlan = SubscriptionPlan.basic;
         }
       });
     }
@@ -194,7 +198,7 @@ class _HomePageState extends State<HomePage> {
         if (state is ConfigLoaded && state.config.id != null) {
           setState(() {
             _configId = state.config.id.toString();
-            _businessMode = state.config.businessMode;
+            _currentPlan = state.config.subscriptionPlan;
           });
         }
       },
@@ -260,7 +264,7 @@ class _HomePageState extends State<HomePage> {
                   QuickActionButtons(
                     configId: int.tryParse(_configId) ?? 0,
                     isTable: _isTable,
-                    businessMode: _businessMode,
+                    plan: _currentPlan,
                     isAdmin: _isAdmin,
                     onRefresh: () {
                       if (_selectedDateRange != null) {

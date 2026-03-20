@@ -33,7 +33,11 @@ class _ProductsListPageState extends State<ProductsListPage> {
     final user = await UserRepository.getUser();
     if (mounted) {
       setState(() {
-        _isAdmin = user?.roleId == 1 || user == null;
+        _isAdmin = (user?.roleId == 1 ||
+                user?.roleId == 2 ||
+                user?.roleId == 5 ||
+                user == null) &&
+            user?.roleId != 6;
       });
     }
   }
@@ -125,10 +129,9 @@ class _ProductsListPageState extends State<ProductsListPage> {
             builder: (context, configState) {
               bool isFnB = false;
               if (configState is ConfigLoaded) {
-                isFnB = configState.config.businessMode == BusinessMode.fnb;
+                isFnB = configState.config.subscriptionPlan == SubscriptionPlan.fnb;
               }
 
-              // Only allow selling if we have a table OR if it's not FnB mode (Retail)
               final bool isManagementMode = isFnB && widget.table == null;
 
               return Stack(
@@ -208,52 +211,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
     );
   }
 
-  // Widget _buildFilterRow() {
-  //   return SizedBox(
-  //     width: double.infinity,
-  //     height: 56.h,
-  //     child: SingleChildScrollView(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: EdgeInsets.symmetric(horizontal: 16.w),
-  //       child: Row(
-  //         children: [
-  //           _buildFilterChip('Danh mục'),
-  //           SizedBox(width: 8.w),
-  //           _buildFilterChip('Giá'),
-  //           SizedBox(width: 8.w),
-  //           _buildFilterChip('Trạng thái'),
-  //           SizedBox(width: 8.w),
-  //           TextButton.icon(
-  //             onPressed: () {},
-  //             icon: const Icon(Icons.filter_list, size: 18),
-  //             label: const Text('Lọc'),
-  //             style: TextButton.styleFrom(
-  //               foregroundColor: AppColors.primaryBlue,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildFilterChip(String label) {
-  //   return Container(
-  //     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-  //     decoration: BoxDecoration(
-  //       border: Border.all(color: Colors.grey.shade300),
-  //       borderRadius: BorderRadius.circular(20.r),
-  //     ),
-  //     child: Row(
-  //       mainAxisSize: MainAxisSize.min,
-  //       children: [
-  //         Text(label, style: TextStyle(fontSize: 13.sp, color: Colors.black87)),
-  //         SizedBox(width: 4.w),
-  //         Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black87),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildProductGrid(List<Product> products, bool isManagementMode) {
     return RefreshIndicator(

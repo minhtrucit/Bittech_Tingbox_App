@@ -22,6 +22,8 @@ import 'services/sse_services.dart';
 import 'services/ocr_correction_service.dart';
 import 'pages/ProductPage/bloc/ocr_correction_bloc.dart';
 import 'utils/audio_manager.dart';
+import 'services/table_service.dart';
+import 'pages/TableManagementPage/bloc/table_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +54,7 @@ void main() async {
   final ocrService = OcrService.getInstance();
   final ocrCorrectionService = OcrCorrectionService();
   final statisticServices = StatisticServices(api: apiService);
+  final tableService = TableService(api: apiService);
   final prefs = await SharedPreferences.getInstance();
   final accessToken = prefs.getString(UserRepository.keyToken);
   final refreshToken = prefs.getString(UserRepository.keyRefreshToken);
@@ -105,6 +108,9 @@ void main() async {
         BlocProvider<OcrCorrectionBloc>(
           create:
               (_) => OcrCorrectionBloc(correctionService: ocrCorrectionService),
+        ),
+        BlocProvider<TableBloc>(
+          create: (_) => TableBloc(tableService: tableService),
         ),
       ],
       child: const MyApp(),

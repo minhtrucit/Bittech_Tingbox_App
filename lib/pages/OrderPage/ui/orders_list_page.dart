@@ -4,6 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
+import 'package:ting_box/models/table_model.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
+import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
+import 'package:ting_box/services/api_services.dart';
+import 'package:ting_box/services/table_service.dart';
 import '../../../ting_box.dart';
 import 'orders_list_skeleton.dart';
 
@@ -21,6 +26,9 @@ class _OrdersListPageState extends State<OrdersListPage>
   String _selectedStatusFilter = 'Tất cả';
   int? _currentPaymentStatus; // Track current filter for API
   List<Order>? _orders;
+  int? _selectedTableId;
+  String? _selectedTableName;
+  SubscriptionPlan _currentPlan = SubscriptionPlan.basic;
 
   @override
   bool get wantKeepAlive => true;
@@ -44,6 +52,7 @@ class _OrdersListPageState extends State<OrdersListPage>
           page: 1,
           paymentStatus: _currentPaymentStatus,
           searchQuery: _searchQuery,
+          tableId: _selectedTableId,
         );
       }
     }
@@ -53,7 +62,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _getUserId();
+    _initData();
 
     // Only load orders if we don't have any data yet
     if (_orders == null) {
@@ -65,33 +74,40 @@ class _OrdersListPageState extends State<OrdersListPage>
           _canLoadMore = currentState.canLoadMore;
           _currentPage = currentState.page ?? 1;
         });
-      } else {
-        // Otherwise fetch new data
-        if (_userId != null) {
-          _fetchOrders(
-            userId: _userId!,
-            page: 1,
-            paymentStatus: _currentPaymentStatus,
-            searchQuery: _searchQuery,
-          );
-        }
       }
     }
   }
 
-  Future<void> _getUserId() async {
+  Future<void> _initData() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString(UserRepository.keyUserId);
-    if (userId != null && mounted) {
+    final user = await UserRepository.getUser();
+
+    if (mounted) {
       setState(() {
-        _userId = int.parse(userId);
+        if (userId != null) {
+          _userId = int.parse(userId);
+        }
+
+        final roleId = user?.roleId ?? 0;
+        if (roleId == 1) {
+          _currentPlan = SubscriptionPlan.admin;
+        } else if (roleId == 2) {
+          _currentPlan = SubscriptionPlan.premium;
+        } else if (roleId == 5 || roleId == 6) {
+          _currentPlan = SubscriptionPlan.fnb;
+        } else {
+          _currentPlan = SubscriptionPlan.basic;
+        }
       });
-      if (_orders == null) {
+
+      if (_orders == null && _userId != null) {
         _fetchOrders(
           userId: _userId!,
           page: 1,
           paymentStatus: _currentPaymentStatus,
           searchQuery: _searchQuery,
+          tableId: _selectedTableId,
         );
       }
     }
@@ -100,6 +116,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   @override
   void dispose() {
     _scrollController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -117,6 +134,7 @@ class _OrdersListPageState extends State<OrdersListPage>
     int? page,
     int? paymentStatus,
     String? searchQuery,
+    int? tableId,
     int limit = 10,
   }) {
     context.read<OrderBloc>().add(
@@ -125,6 +143,7 @@ class _OrdersListPageState extends State<OrdersListPage>
         page: page,
         paymentStatus: paymentStatus,
         searchQuery: searchQuery,
+        tableId: tableId,
         limit: limit,
       ),
     );
@@ -154,6 +173,7 @@ class _OrdersListPageState extends State<OrdersListPage>
           // và tăng limit lên cao (100) để "tìm hết" và "chính xác" nhất.
           paymentStatus: query.isNotEmpty ? null : _currentPaymentStatus,
           searchQuery: _searchQuery,
+          tableId: _selectedTableId,
           limit: query.isNotEmpty ? 100 : 10,
         );
       }
@@ -171,6 +191,7 @@ class _OrdersListPageState extends State<OrdersListPage>
         page: _currentPage + 1,
         paymentStatus: _currentPaymentStatus,
         searchQuery: _searchQuery,
+        tableId: _selectedTableId,
       );
     }
   }
@@ -200,8 +221,137 @@ class _OrdersListPageState extends State<OrdersListPage>
         page: 1,
         paymentStatus: _currentPaymentStatus,
         searchQuery: _searchQuery,
+        tableId: _selectedTableId,
       );
     }
+  }
+
+  Future<void> _showTableFilterDialog() async {
+    final configState = context.read<ConfigBloc>().state;
+    if (configState is! ConfigLoaded) {
+      NotificationUtils.showError(
+        context: context,
+        title: 'Lỗi',
+        description: 'Vui lòng chờ cấu hình hệ thống',
+      );
+      return;
+    }
+
+    final configId = configState.config.id;
+    if (configId == null) return;
+
+    final tableService = TableService(api: context.read<ApiService>());
+    final zones = await tableService.getZones(configId);
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sContext) {
+        return Container(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Lọc theo bàn',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedTableId = null;
+                        _selectedTableName = null;
+                      });
+                      Navigator.pop(sContext);
+                      if (_userId != null) {
+                        _fetchOrders(
+                          userId: _userId!,
+                          page: 1,
+                          paymentStatus: _currentPaymentStatus,
+                          tableId: null,
+                        );
+                      }
+                    },
+                    child: const Text('Xóa lọc'),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: zones.length,
+                  itemBuilder: (context, zIndex) {
+                    final zone = zones[zIndex];
+                    return FutureBuilder<List<TableModel>>(
+                      future: tableService.getTables(zone.id),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox();
+                        final tables = snapshot.data!;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              child: Text(
+                                zone.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                            Wrap(
+                              spacing: 8.w,
+                              runSpacing: 8.h,
+                              children:
+                                  tables.map((table) {
+                                    final isSelected =
+                                        _selectedTableId == table.id;
+                                    return ChoiceChip(
+                                      label: Text(table.name),
+                                      selected: isSelected,
+                                      onSelected: (val) {
+                                        setState(() {
+                                          _selectedTableId = table.id;
+                                          _selectedTableName = table.name;
+                                        });
+                                        Navigator.pop(sContext);
+                                        if (_userId != null) {
+                                          _fetchOrders(
+                                            userId: _userId!,
+                                            page: 1,
+                                            paymentStatus:
+                                                _currentPaymentStatus,
+                                            tableId: table.id,
+                                          );
+                                        }
+                                      },
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -278,47 +428,80 @@ class _OrdersListPageState extends State<OrdersListPage>
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         child: Row(
-          children:
-              statuses.map((status) {
-                final isSelected = _selectedStatusFilter == status;
-                return Container(
-                  margin: EdgeInsets.only(right: 8.w),
-                  child: FilterChip(
-                    checkmarkColor: AppColors.primaryBlue,
-                    label: Text(status),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      _onFilterChanged(status);
-                    },
-                    backgroundColor: Colors.grey.shade100,
-                    selectedColor: AppColors.white,
-                    labelStyle: TextStyle(
-                      fontSize: 13.sp,
+          children: [
+            if (_currentPlan == SubscriptionPlan.fnb) _buildTableFilterButton(),
+            ...statuses.map((status) {
+              final isSelected = _selectedStatusFilter == status;
+              return Container(
+                margin: EdgeInsets.only(right: 8.w),
+                child: FilterChip(
+                  checkmarkColor: AppColors.primaryBlue,
+                  label: Text(status),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    _onFilterChanged(status);
+                  },
+                  backgroundColor: Colors.grey.shade100,
+                  selectedColor: AppColors.white,
+                  labelStyle: TextStyle(
+                    fontSize: 13.sp,
+                    color:
+                        isSelected
+                            ? AppColors.primaryBlue
+                            : Colors.grey.shade700,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.r),
+                    side: BorderSide(
                       color:
                           isSelected
                               ? AppColors.primaryBlue
-                              : Colors.grey.shade700,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                              : Colors.transparent,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                      side: BorderSide(
-                        color:
-                            isSelected
-                                ? AppColors.primaryBlue
-                                : Colors.transparent,
-                      ),
-                    ),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    pressElevation: 0,
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    surfaceTintColor: Colors.transparent,
                   ),
-                );
-              }).toList(),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  pressElevation: 0,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                ),
+              );
+            }),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTableFilterButton() {
+    final isSelected = _selectedTableId != null;
+    return Container(
+      margin: EdgeInsets.only(right: 8.w),
+      child: FilterChip(
+        label: Text(_selectedTableName ?? 'Bàn'),
+        selected: isSelected,
+        onSelected: (_) => _showTableFilterDialog(),
+        avatar: Icon(
+          Icons.table_bar_rounded,
+          size: 16.sp,
+          color: isSelected ? Colors.white : Colors.grey,
+        ),
+        backgroundColor: Colors.grey.shade100,
+        selectedColor: AppColors.primaryBlue,
+        labelStyle: TextStyle(
+          fontSize: 13.sp,
+          color: isSelected ? Colors.white : Colors.grey.shade700,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+          side: BorderSide(
+            color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+          ),
+        ),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
@@ -366,6 +549,7 @@ class _OrdersListPageState extends State<OrdersListPage>
                   page: 1,
                   paymentStatus: _currentPaymentStatus,
                   searchQuery: _searchQuery,
+                  tableId: _selectedTableId,
                 );
               }
               await Future.delayed(const Duration(milliseconds: 500));
@@ -436,7 +620,46 @@ class _OrdersListPageState extends State<OrdersListPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildOrderHeader(order),
+            Row(
+              children: [
+                Expanded(child: _buildOrderHeader(order)),
+                if (order.tableId != null) ...[
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withAlpha(10),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(
+                        color: AppColors.primaryBlue.withAlpha(20),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.table_bar_rounded,
+                          size: 12.sp,
+                          color: AppColors.primaryBlue,
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          order.tableName ?? 'Bàn #${order.tableId}',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
             SizedBox(height: 8.h),
             _buildOrderCustomer(order),
             SizedBox(height: 8.h),
@@ -572,6 +795,7 @@ class _OrdersListPageState extends State<OrdersListPage>
                   userId: _userId!,
                   page: 1,
                   paymentStatus: _currentPaymentStatus,
+                  tableId: _selectedTableId,
                 );
               }
             },

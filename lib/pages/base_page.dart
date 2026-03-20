@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ting_box/pages/SalesPage/bloc/cart_bloc.dart';
-import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
 import 'package:ting_box/services/print_service.dart';
 import 'package:ting_box/ting_box.dart';
 
@@ -22,10 +20,9 @@ class BasePage extends StatefulWidget {
 
 class _BasePageState extends State<BasePage> {
   int _selectedIndex = 0;
-  bool _isPremium = false;
+  SubscriptionPlan _currentPlan = SubscriptionPlan.basic;
+  int _roleId = 0;
   bool _isLoading = true;
-  BusinessMode _businessMode = BusinessMode.fnb;
-  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -39,7 +36,16 @@ class _BasePageState extends State<BasePage> {
     final user = await UserRepository.getUser();
     if (mounted) {
       setState(() {
-        _isAdmin = user?.roleId == 1 || user == null;
+        _roleId = user?.roleId ?? 0;
+        if (_roleId == 1) {
+          _currentPlan = SubscriptionPlan.admin;
+        } else if (_roleId == 2) {
+          _currentPlan = SubscriptionPlan.premium;
+        } else if (_roleId == 5 || _roleId == 6) {
+          _currentPlan = SubscriptionPlan.fnb;
+        } else {
+          _currentPlan = SubscriptionPlan.basic;
+        }
       });
     }
 
@@ -61,23 +67,32 @@ class _BasePageState extends State<BasePage> {
   }
 
   List<Widget> get _pages {
-    if (!_isAdmin && _businessMode == BusinessMode.fnb) {
-      return [
-        const TableManagementPage(),
-        const SizedBox(), // Placeholder for index 1
-        const UserProfilePage(),
-      ];
+    switch (_currentPlan) {
+      case SubscriptionPlan.basic:
+        return [const HomePage(), const UserProfilePage()];
+      case SubscriptionPlan.fnb:
+        if (_roleId == 6) {
+          return [
+            const TableManagementPage(),
+            OrdersListPage(isVisible: _selectedIndex == 1),
+            const UserProfilePage(),
+          ];
+        }
+        return [
+          const HomePage(),
+          const TableManagementPage(),
+          OrdersListPage(isVisible: _selectedIndex == 2),
+          const UserProfilePage(),
+        ];
+      case SubscriptionPlan.admin:
+      case SubscriptionPlan.premium:
+        return [
+          const HomePage(),
+          OrdersListPage(isVisible: _selectedIndex == 1),
+          const ProductsListPage(),
+          const UserProfilePage(),
+        ];
     }
-
-    return [
-      const HomePage(),
-      if (_isPremium) ...[
-        OrdersListPage(isVisible: _selectedIndex == 1),
-        const HomePage(), // Placeholder
-        const ProductsListPage(),
-      ],
-      const UserProfilePage(),
-    ];
   }
 
   @override
@@ -85,14 +100,12 @@ class _BasePageState extends State<BasePage> {
     return BlocListener<ConfigBloc, ConfigState>(
       listener: (context, state) {
         if (state is ConfigLoaded && state.config.id != null) {
-          // Initialize Remote Print Service with config from API
           final prefix = dotenv.get('AGENT_ID_PREFIX');
           PrintService().init(
             agentId: '$prefix${state.config.id}',
             apiKey: state.config.sepayApiKey,
           );
 
-          // Fetch statistics when config is loaded
           final now = DateTime.now();
           context.read<StatisticsBloc>().add(
             GetStatisticsEvent(
@@ -102,15 +115,12 @@ class _BasePageState extends State<BasePage> {
             ),
           );
           setState(() {
-            _isPremium = true; // Forced for FnB testing
-            _businessMode = state.config.businessMode;
-            // Ensure selected index is valid if items changed
             if (_selectedIndex >= _pages.length) {
               _selectedIndex = 0;
             }
             _isLoading = false;
           });
-          if (_isPremium) {
+          if (_currentPlan != SubscriptionPlan.basic) {
             context.read<ProductBloc>().add(GetProductsEvent());
           }
         } else if (state is ConfigFailure) {
@@ -156,100 +166,11 @@ class _BasePageState extends State<BasePage> {
                           currentIndex: _selectedIndex,
                           onTap:
                               (index) => setState(() => _selectedIndex = index),
-                          isPremium: _isPremium,
-                          isAdmin: _isAdmin,
+                          plan: _currentPlan,
+                          roleId: _roleId,
                         ),
                       ),
                     ),
-                    if (_isPremium ||
-                        (_isAdmin && _businessMode == BusinessMode.fnb))
-                      Positioned(
-                        bottom:
-                            MediaQuery.of(context).systemGestureInsets.bottom >
-                                    32
-                                ? 30 +
-                                    MediaQuery.of(
-                                      context,
-                                    ).systemGestureInsets.bottom
-                                : 30,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: BlocBuilder<CartBloc, CartState>(
-                            builder: (context, cartState) {
-                              final hasItems = cartState.items.isNotEmpty;
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) =>
-                                              _businessMode == BusinessMode.fnb
-                                                  ? const TableManagementPage()
-                                                  : const ScanProductPage(),
-                                    ),
-                                  );
-                                },
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      width: 72,
-                                      height: 72,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.primaryBlue,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            blurRadius: 18,
-                                            offset: const Offset(0, 6),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        hasItems
-                                            ? Icons.shopping_cart_rounded
-                                            : Icons.qr_code_scanner,
-                                        color: Colors.white,
-                                        size: 34,
-                                      ),
-                                    ),
-                                    if (hasItems)
-                                      Positioned(
-                                        right: -4,
-                                        top: -4,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          constraints: const BoxConstraints(
-                                            minWidth: 24,
-                                            minHeight: 24,
-                                          ),
-                                          child: Text(
-                                            '${cartState.totalItems}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),

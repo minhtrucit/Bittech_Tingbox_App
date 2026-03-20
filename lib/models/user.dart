@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-
 class User {
   final int id;
   final String email;
@@ -38,7 +36,6 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    debugPrint("user.qrCode user profile:2 ${json['qrCode']}");
     return User(
       id: json['id'] ?? 0,
       email: json['email'] ?? '',
@@ -84,6 +81,13 @@ class User {
 
   @override
   String toString() => jsonEncode(toJson());
+
+  bool get isAdmin => role.name == 'ADMIN' || roleId == 1;
+  bool get isFnbManager => role.name == 'FNB_MANAGER';
+  bool get isFnbStaff => role.name == 'FNB_STAFF';
+
+  bool get canManageInfrastructure => isAdmin || isFnbManager;
+  bool get canManageOrders => isAdmin || isFnbManager || isFnbStaff;
 }
 
 class Role {

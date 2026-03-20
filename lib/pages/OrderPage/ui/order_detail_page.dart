@@ -176,6 +176,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           SizedBox(height: 12.h),
 
+          // Table Info (FnB only)
+          if (_currentOrder.tableId != null) ...[
+            _buildInfoRow(
+              'Bàn phục vụ',
+              _currentOrder.tableName ?? 'Bàn #${_currentOrder.tableId}',
+            ),
+            SizedBox(height: 12.h),
+          ],
+
           // Payment Method
           _buildInfoRow(
             'Phương thức thanh toán',
@@ -267,68 +276,155 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: item.isVoided ? Colors.red.withAlpha(5) : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8.r),
+        border: item.isVoided ? Border.all(color: Colors.red.withAlpha(20)) : null,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Icon/Image
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8.r),
-              image:
-                  productImage != null
-                      ? DecorationImage(
-                        image: NetworkImage(productImage),
-                        fit: BoxFit.cover,
-                      )
-                      : null,
-            ),
-            child:
-                productImage == null
-                    ? Icon(Icons.coffee, color: Colors.grey.shade600, size: 24)
-                    : null,
-          ),
-          SizedBox(width: 12.w),
-
-          // Product Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  productName,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+          Row(
+            children: [
+              // Product Icon/Image
+              Stack(
+                children: [
+                  Container(
+                    width: 48.w,
+                    height: 48.w,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8.r),
+                      image: productImage != null
+                          ? DecorationImage(
+                              image: NetworkImage(productImage),
+                              fit: BoxFit.cover,
+                              colorFilter: item.isVoided
+                                  ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+                                  : null,
+                            )
+                          : null,
+                    ),
+                    child: productImage == null
+                        ? Icon(Icons.coffee, color: Colors.grey.shade600, size: 24)
+                        : null,
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  '${item.quantity} x ${formatMoney(item.unitPrice)}đ',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  if (item.isVoided)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(100),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Icon(Icons.close_rounded, color: Colors.red, size: 24.sp),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(width: 12.w),
 
-          // Product Total
-          Text(
-            '${formatMoney(item.quantity * item.unitPrice)}đ',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+              // Product Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      productName,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: item.isVoided ? Colors.grey : Colors.black87,
+                        decoration: item.isVoided ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    if (item.status != null) ...[
+                      SizedBox(height: 2.h),
+                      _buildItemStatusBadge(item.status!),
+                    ],
+                    SizedBox(height: 4.h),
+                    Text(
+                      '${item.quantity} x ${formatMoney(item.unitPrice)}đ',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Product Total
+              Text(
+                '${formatMoney(item.quantity * item.unitPrice)}đ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: item.isVoided ? Colors.grey : Colors.black87,
+                ),
+              ),
+            ],
           ),
+          if (item.note != null && item.note!.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.amber.withAlpha(10),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.edit_note_rounded, size: 14.sp, color: Colors.amber[800]),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Text(
+                      'Ghi chú: ${item.note}',
+                      style: TextStyle(fontSize: 12.sp, fontStyle: FontStyle.italic, color: Colors.amber[900]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (item.isVoided && item.voidReason != null) ...[
+            SizedBox(height: 4.h),
+            Text(
+              'Lý do hủy: ${item.voidReason}',
+              style: TextStyle(fontSize: 12.sp, color: Colors.red[700], fontWeight: FontWeight.w500),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildItemStatusBadge(String status) {
+    String label = status;
+    Color color = Colors.grey;
+    switch (status.toLowerCase()) {
+      case 'pending':
+        label = 'Đang chờ';
+        color = Colors.orange;
+        break;
+      case 'confirmed':
+        label = 'Đã nhận';
+        color = Colors.blue;
+        break;
+      case 'served':
+        label = 'Đã ra món';
+        color = Colors.green;
+        break;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withAlpha(10),
+        borderRadius: BorderRadius.circular(4.r),
+        border: Border.all(color: color.withAlpha(30)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10.sp, color: color, fontWeight: FontWeight.bold),
       ),
     );
   }

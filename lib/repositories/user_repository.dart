@@ -10,10 +10,10 @@ class UserRepository {
   static const String keyConfigId = 'config_id';
   static const String keyUserId = 'user_id';
   static const String keyQrCode = 'qr_code';
+  static const String keyLastPhone = 'last_phone';
 
   // Save user object (json) + token
   static Future<void> saveUser(User user) async {
-    debugPrint("user.qrCode: ${user.qrCode}");
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyUser, jsonEncode(user.toJson()));
@@ -26,6 +26,7 @@ class UserRepository {
       if (user.qrCode != null) {
         await prefs.setString(keyQrCode, user.qrCode!);
       }
+      await prefs.setString(keyLastPhone, user.phone);
     } catch (e, st) {
       // log error, but don't throw to UI (optionally rethrow)
       debugPrint('UserRepository.saveUser error: $e\n$st');
@@ -111,5 +112,10 @@ class UserRepository {
       debugPrint('UserRepository.getQrCode error: $e\n$st');
       return null;
     }
+  }
+
+  static Future<String?> getLastPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(keyLastPhone);
   }
 }

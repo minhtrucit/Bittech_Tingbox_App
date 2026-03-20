@@ -8,14 +8,14 @@ class QuickActionButtons extends StatelessWidget {
     super.key,
     required this.configId,
     this.onRefresh,
-    this.businessMode = BusinessMode.fnb,
+    this.plan = SubscriptionPlan.fnb,
     this.isTable = false,
     this.isAdmin = false,
   });
 
   final int configId;
   final VoidCallback? onRefresh;
-  final BusinessMode businessMode;
+  final SubscriptionPlan plan;
   final bool isTable;
   final bool isAdmin;
 
@@ -28,7 +28,7 @@ class QuickActionButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // Common action: Table Management (Only for FnB if isTable is true)
-          if (businessMode == BusinessMode.fnb && isTable) ...[
+          if (plan == SubscriptionPlan.fnb && isTable) ...[
             _buildActionButton(
               context,
               icon: Icons.grid_view_rounded,
@@ -84,7 +84,7 @@ class QuickActionButtons extends StatelessWidget {
                 ).then((_) => onRefresh?.call());
               },
             ),
-            if (businessMode != BusinessMode.financeOnly) ...[
+            if (plan != SubscriptionPlan.basic) ...[
               SizedBox(width: 12.w),
               _buildActionButton(
                 context,

@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
 import 'package:ting_box/ting_box.dart';
-import 'package:ting_box/models/bank.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_event.dart';
@@ -29,7 +28,6 @@ class _ConfigPageState extends State<ConfigPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
-  List<Bank> _bankList = [];
   int _printModeGroupValue = 1;
   bool _isEditing = false;
   bool isAdmin = false;
@@ -134,6 +132,7 @@ class _ConfigPageState extends State<ConfigPage> {
       logo: _logoFile != null ? _logoFile!.path : widget.config!.logo,
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
+      subscriptionPlan: widget.config!.subscriptionPlan,
     );
 
     context.read<ConfigBloc>().add(UpdateConfigEvent(config: updatedConfig));
@@ -320,11 +319,7 @@ class _ConfigPageState extends State<ConfigPage> {
   Widget build(BuildContext context) {
     return BlocListener<ConfigBloc, ConfigState>(
       listener: (context, state) {
-        if (state is BankLoaded) {
-          _bankList = Bank.getTransferSupportedBanks(state.banks);
-          // No setState needed as dialog uses stateful builder or reads from _bankList
-        } else if (state is ConfigCreateSuccess ||
-            state is ConfigUpdateSuccess) {
+        if (state is ConfigCreateSuccess || state is ConfigUpdateSuccess) {
           DialogUtils.showAppDialog(
             onFirstAction: () => Navigator.pop(context),
             firstActionText: 'Đóng',
@@ -564,168 +559,6 @@ class _ConfigPageState extends State<ConfigPage> {
               bankAccount.bank != null
                   ? Image.network(bankAccount.bank!.logo, fit: BoxFit.contain)
                   : const Icon(Icons.account_balance, color: Colors.grey),
-        );
-      },
-    );
-  }
-
-  void _showAddBankDialog() {
-    if (_bankList.isEmpty) {
-      _getBankList();
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        int? selectedBankIndex;
-        final accountNumberController = TextEditingController();
-        final accountNameController = TextEditingController();
-        final formKey = GlobalKey<FormState>();
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: AppColors.white,
-              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
-              title: const Text('Thêm ngân hàng'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Form(
-                  key: formKey,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Chọn ngân hàng',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        SizedBox(
-                          height: 200.h,
-                          child: GridView.builder(
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 8.w,
-                                  mainAxisSpacing: 8.h,
-                                  childAspectRatio: 1.0,
-                                ),
-                            itemCount: _bankList.length,
-                            itemBuilder: (context, index) {
-                              final isSelected = selectedBankIndex == index;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    selectedBankIndex = index;
-                                  });
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? Colors.blue.withAlpha(10)
-                                            : Colors.white,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? Colors.blue
-                                              : Colors.grey[300]!,
-                                      width: isSelected ? 2 : 1,
-                                    ),
-                                  ),
-                                  padding: EdgeInsets.all(4.w),
-                                  child: Image.network(
-                                    _bankList[index].logo,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (selectedBankIndex == null)
-                          Padding(
-                            padding: EdgeInsets.only(top: 8.h),
-                            child: Text(
-                              'Vui lòng chọn ngân hàng',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 12.sp,
-                              ),
-                            ),
-                          ),
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: accountNumberController,
-                          hintText: 'Số tài khoản',
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Vui lòng nhập số tài khoản';
-                            }
-                            return null;
-                          },
-                          keyboardType: TextInputType.number,
-                        ),
-
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: accountNameController,
-                          hintText: 'Tên tài khoản',
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Vui lòng nhập tên tài khoản';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                AppTextButton(
-                  onPressed: () => Navigator.pop(context),
-                  label: Text(
-                    'Hủy',
-                    style: TextStyle(
-                      color: Colors.black.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-                AppTextButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate() &&
-                        selectedBankIndex != null) {
-                      final selectedBank = _bankList[selectedBankIndex!];
-                      context.read<ConfigBloc>().add(
-                        CreateOrUpdateBankAccountEvent(
-                          configId: widget.config!.id!,
-                          bankId: selectedBank.id,
-                          accountNumber: accountNumberController.text.trim(),
-                          accountName: accountNameController.text.trim(),
-                        ),
-                      );
-                      Navigator.pop(context); // Close dialog immediately
-                    }
-                  },
-                  label: Text(
-                    'Lưu',
-                    style: TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
         );
       },
     );

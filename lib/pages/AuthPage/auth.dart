@@ -38,9 +38,17 @@ class _AuthState extends State<Auth> {
       setState(() {
         savedUser = user;
         isQuickLoginMode = true;
-        phoneController.text = user.phone; // Pre-fill phone
+        phoneController.text = user.phone;
       });
       debugPrint('[Auth] Loaded saved user: ${user.userName}');
+    } else {
+      // If no User session, still try to remember the last phone used
+      final lastPhone = await UserRepository.getLastPhone();
+      if (lastPhone != null && lastPhone.isNotEmpty) {
+        setState(() {
+          phoneController.text = lastPhone;
+        });
+      }
     }
   }
 
