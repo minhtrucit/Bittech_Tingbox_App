@@ -598,6 +598,7 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                                   ProductsListPage(table: widget.table),
                         ),
                       ).then((data) {
+                        if (!mounted) return;
                         if (data is List<OrderItem>) {
                           setState(() {
                             for (var newItem in data) {

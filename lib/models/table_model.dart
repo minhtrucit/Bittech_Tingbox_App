@@ -68,7 +68,7 @@ class TableModel {
       ),
       currentOrderId: json['currentOrderId'],
       capacity: json['capacity'] ?? 4,
-      zone: json['zone'],
+      zone: json['zone'] is Map ? json['zone']['name'] : json['zone'],
       isActive: json['isActive'] ?? true,
       currentOrder: (json['currentOrder'] ?? json['current_order']) != null 
           ? _safeParseOrder(json['currentOrder'] ?? json['current_order']) 

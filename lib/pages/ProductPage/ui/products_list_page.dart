@@ -583,71 +583,85 @@ class _ProductsListPageState extends State<ProductsListPage> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            title: Text(
-              'Xác nhận gọi món',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryBlue,
+          (context) => BlocListener<CartBloc, CartState>(
+            listener: (context, state) {
+              if (state.items.isEmpty) {
+                Navigator.pop(context);
+              }
+            },
+            child: AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
               ),
-            ),
-            content: Text(
-              'Gửi ${products.length} món đã chọn vào ${widget.table?.name}?',
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Kiểm tra lại',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w600,
-                  ),
+              title: Text(
+                'Xác nhận gọi món',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  // Construct OrderItems to return
-                  final orderItems =
-                      products
-                          .map(
-                            (p) => OrderItem(
-                              productId: p.id,
-                              quantity: p.quantity,
-                              unitPrice: p.price,
-                              product: p, // Pass full product info for display
-                            ),
-                          )
-                          .toList();
-
-                  Navigator.pop(context); // Close dialog
-                  context.read<CartBloc>().add(ClearCartEvent());
-
-                  // Return the items to table management
-                  Navigator.pop(context, orderItems);
+              content: BlocBuilder<CartBloc, CartState>(
+                builder: (context, state) {
+                  return Text(
+                    'Gửi ${state.items.length} món đã chọn vào ${widget.table?.name}?',
+                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
+                  );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Gửi lệnh gọi món',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
-            ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Kiểm tra lại',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final items = context.read<CartBloc>().state.items;
+                    // Construct OrderItems to return
+                    final orderItems =
+                        items
+                            .map(
+                              (p) => OrderItem(
+                                productId: p.id,
+                                quantity: p.quantity,
+                                unitPrice: p.price,
+                                product: p, // Pass full product info for display
+                              ),
+                            )
+                            .toList();
+
+                    // Capture navigators
+                    final navigator = Navigator.of(context);
+                    navigator.pop(); // Close dialog
+                    context.read<CartBloc>().add(ClearCartEvent());
+
+                    // Return the items to table management
+                    navigator.pop(orderItems);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Gửi lệnh gọi món',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
     );
   }
@@ -670,71 +684,70 @@ class _ProductsListPageState extends State<ProductsListPage> {
                       top: Radius.circular(24.r),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
-                        width: 40.w,
-                        height: 4.h,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2.r),
+                   child: BlocListener<CartBloc, CartState>(
+                    listener: (context, state) {
+                      if (state.items.isEmpty) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
+                          width: 40.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2.r),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Món đã chọn',
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.read<CartBloc>().add(ClearCartEvent());
-                                Navigator.pop(context);
-                              },
-                              child: const Text(
-                                'Xóa tất cả',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(),
-                      Expanded(
-                        child: BlocBuilder<CartBloc, CartState>(
-                          builder: (context, cartState) {
-                            if (cartState.items.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  'Chưa chọn món nào',
-                                  style: TextStyle(color: Colors.grey[400]),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 8.h,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Món đã chọn',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              );
-                            }
-                            return ListView.builder(
-                              controller: scrollController,
-                              padding: EdgeInsets.all(16.w),
-                              itemCount: cartState.items.length,
-                              itemBuilder: (context, index) {
-                                final product = cartState.items[index];
-                                return _buildSelectionItemCard(product);
-                              },
-                            );
-                          },
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  context.read<CartBloc>().add(ClearCartEvent());
+                                  // Navigator.pop(context); // Listener will handle this
+                                },
+                                child: const Text(
+                                  'Xóa tất cả',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      _buildBottomSheetFooter(state),
-                    ],
+                        const Divider(),
+                        Expanded(
+                          child: BlocBuilder<CartBloc, CartState>(
+                            builder: (context, cartState) {
+                              return ListView.builder(
+                                controller: scrollController,
+                                padding: EdgeInsets.all(16.w),
+                                itemCount: cartState.items.length,
+                                itemBuilder: (context, index) {
+                                  final product = cartState.items[index];
+                                  return _buildSelectionItemCard(product);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        _buildBottomSheetFooter(state),
+                      ],
+                    ),
                   ),
                 ),
           ),

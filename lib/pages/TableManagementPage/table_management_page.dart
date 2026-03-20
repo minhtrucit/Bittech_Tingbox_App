@@ -18,7 +18,7 @@ class TableManagementPage extends StatefulWidget {
 
 class _TableManagementPageState extends State<TableManagementPage> {
   bool _canManageInfra = false;
-   bool _canManageOrders = false;
+  bool _canManageOrders = false;
   int? _roleId;
   int? _userId;
   int? _configId;
@@ -648,10 +648,19 @@ class _TableManagementPageState extends State<TableManagementPage> {
     return InkWell(
       onTap: () {
         if (isSelected) return;
-        Navigator.pop(context);
-        context.read<TableBloc>().add(
-          UpdateTable(table.id, {'status': status.name}),
-        );
+
+        // Không cho phép chuyển sang đang sử dụng manually
+        if (status == TableStatus.occupied) {
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lưu ý',
+            description: 'Vui lòng dùng tính năng "Gọi món" để mở bàn.',
+          );
+          return;
+        }
+
+        Navigator.pop(context); // Close bottom sheet
+        _confirmStatusChange(table, status);
       },
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
@@ -684,6 +693,50 @@ class _TableManagementPageState extends State<TableManagementPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _confirmStatusChange(TableModel table, TableStatus newStatus) {
+    if (table.status == TableStatus.occupied &&
+        (newStatus == TableStatus.empty || newStatus == TableStatus.reserved)) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              backgroundColor: Colors.white,
+              title: const Text('Xác nhận thay đổi'),
+              content: Text(
+                '${table.name} đang có đơn hàng. Việc chuyển sang trạng thái "${newStatus.label}" có thể làm mất dữ liệu đơn hàng hiện tại. Bạn có chắc chắn muốn tiếp tục?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Hủy',
+                    style: TextStyle(fontSize: 15.sp, color: Colors.black),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _updateTableStatus(table, newStatus);
+                  },
+                  child: const Text(
+                    'Tiếp tục',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+      );
+    } else {
+      _updateTableStatus(table, newStatus);
+    }
+  }
+
+  void _updateTableStatus(TableModel table, TableStatus newStatus) {
+    context.read<TableBloc>().add(
+      UpdateTable(table.id, {'status': newStatus.name}),
     );
   }
 
@@ -780,7 +833,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
     final nameController = TextEditingController();
     showDialog(
       context: context,
-        builder: (dContext) => AlertDialog(
+      builder:
+          (dContext) => AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.r),
@@ -849,7 +903,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
     final nameController = TextEditingController();
     showDialog(
       context: context,
-        builder: (dContext) => AlertDialog(
+      builder:
+          (dContext) => AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.r),
@@ -918,7 +973,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
     final nameController = TextEditingController(text: table.name);
     showDialog(
       context: context,
-        builder: (dContext) => AlertDialog(
+      builder:
+          (dContext) => AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.r),
@@ -981,7 +1037,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
   void _confirmDeleteTable(TableModel table) {
     showDialog(
       context: context,
-        builder: (dContext) => AlertDialog(
+      builder:
+          (dContext) => AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.r),
