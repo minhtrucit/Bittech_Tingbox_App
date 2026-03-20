@@ -60,23 +60,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
-        BlocListener<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthLogoutSuccess && mounted) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const Auth()),
-                (route) => false,
-              );
-            }
-
-            if (state is AuthLoading) {
-              setState(() => _isLoadingOverlay = true);
-            } else {
-              setState(() => _isLoadingOverlay = false);
-            }
-          },
-        ),
         BlocListener<ConfigBloc, ConfigState>(
           listener: (context, state) {
             if (state is ConfigLoaded) {

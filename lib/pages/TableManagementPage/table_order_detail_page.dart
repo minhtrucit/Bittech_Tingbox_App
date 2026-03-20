@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'bloc/table_bloc.dart';
 import 'bloc/table_event.dart';
 import 'bloc/table_state.dart';
+import '../OrderPage/bloc/order_bloc.dart';
+import '../OrderPage/bloc/order_event.dart';
+import '../OrderPage/bloc/order_state.dart';
 import 'package:ting_box/ting_box.dart';
 import '../../../models/table_model.dart';
 
@@ -246,22 +249,56 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
             ),
           ],
         ),
-        body: BlocListener<TableBloc, TableState>(
-          listener: (context, state) {
-            if (state is TableActionSuccess) {
-              if (state.message.contains('Hủy món thành công')) {
-                // Tự động load lại đơn hàng sau khi hủy thành công
-                if (_currentOrder.id != null) {
-                  context.read<TableBloc>().add(FetchTableOrder(_currentOrder.id!));
+        body: MultiBlocListener(
+          listeners: [
+            BlocListener<TableBloc, TableState>(
+              listener: (context, state) {
+                if (state is TableActionSuccess) {
+                  NotificationUtils.showSuccess(
+                    context: context,
+                    title: 'Thành công',
+                    description: state.message,
+                  );
+                  // Refresh order after voiding
+                  if (_currentOrder.id != null) {
+                    context.read<TableBloc>().add(FetchTableOrder(_currentOrder.id!));
+                  }
+                } else if (state is TableActionFailure) {
+                  NotificationUtils.showError(
+                    context: context,
+                    title: 'Thất bại',
+                    description: state.message,
+                  );
+                } else if (state is TableOrderLoaded) {
+                  setState(() {
+                    _currentOrder = state.order;
+                    _recalculateTotal();
+                  });
                 }
-              }
-            } else if (state is TableOrderLoaded) {
-              setState(() {
-                _currentOrder = state.order;
-                _recalculateTotal();
-              });
-            }
-          },
+              },
+            ),
+            BlocListener<OrderBloc, OrderState>(
+              listener: (context, state) {
+                if (state is OrderAddItemsSuccess) {
+                  NotificationUtils.showSuccess(
+                    context: context,
+                    title: 'Thành công',
+                    description: state.message,
+                  );
+                  // Refresh the order to get latest state
+                  if (_currentOrder.id != null) {
+                    context.read<TableBloc>().add(FetchTableOrder(_currentOrder.id!));
+                  }
+                } else if (state is OrderAddItemsFailure) {
+                  NotificationUtils.showError(
+                    context: context,
+                    title: 'Thất bại',
+                    description: state.message,
+                  );
+                }
+              },
+            ),
+          ],
           child: SafeArea(
             child: Column(
               children: [
@@ -599,39 +636,13 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                         ),
                       ).then((data) {
                         if (!mounted) return;
-                        if (data is List<OrderItem>) {
-                          setState(() {
-                            for (var newItem in data) {
-                              // Check if item already exists in the order
-                              final existingIndex = _currentOrder.items
-                                  .indexWhere(
-                                    (item) =>
-                                        item.productId == newItem.productId && !item.isVoided,
-                                  );
-                              if (existingIndex != -1) {
-                                final existingItem =
-                                    _currentOrder.items[existingIndex];
-                                _currentOrder.items[existingIndex] = existingItem.copyWith(
-                                    quantity: existingItem.quantity + newItem.quantity,
-                                );
-                              } else {
-                                _currentOrder.items.add(newItem);
-                              }
-                            }
-                            _recalculateTotal();
-                          });
-
-                          // Role 6: Tự động cập nhật API khi thêm món
-                          if (_roleId == 6 && _currentOrder.id != null) {
-                            context.read<TableBloc>().add(
-                              UpdateTableOrder(
-                                orderId: _currentOrder.id!,
-                                data: {
-                                  'items': _currentOrder.items.map((e) => e.toJson()).toList(),
-                                },
-                              ),
-                            );
-                          }
+                        if (data is List<OrderItem> && data.isNotEmpty) {
+                          context.read<OrderBloc>().add(
+                                OrderAddItemsEvent(
+                                  orderId: _currentOrder.id!,
+                                  items: data,
+                                ),
+                              );
                         }
                       });
                     },
@@ -651,7 +662,9 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      if (_currentOrder.items.isEmpty) {
+                      final nonVoidedItems = _currentOrder.items.where((item) => !item.isVoided).toList();
+                      
+                      if (nonVoidedItems.isEmpty) {
                         NotificationUtils.showError(
                           context: context,
                           title: 'Lỗi',
@@ -663,7 +676,7 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
 
                       // Map OrderItems to Products for the existing flow
                       final products =
-                          _currentOrder.items.map((item) {
+                          nonVoidedItems.map((item) {
                             return Product(
                               id: item.productId,
                               name: item.product?.name ?? 'Sản phẩm',
@@ -682,6 +695,7 @@ class _TableOrderDetailPageState extends State<TableOrderDetailPage> {
                               parentContext: context,
                               existingOrderId:
                                   _currentOrder.id, // Pass existing order ID
+                              tableId: widget.table.id, // Pass table ID
                             ),
                       );
                     },

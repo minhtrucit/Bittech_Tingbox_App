@@ -21,6 +21,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
     on<OrderUpdateStatusEvent>(_onUpdateOrderStatus);
     on<OrderCheckoutTableOrderEvent>(_onCheckoutTableOrder);
+    on<OrderAddItemsEvent>(_onOrderAddItems);
   }
 
   Future<void> _onCheckoutTableOrder(
@@ -421,6 +422,39 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       );
     } catch (e) {
       emit(OrderUpdateStatusFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onOrderAddItems(
+    OrderAddItemsEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderAddItemsLoading());
+    try {
+      final itemsMap =
+          event.items
+              .map(
+                (item) => {
+                  'productId': item.productId,
+                  'quantity': item.quantity,
+                  'unitPrice': item.unitPrice,
+                },
+              )
+              .toList();
+
+      final message = await orderService.addItemsToOrder(
+        orderId: event.orderId,
+        items: itemsMap,
+      );
+
+      emit(
+        OrderAddItemsSuccess(
+          order: null, // API doesn't return data
+          message: message,
+        ),
+      );
+    } catch (e) {
+      emit(OrderAddItemsFailure(message: e.toString()));
     }
   }
 }

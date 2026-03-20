@@ -583,33 +583,27 @@ class _ProductsListPageState extends State<ProductsListPage> {
     showDialog(
       context: context,
       builder:
-          (context) => BlocListener<CartBloc, CartState>(
-            listener: (context, state) {
-              if (state.items.isEmpty) {
-                Navigator.pop(context);
-              }
-            },
-            child: AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.r),
+          (context) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text(
+              'Xác nhận gọi món',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBlue,
               ),
-              title: Text(
-                'Xác nhận gọi món',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-              content: BlocBuilder<CartBloc, CartState>(
-                builder: (context, state) {
-                  return Text(
-                    'Gửi ${state.items.length} món đã chọn vào ${widget.table?.name}?',
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
-                  );
-                },
-              ),
+            ),
+            content: BlocBuilder<CartBloc, CartState>(
+              builder: (context, state) {
+                return Text(
+                  'Gửi ${state.items.length} món đã chọn vào ${widget.table?.name}?',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey[800]),
+                );
+              },
+            ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -662,7 +656,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 ),
               ],
             ),
-          ),
     );
   }
 

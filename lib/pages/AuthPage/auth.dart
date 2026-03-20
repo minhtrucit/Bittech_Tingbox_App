@@ -33,6 +33,7 @@ class _AuthState extends State<Auth> {
   }
 
   Future<void> _loadSavedUser() async {
+    // Current active session
     final user = await UserRepository.getUser();
     if (user != null) {
       setState(() {
@@ -40,9 +41,21 @@ class _AuthState extends State<Auth> {
         isQuickLoginMode = true;
         phoneController.text = user.phone;
       });
-      debugPrint('[Auth] Loaded saved user: ${user.userName}');
+      debugPrint('[Auth] Loaded active session user: ${user.userName}');
+      return;
+    }
+
+    // No active session, check for last logged in user for quick login UI
+    final lastUser = await UserRepository.getLastUser();
+    if (lastUser != null) {
+      setState(() {
+        savedUser = lastUser;
+        isQuickLoginMode = true;
+        phoneController.text = lastUser.phone;
+      });
+      debugPrint('[Auth] Loaded last remembered user: ${lastUser.userName}');
     } else {
-      // If no User session, still try to remember the last phone used
+      // If no User data at all, still try to remember the last phone used
       final lastPhone = await UserRepository.getLastPhone();
       if (lastPhone != null && lastPhone.isNotEmpty) {
         setState(() {

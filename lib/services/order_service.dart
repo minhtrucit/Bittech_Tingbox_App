@@ -158,6 +158,27 @@ class OrderService {
     }
   }
 
+  Future<String> addItemsToOrder({
+    required int orderId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      final resp =
+          await api.post('/orders/$orderId/items', data: {'items': items});
+
+      debugPrint("📌 Add Items to Order response: ${resp.data}");
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        return resp.data['message'] ?? 'Thêm món thành công';
+      }
+
+      throw Exception('Failed to add items: ${resp.data['message']}');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> handleSePayWebHook({
     required dynamic body,
   }) async {

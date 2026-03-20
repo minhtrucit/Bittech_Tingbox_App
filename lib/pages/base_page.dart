@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/services/print_service.dart';
 import 'package:ting_box/ting_box.dart';
@@ -9,6 +10,7 @@ import 'package:ting_box/ting_box.dart';
 import 'ConfigPage/bloc/config_bloc.dart';
 import 'ConfigPage/bloc/config_event.dart';
 import 'ConfigPage/bloc/config_state.dart';
+import 'ProductPage/ui/scan_menu_page.dart';
 import 'TableManagementPage/table_management_page.dart';
 
 class BasePage extends StatefulWidget {
@@ -73,15 +75,16 @@ class _BasePageState extends State<BasePage> {
       case SubscriptionPlan.fnb:
         if (_roleId == 6) {
           return [
-            const TableManagementPage(),
-            OrdersListPage(isVisible: _selectedIndex == 1),
+            OrdersListPage(isVisible: _selectedIndex == 0),
+            const TableManagementPage(), // Center
             const UserProfilePage(),
           ];
         }
         return [
           const HomePage(),
-          const TableManagementPage(),
-          OrdersListPage(isVisible: _selectedIndex == 2),
+          OrdersListPage(isVisible: _selectedIndex == 1),
+          const TableManagementPage(), // Center
+          const ProductsListPage(),
           const UserProfilePage(),
         ];
       case SubscriptionPlan.admin:
@@ -89,6 +92,7 @@ class _BasePageState extends State<BasePage> {
         return [
           const HomePage(),
           OrdersListPage(isVisible: _selectedIndex == 1),
+          const ScanMenuPage(), // Center
           const ProductsListPage(),
           const UserProfilePage(),
         ];
@@ -97,8 +101,21 @@ class _BasePageState extends State<BasePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<ConfigBloc, ConfigState>(
-      listener: (context, state) {
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthLogoutSuccess) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const Auth()),
+                (route) => false,
+              );
+            }
+          },
+        ),
+        BlocListener<ConfigBloc, ConfigState>(
+          listener: (context, state) {
         if (state is ConfigLoaded && state.config.id != null) {
           final prefix = dotenv.get('AGENT_ID_PREFIX');
           PrintService().init(
@@ -128,9 +145,10 @@ class _BasePageState extends State<BasePage> {
             _isLoading = false;
           });
         }
-      },
-      child:
-          _isLoading
+          },
+        ),
+      ],
+      child: _isLoading
               ? const Scaffold(
                 backgroundColor: Colors.white,
                 body: Center(
@@ -164,13 +182,60 @@ class _BasePageState extends State<BasePage> {
                         ),
                         child: AppNavigationBar(
                           currentIndex: _selectedIndex,
-                          onTap:
-                              (index) => setState(() => _selectedIndex = index),
+                          onTap: (index) {
+                            // Skip center index if it's the placeholder
+                            int centerIndex =
+                                (_currentPlan == SubscriptionPlan.fnb &&
+                                        _roleId == 6)
+                                    ? 1
+                                    : 2;
+                            if (index == centerIndex) return;
+                            setState(() => _selectedIndex = index);
+                          },
                           plan: _currentPlan,
                           roleId: _roleId,
                         ),
                       ),
                     ),
+                    // Floating Scan Button
+                    if (_currentPlan != SubscriptionPlan.basic || _roleId != 6)
+                      Positioned(
+                        bottom: 40.h,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              int centerIndex =
+                                  (_currentPlan == SubscriptionPlan.fnb &&
+                                          _roleId == 6)
+                                      ? 1
+                                      : 2;
+                              setState(() => _selectedIndex = centerIndex);
+                            },
+                            child: Container(
+                              width: 72.sp,
+                              height: 72.sp,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primaryBlue, // Green
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.qr_code_scanner,
+                                color: Colors.white,
+                                size: 32.sp,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

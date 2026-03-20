@@ -65,3 +65,9 @@ class OrderCheckoutTableOrderEvent extends OrderEvent {
   final int? tableId; // Added
   OrderCheckoutTableOrderEvent({required this.orderId, required this.paymentMethod, this.tableId});
 }
+
+class OrderAddItemsEvent extends OrderEvent {
+  final int orderId;
+  final List<OrderItem> items;
+  OrderAddItemsEvent({required this.orderId, required this.items});
+}

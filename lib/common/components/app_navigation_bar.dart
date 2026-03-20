@@ -39,15 +39,11 @@ class AppNavigationBar extends StatelessWidget {
         if (roleId == 6) {
           items = [
             const BottomNavigationBarItem(
-              icon: Icon(Icons.table_restaurant_outlined),
-              activeIcon: Icon(Icons.table_restaurant),
-              label: 'Bàn',
-            ),
-            const BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long_outlined),
               activeIcon: Icon(Icons.receipt_long),
               label: 'Đơn hàng',
             ),
+            const BottomNavigationBarItem(icon: SizedBox.shrink(), label: ''),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
@@ -62,14 +58,15 @@ class AppNavigationBar extends StatelessWidget {
               label: 'Home',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.table_restaurant_outlined),
-              activeIcon: Icon(Icons.table_restaurant),
-              label: 'Bàn',
-            ),
-            const BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long_outlined),
               activeIcon: Icon(Icons.receipt_long),
               label: 'Đơn hàng',
+            ),
+            const BottomNavigationBarItem(icon: SizedBox.shrink(), label: ''),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.category_outlined),
+              activeIcon: Icon(Icons.category),
+              label: 'Sản phẩm',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -92,6 +89,7 @@ class AppNavigationBar extends StatelessWidget {
             activeIcon: Icon(Icons.receipt_long),
             label: 'Đơn hàng',
           ),
+          const BottomNavigationBarItem(icon: SizedBox.shrink(), label: ''),
           const BottomNavigationBarItem(
             icon: Icon(Icons.category_outlined),
             activeIcon: Icon(Icons.category),
