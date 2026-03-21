@@ -1,32 +1,9 @@
-// order_model.dart
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/models/product.dart';
 import 'package:ting_box/models/statistic.dart';
+import 'package:ting_box/utils/parsing_utils.dart';
 
-double parseDouble(dynamic value, String fieldName) {
-  try {
-    if (value is String) return double.parse(value);
-    if (value is num) return value.toDouble();
-    debugPrint('Warning: unexpected type for $fieldName -> $value');
-    return 0;
-  } catch (e) {
-    debugPrint('Error parsing $fieldName: $value -> $e');
-    return 0;
-  }
-}
-
-int parseInt(dynamic value, String fieldName) {
-  try {
-    if (value is String) return int.parse(value);
-    if (value is num) return value.toInt();
-    debugPrint('Warning: unexpected type for $fieldName -> $value');
-    return 0;
-  } catch (e) {
-    debugPrint('Error parsing $fieldName: $value -> $e');
-    return 0;
-  }
-}
 
 class Order {
   int? id;
@@ -96,17 +73,20 @@ class Order {
       'totalAmount',
     );
 
-    String customerName = json['customerName'] ?? '';
-    String customerPhone = json['customerPhone'] ?? '';
-    String customerEmail = json['customerEmail'] ?? '';
-    String shippingAddress = json['shippingAddress'] ?? '';
-    String paymentMethod = json['paymentMethod'] ?? '';
-    String? note = json['note'];
-    String? createdAt = json['createdAt'];
-    String? updatedAt = json['updatedAt'] ?? json['updated_at'];
-    String? paymentStatus = json['paymentStatus'] ?? '';
-    String? tableName = json['tableName'] ?? json['table_name'];
-    String? orderType = json['orderType'] ?? json['order_type'];
+    String customerName = parseString(json['customerName']);
+    String customerPhone = parseString(json['customerPhone']);
+    String customerEmail = parseString(json['customerEmail']);
+    String shippingAddress = parseString(json['shippingAddress']);
+    String paymentMethod = parseString(json['paymentMethod']);
+    String? note = json['note']?.toString();
+    String? createdAt = json['createdAt']?.toString();
+    String? updatedAt = (json['updatedAt'] ?? json['updated_at'])?.toString();
+    String? paymentStatus = parseString(json['paymentStatus']);
+    String? tableName = (json['tableName'] ??
+            json['table_name'] ??
+            (json['table'] is Map ? json['table']['name'] : null))
+        ?.toString();
+    String? orderType = (json['orderType'] ?? json['order_type'])?.toString();
     bool? isTemp = json['isTemp'];
     if (json['isTemp'] is int) {
       isTemp = json['isTemp'] == 1;
@@ -244,11 +224,11 @@ class OrderItem {
     int productId = parseInt(json['productId'], 'productId');
     int quantity = parseInt(json['quantity'], 'quantity');
     double unitPrice = parseDouble(json['unitPrice'], 'unitPrice');
-    String? note = json['note'];
+    String? note = json['note']?.toString();
     bool isVoided = json['isVoided'] ?? json['is_voided'] ?? false;
-    String? voidReason = json['voidReason'] ?? json['void_reason'];
-    String? voidAt = json['voidAt'] ?? json['void_at'];
-    String? status = json['status'];
+    String? voidReason = (json['voidReason'] ?? json['void_reason'])?.toString();
+    String? voidAt = (json['voidAt'] ?? json['void_at'])?.toString();
+    String? status = json['status']?.toString();
 
     // Parse product if available in response
     Product? product;

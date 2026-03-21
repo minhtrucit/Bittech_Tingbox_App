@@ -4,9 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'bloc/table_bloc.dart';
 import 'bloc/table_event.dart';
 import 'bloc/table_state.dart';
-import '../OrderPage/bloc/order_bloc.dart';
-import '../OrderPage/bloc/order_event.dart';
-import '../OrderPage/bloc/order_state.dart';
 import 'package:ting_box/ting_box.dart';
 import '../../../models/table_model.dart';
 

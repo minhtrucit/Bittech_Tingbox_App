@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ting_box/utils/parsing_utils.dart';
 import 'order.dart';
 
 enum TableStatus {
@@ -58,21 +59,29 @@ class TableModel {
   });
 
   factory TableModel.fromJson(Map<String, dynamic> json) {
+    final currentOrderId = parseInt(json['currentOrderId'] ?? json['current_order_id']);
+    final currentOrderJson = json['currentOrder'] ?? json['current_order'];
+    final currentOrder = currentOrderJson != null ? _safeParseOrder(currentOrderJson) : null;
+    final statusStr = parseString(json['status']);
+
     return TableModel(
-      id: json['id'],
-      zoneId: json['zoneId'],
-      name: json['name'],
+      id: parseInt(json['id'], 'id'),
+      zoneId: parseInt(json['zoneId'] ?? json['zone_id'], 'zoneId'),
+      name: parseString(json['name']),
       status: TableStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => TableStatus.empty,
+        (e) => e.name.toLowerCase() == statusStr.toLowerCase(),
+        orElse: () {
+          if (currentOrder != null || currentOrderId != 0) {
+            return TableStatus.occupied;
+          }
+          return TableStatus.empty;
+        },
       ),
-      currentOrderId: json['currentOrderId'],
-      capacity: json['capacity'] ?? 4,
-      zone: json['zone'] is Map ? json['zone']['name'] : json['zone'],
+      currentOrderId: currentOrderId,
+      capacity: parseInt(json['capacity'], 'capacity'),
+      zone: json['zone'] is Map ? parseString(json['zone']['name']) : parseString(json['zone']),
       isActive: json['isActive'] ?? true,
-      currentOrder: (json['currentOrder'] ?? json['current_order']) != null 
-          ? _safeParseOrder(json['currentOrder'] ?? json['current_order']) 
-          : null,
+      currentOrder: currentOrder,
     );
   }
 

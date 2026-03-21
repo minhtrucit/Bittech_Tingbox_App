@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -27,7 +28,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   List<Bank> bankList = [];
   User? _currentUser;
 
-
   @override
   void initState() {
     super.initState();
@@ -54,7 +54,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     await _loadUser();
   }
 
-  bool _isLoadingOverlay = false;
+  final bool _isLoadingOverlay = false;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +105,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           children: [
                             _buildUserInfoHeader(user),
                             _buildInfoCard(user),
+                            _buildLogoutButton(context),
                             SizedBox(
                               height:
                                   60.h +
@@ -286,6 +287,78 @@ class _UserProfilePageState extends State<UserProfilePage> {
           if (isLink) const Icon(Icons.arrow_forward_ios_rounded, size: 16),
         ],
       ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: AppTextButton(
+          onPressed: () {
+            _showLogoutConfirmation(context);
+          },
+          style: TextButton.styleFrom(
+            backgroundColor: const Color(0xFFFFE5E5),
+            foregroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          label: const Text(
+            "Đăng xuất",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.red,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    final authBloc = context.read<AuthBloc>();
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) {
+        return CupertinoActionSheet(
+          title: Text(
+            "Xác nhận đăng xuất",
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          message: const Text(
+            "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                authBloc.add(LogoutEvent());
+              },
+              isDestructiveAction: true,
+              child: Text(
+                "Đăng xuất",
+                style: TextStyle(color: Colors.red, fontSize: 15.sp),
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text(
+              "Hủy",
+              style: TextStyle(color: AppColors.primaryBlue, fontSize: 15.sp),
+            ),
+          ),
+        );
+      },
     );
   }
 }

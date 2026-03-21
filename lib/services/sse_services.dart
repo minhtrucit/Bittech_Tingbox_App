@@ -17,29 +17,29 @@ class SseEvent {
 
 class SSEService {
   final _eventController = StreamController<SseEvent>.broadcast();
-
   Stream<SseEvent> get eventStream => _eventController.stream;
 
   bool _isConnected = false;
+  bool _isDisposed = false; // ✅ Thêm flag này
+  StreamSubscription? _subscription; // ✅ Giữ reference subscription
+
   bool get isConnected => _isConnected;
 
   SSEService._();
-
   static final SSEService instance = SSEService._();
 
   Future<void> connect() async {
-    if (_isConnected) return;
+    if (_isConnected || _isDisposed) return; // ✅ Check disposed
 
     final apiKey = dotenv.get('OCR_API_KEY');
-
     final baseUrl = dotenv.get('OCR_API_URL');
     final url = '$baseUrl/api/events';
 
-    debugPrint('[SSE] Connecting to $url using flutter_client_sse...');
+    debugPrint('[SSE] Connecting to $url...');
 
     try {
       _isConnected = true;
-      SSEClient.subscribeToSSE(
+      _subscription = SSEClient.subscribeToSSE( // ✅ Lưu subscription
         method: SSERequestType.GET,
         url: url,
         header: {
@@ -49,13 +49,14 @@ class SSEService {
         },
       ).listen(
         (event) {
+          if (_isDisposed) return; // ✅ Guard
+
           if (event.id == 'heartbeat' ||
               (event.data?.contains('heartbeat') ?? false)) {
             debugPrint('[SSE] Received heartbeat 💓');
             return;
           }
 
-          // Hiển thị toàn bộ dữ liệu trả về (không bị cắt bớt)
           debugPrint('[SSE-RAW] Event: ${event.event}, Data: ${event.data}');
 
           if (event.data != null && event.data!.isNotEmpty) {
@@ -66,15 +67,21 @@ class SSEService {
               decodedData = event.data;
             }
 
-            final sseEvent = SseEvent(event: event.event, data: decodedData);
-
-            debugPrint('[SSE] Dispatching Event: ${event.event ?? "message"}');
-            _eventController.add(sseEvent);
+            if (!_isDisposed) { // ✅ Guard trước khi add
+              _eventController.add(SseEvent(event: event.event, data: decodedData));
+            }
           }
         },
         onError: (error) {
           debugPrint('[SSE] Connection error');
           _isConnected = false;
+          // ✅ Không retry nếu đã disconnect chủ động
+          if (!_isDisposed) {
+            debugPrint('---RETRY CONNECTION---');
+            Future.delayed(const Duration(seconds: 3), () {
+              if (!_isDisposed) connect();
+            });
+          }
         },
       );
     } catch (e) {
@@ -84,9 +91,17 @@ class SSEService {
   }
 
   void disconnect() {
-    SSEClient.unsubscribeFromSSE();
+    _isDisposed = true;        // ✅ Stop mọi retry
     _isConnected = false;
+    _subscription?.cancel();   // ✅ Cancel subscription
+    _subscription = null;
+    SSEClient.unsubscribeFromSSE();
     debugPrint('[SSE] Disconnected');
+  }
+
+  // Gọi khi login lại để reset
+  void reset() {
+    _isDisposed = false; // ✅ Cho phép connect lại
   }
 
   void dispose() {

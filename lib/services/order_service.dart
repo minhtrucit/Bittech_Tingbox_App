@@ -74,7 +74,6 @@ class OrderService {
   }) async {
     try {
       final queryParams = {
-        'userId': userId,
         if (page != null) 'page': page,
         'limit': limit,
         if (paymentStatus != null) 'paymentStatus': paymentStatus,
@@ -100,7 +99,7 @@ class OrderService {
 
   Future<Order> getOrdersbyOrderId({required int orderId}) async {
     try {
-      final resp = await api.get('/orders/$orderId');
+      final resp = await api.get('/orders');
 
       debugPrint("📌 API RAW DATA: ${resp.data}");
 

@@ -46,6 +46,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         debugPrint('[AuthBloc] _onLogin: user saved');
 
         // 5️⃣ Connect SSE early
+        SSEService.instance.reset();
         SSEService.instance.connect();
 
         // 6️⃣ Emit success
@@ -73,15 +74,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final success = await authService.logout();
       await UserRepository.logout();
-      if (success) {
-        SSEService.instance.disconnect();
-        debugPrint('[AuthBloc] _onLogout: success: $success');
-        emit(AuthLogoutSuccess(success: true));
-      }
+      SSEService.instance.disconnect();
       debugPrint('[AuthBloc] _onLogout: success: $success');
-      emit(AuthLogoutSuccess(success: false));
+      emit(AuthLogoutSuccess(success: true));
     } catch (e) {
-      emit(AuthFailure('Logout failed: $e'));
+      debugPrint('[AuthBloc] _onLogout: error: $e');
+      // Still logout locally if server fails
+      await UserRepository.logout();
+      SSEService.instance.disconnect();
+      emit(AuthLogoutSuccess(success: true));
     }
   }
 }

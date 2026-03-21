@@ -177,10 +177,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           SizedBox(height: 12.h),
 
           // Table Info (FnB only)
-          if (_currentOrder.tableId != null) ...[
+          if (_currentOrder.tableId != null && _currentOrder.tableId != 0) ...[
             _buildInfoRow(
               'Bàn phục vụ',
-              _currentOrder.tableName ?? 'Bàn #${_currentOrder.tableId}',
+              _currentOrder.tableName ?? 'Bàn ${_currentOrder.tableId}',
+            ),
+            SizedBox(height: 12.h),
+          ],
+          if (_currentOrder.tableId == null || _currentOrder.tableId == 0) ...[
+            _buildInfoRow(
+              'Hình thức',
+              'Mang về',
             ),
             SizedBox(height: 12.h),
           ],

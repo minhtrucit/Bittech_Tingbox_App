@@ -73,47 +73,54 @@ void main() async {
   }
 
   runApp(
-    MultiBlocProvider(
+    MultiRepositoryProvider(
       providers: [
-        BlocProvider<AuthBloc>(
-          create:
-              (_) => AuthBloc(
-                authService: authService,
-                userRepository: userRepository,
-              ),
-        ),
-        BlocProvider<ProductBloc>(
-          create:
-              (_) => ProductBloc(
-                productApiService: productApiService,
-                ocrService: ocrService,
-              ),
-        ),
-        BlocProvider<OrderBloc>(
-          create: (_) => OrderBloc(orderService: orderService),
-        ),
-        BlocProvider<UserProfileBloc>(
-          create: (_) => UserProfileBloc(userService: userService),
-        ),
-        BlocProvider<ConfigBloc>(
-          create: (_) => ConfigBloc(configService: configService),
-        ),
-        BlocProvider<StatisticsBloc>(
-          create: (_) => StatisticsBloc(statisticServices: statisticServices),
-        ),
-        BlocProvider<CashBookBloc>(
-          create: (_) => CashBookBloc(statisticServices: statisticServices),
-        ),
-        BlocProvider<CartBloc>(create: (_) => CartBloc()),
-        BlocProvider<OcrCorrectionBloc>(
-          create:
-              (_) => OcrCorrectionBloc(correctionService: ocrCorrectionService),
-        ),
-        BlocProvider<TableBloc>(
-          create: (_) => TableBloc(tableService: tableService),
-        ),
+        RepositoryProvider<ApiService>.value(value: apiService),
+        RepositoryProvider<TableService>.value(value: tableService),
       ],
-      child: const MyApp(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create:
+                (_) => AuthBloc(
+                  authService: authService,
+                  userRepository: userRepository,
+                ),
+          ),
+          BlocProvider<ProductBloc>(
+            create:
+                (_) => ProductBloc(
+                  productApiService: productApiService,
+                  ocrService: ocrService,
+                ),
+          ),
+          BlocProvider<OrderBloc>(
+            create: (_) => OrderBloc(orderService: orderService),
+          ),
+          BlocProvider<UserProfileBloc>(
+            create: (_) => UserProfileBloc(userService: userService),
+          ),
+          BlocProvider<ConfigBloc>(
+            create: (_) => ConfigBloc(configService: configService),
+          ),
+          BlocProvider<StatisticsBloc>(
+            create: (_) => StatisticsBloc(statisticServices: statisticServices),
+          ),
+          BlocProvider<CashBookBloc>(
+            create: (_) => CashBookBloc(statisticServices: statisticServices),
+          ),
+          BlocProvider<CartBloc>(create: (_) => CartBloc()),
+          BlocProvider<OcrCorrectionBloc>(
+            create:
+                (_) =>
+                    OcrCorrectionBloc(correctionService: ocrCorrectionService),
+          ),
+          BlocProvider<TableBloc>(
+            create: (_) => TableBloc(tableService: tableService),
+          ),
+        ],
+        child: const MyApp(),
+      ),
     ),
   );
 }
@@ -125,9 +132,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScreenUtilInit(
       designSize: const Size(375, 812),
-      useInheritedMediaQuery: true,
+      minTextAdapt: true,
       splitScreenMode: true,
-      builder: (_, _) {
+      builder: (context, child) {
         return MaterialApp(
           title: 'BitTech Ting Box',
           theme: ThemeConfig.defaultLight,
@@ -138,20 +145,50 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: FutureBuilder<bool>(
-            future: UserRepository.isLoggedIn(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              return snapshot.data! ? const BasePage() : const Auth();
-            },
-          ),
+          home: child, // Use the stable child here
           debugShowCheckedModeBanner: false,
         );
+      },
+      child: const InitializerPage(), // Define the stable child here
+    );
+  }
+}
+
+class InitializerPage extends StatefulWidget {
+  const InitializerPage({super.key});
+
+  @override
+  State<InitializerPage> createState() => _InitializerPageState();
+}
+
+class _InitializerPageState extends State<InitializerPage> {
+  late Future<bool> _isLoggedInFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoggedInFuture = UserRepository.isLoggedIn();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _isLoggedInFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            ),
+          );
+        }
+
+        if (snapshot.data == true) {
+          return const BasePage();
+        }
+
+        return const Auth();
       },
     );
   }

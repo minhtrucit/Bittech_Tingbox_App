@@ -5,9 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ting_box/extension/date_time_extension.dart';
 import 'package:ting_box/models/table_model.dart';
+import 'package:ting_box/models/zone_model.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_bloc.dart';
 import 'package:ting_box/pages/ConfigPage/bloc/config_state.dart';
-import 'package:ting_box/services/api_services.dart';
 import 'package:ting_box/services/table_service.dart';
 import '../../../ting_box.dart';
 import 'orders_list_skeleton.dart';
@@ -29,6 +29,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   int? _selectedTableId;
   String? _selectedTableName;
   SubscriptionPlan _currentPlan = SubscriptionPlan.basic;
+  Map<int, String> _tableNames = {};
 
   @override
   bool get wantKeepAlive => true;
@@ -99,7 +100,17 @@ class _OrdersListPageState extends State<OrdersListPage>
         } else {
           _currentPlan = SubscriptionPlan.basic;
         }
+
+        final configState = context.read<ConfigBloc>().state;
+        if (configState is ConfigLoaded &&
+            configState.config.subscriptionPlan == SubscriptionPlan.fnb) {
+          _currentPlan = SubscriptionPlan.fnb;
+        }
       });
+
+      if (_currentPlan == SubscriptionPlan.fnb) {
+        _loadTableNames();
+      }
 
       if (_orders == null && _userId != null) {
         _fetchOrders(
@@ -118,6 +129,41 @@ class _OrdersListPageState extends State<OrdersListPage>
     _scrollController.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadTableNames() async {
+    final configState = context.read<ConfigBloc>().state;
+    if (configState is ConfigLoaded) {
+      final configId = configState.config.id;
+      if (configId != null) {
+        try {
+          final zones = await context.read<TableService>().getZones(configId);
+          final Map<int, String> names = {};
+          for (var zone in zones) {
+            // Check if tables are already in the zone response
+            if (zone.tables != null && zone.tables!.isNotEmpty) {
+              for (var table in zone.tables!) {
+                names[table.id] = table.name;
+              }
+            } else {
+              // Otherwise fetch tables for this zone
+              final tables =
+                  await context.read<TableService>().getTables(zone.id);
+              for (var table in tables) {
+                names[table.id] = table.name;
+              }
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _tableNames = names;
+            });
+          }
+        } catch (e) {
+          debugPrint('Error loading table names: $e');
+        }
+      }
+    }
   }
 
   void _onScroll() {
@@ -205,10 +251,9 @@ class _OrdersListPageState extends State<OrdersListPage>
       } else if (filter == 'Chưa thanh toán') {
         _currentPaymentStatus = 0;
       } else {
-        _currentPaymentStatus = null; // 'Tất cả'
+        _currentPaymentStatus = null;
       }
 
-      // Reset pagination when filter changes
       _currentPage = 1;
       _orders = null; // Clear old data
       _canLoadMore = true;
@@ -240,114 +285,182 @@ class _OrdersListPageState extends State<OrdersListPage>
     final configId = configState.config.id;
     if (configId == null) return;
 
-    final tableService = TableService(api: context.read<ApiService>());
-    final zones = await tableService.getZones(configId);
+    final tableService = context.read<TableService>();
 
     if (!mounted) return;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
       builder: (sContext) {
-        return Container(
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Lọc theo bàn',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: 0.7.sh, maxWidth: 0.8.sw),
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Chọn bàn',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedTableId = null;
-                        _selectedTableName = null;
-                      });
-                      Navigator.pop(sContext);
-                      if (_userId != null) {
-                        _fetchOrders(
-                          userId: _userId!,
-                          page: 1,
-                          paymentStatus: _currentPaymentStatus,
-                          tableId: null,
-                        );
-                      }
-                    },
-                    child: const Text('Xóa lọc'),
-                  ),
-                ],
-              ),
-              const Divider(),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: zones.length,
-                  itemBuilder: (context, zIndex) {
-                    final zone = zones[zIndex];
-                    return FutureBuilder<List<TableModel>>(
-                      future: tableService.getTables(zone.id),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const SizedBox();
-                        final tables = snapshot.data!;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.h),
-                              child: Text(
-                                zone.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                            Wrap(
-                              spacing: 8.w,
-                              runSpacing: 8.h,
-                              children:
-                                  tables.map((table) {
-                                    final isSelected =
-                                        _selectedTableId == table.id;
-                                    return ChoiceChip(
-                                      label: Text(table.name),
-                                      selected: isSelected,
-                                      onSelected: (val) {
-                                        setState(() {
-                                          _selectedTableId = table.id;
-                                          _selectedTableName = table.name;
-                                        });
-                                        Navigator.pop(sContext);
-                                        if (_userId != null) {
-                                          _fetchOrders(
-                                            userId: _userId!,
-                                            page: 1,
-                                            paymentStatus:
-                                                _currentPaymentStatus,
-                                            tableId: table.id,
-                                          );
-                                        }
-                                      },
-                                    );
-                                  }).toList(),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(sContext),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTableId = null;
+                      _selectedTableName = null;
+                      _currentPage = 1;
+                      _orders = null;
+                      _canLoadMore = true;
+                    });
+                    Navigator.pop(sContext);
+                    if (_userId != null) {
+                      _fetchOrders(
+                        userId: _userId!,
+                        page: 1,
+                        paymentStatus: _currentPaymentStatus,
+                        tableId: null,
+                        searchQuery: _searchQuery,
+                      );
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.filter_list_off,
+                    size: 18,
+                    color: AppColors.primaryBlue,
+                  ),
+                  label: const Text(
+                    'Tất cả các bàn',
+                    style: TextStyle(color: AppColors.primaryBlue),
+                  ),
+                ),
+                const Divider(),
+                Expanded(
+                  child: FutureBuilder<List<ZoneModel>>(
+                    future: tableService.getZones(configId),
+                    builder: (context, zoneSnapshot) {
+                      if (!zoneSnapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final zones = zoneSnapshot.data!;
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: zones.length,
+                        itemBuilder: (context, zIndex) {
+                          final zone = zones[zIndex];
+                          return FutureBuilder<List<TableModel>>(
+                            future: tableService.getTables(zone.id),
+                            builder: (context, tableSnapshot) {
+                              if (!tableSnapshot.hasData) {
+                                return const SizedBox();
+                              }
+                              final tables = tableSnapshot.data!;
+                              final activeTables =
+                                  tables.where((t) => t.isActive).toList();
+
+                              if (activeTables.isEmpty) {
+                                return const SizedBox();
+                              }
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 8.h,
+                                    ),
+                                    child: Text(
+                                      zone.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryBlue,
+                                        fontSize: 14.sp,
+                                      ),
+                                    ),
+                                  ),
+                                  Wrap(
+                                    spacing: 8.w,
+                                    runSpacing: 8.h,
+                                    children:
+                                        activeTables.map((table) {
+                                          final isSelected =
+                                              _selectedTableId == table.id;
+                                          return InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedTableId = table.id;
+                                                _selectedTableName = table.name;
+                                                _currentPage = 1;
+                                                _orders = null;
+                                                _canLoadMore = true;
+                                              });
+                                              Navigator.pop(sContext);
+                                              if (_userId != null) {
+                                                _fetchOrders(
+                                                  userId: _userId!,
+                                                  page: 1,
+                                                  paymentStatus:
+                                                      _currentPaymentStatus,
+                                                  tableId: table.id,
+                                                  searchQuery: _searchQuery,
+                                                );
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 12.w,
+                                                vertical: 8.h,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    isSelected
+                                                        ? AppColors.primaryBlue
+                                                        : Colors.grey.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(8.r),
+                                              ),
+                                              child: Text(
+                                                table.name,
+                                                style: TextStyle(
+                                                  color:
+                                                      isSelected
+                                                          ? Colors.white
+                                                          : Colors.black87,
+                                                  fontSize: 13.sp,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -429,7 +542,13 @@ class _OrdersListPageState extends State<OrdersListPage>
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         child: Row(
           children: [
-            if (_currentPlan == SubscriptionPlan.fnb) _buildTableFilterButton(),
+            if (_currentPlan == SubscriptionPlan.fnb ||
+                (context.watch<ConfigBloc>().state is ConfigLoaded &&
+                    (context.watch<ConfigBloc>().state as ConfigLoaded)
+                            .config
+                            .subscriptionPlan ==
+                        SubscriptionPlan.fnb))
+              _buildTableFilterButton(),
             ...statuses.map((status) {
               final isSelected = _selectedStatusFilter == status;
               return Container(
@@ -647,7 +766,15 @@ class _OrdersListPageState extends State<OrdersListPage>
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          order.tableName ?? 'Bàn #${order.tableId}',
+                          (order.tableId != null &&
+                                  _tableNames.containsKey(order.tableId))
+                              ? _tableNames[order.tableId]!
+                              : (order.tableName != null &&
+                                      order.tableName!.isNotEmpty)
+                                  ? order.tableName!
+                                  : (order.tableId != null && order.tableId != 0
+                                      ? 'Bàn ${order.tableId}'
+                                      : 'Mang về'),
                           style: TextStyle(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.bold,

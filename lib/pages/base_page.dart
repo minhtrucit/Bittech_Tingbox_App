@@ -72,7 +72,7 @@ class _BasePageState extends State<BasePage> {
     switch (_currentPlan) {
       case SubscriptionPlan.basic:
         return [const HomePage(), const UserProfilePage()];
-      case SubscriptionPlan.fnb:
+      case SubscriptionPlan.fnb: 
         if (_roleId == 6) {
           return [
             OrdersListPage(isVisible: _selectedIndex == 0),
@@ -106,49 +106,53 @@ class _BasePageState extends State<BasePage> {
         BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthLogoutSuccess) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const Auth()),
-                (route) => false,
-              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const Auth()),
+                    (route) => false,
+                  );
+                }
+              });
             }
           },
         ),
         BlocListener<ConfigBloc, ConfigState>(
           listener: (context, state) {
-        if (state is ConfigLoaded && state.config.id != null) {
-          final prefix = dotenv.get('AGENT_ID_PREFIX');
-          PrintService().init(
-            agentId: '$prefix${state.config.id}',
-            apiKey: state.config.sepayApiKey,
-          );
+            if (state is ConfigLoaded && state.config.id != null) {
+              final prefix = dotenv.get('AGENT_ID_PREFIX');
+              PrintService().init(
+                agentId: '$prefix${state.config.id}',
+                apiKey: state.config.sepayApiKey,
+              );
 
-          final now = DateTime.now();
-          context.read<StatisticsBloc>().add(
-            GetStatisticsEvent(
-              startDate: _formatDate(now),
-              endDate: _formatDate(now),
-              configId: state.config.id!,
-            ),
-          );
-          setState(() {
-            if (_selectedIndex >= _pages.length) {
-              _selectedIndex = 0;
+              final now = DateTime.now();
+              context.read<StatisticsBloc>().add(
+                GetStatisticsEvent(
+                  startDate: _formatDate(now),
+                  endDate: _formatDate(now),
+                  configId: state.config.id!,
+                ),
+              );
+              setState(() {
+                if (_selectedIndex >= _pages.length) {
+                  _selectedIndex = 0;
+                }
+                _isLoading = false;
+              });
+              if (_currentPlan != SubscriptionPlan.basic) {
+                context.read<ProductBloc>().add(GetProductsEvent());
+              }
+            } else if (state is ConfigFailure) {
+              setState(() {
+                _isLoading = false;
+              });
             }
-            _isLoading = false;
-          });
-          if (_currentPlan != SubscriptionPlan.basic) {
-            context.read<ProductBloc>().add(GetProductsEvent());
-          }
-        } else if (state is ConfigFailure) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
           },
         ),
       ],
-      child: _isLoading
+      child:
+          _isLoading
               ? const Scaffold(
                 backgroundColor: Colors.white,
                 body: Center(
