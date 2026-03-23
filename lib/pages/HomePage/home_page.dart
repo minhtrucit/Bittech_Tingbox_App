@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   bool _isTable = false;
   SubscriptionPlan _currentPlan = SubscriptionPlan.fnb;
   bool _isAdmin = false;
+  int _roleId = 0;
 
   @override
   void initState() {
@@ -40,14 +41,19 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     if (mounted) {
       setState(() {
-        _isAdmin = user?.roleId == 1 || user?.roleId == 2 || user?.roleId == 5 || user == null;
-        _isTable = true; // Forced for FnB testing
-        final roleId = user?.roleId ?? 0;
-        if (roleId == 1) {
+        _isAdmin =
+            user?.roleId == 1 ||
+            user?.roleId == 2 ||
+            user?.roleId == 5 ||
+            user?.roleId == 4;
+
+        _roleId = user?.roleId ?? 0;
+        if (_roleId == 1) {
           _currentPlan = SubscriptionPlan.admin;
-        } else if (roleId == 2) {
+        } else if (_roleId == 2) {
           _currentPlan = SubscriptionPlan.premium;
-        } else if (roleId == 5 || roleId == 6) {
+        } else if (_roleId == 5 || _roleId == 6) {
+          _isTable = true;
           _currentPlan = SubscriptionPlan.fnb;
         } else {
           _currentPlan = SubscriptionPlan.basic;
@@ -195,6 +201,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return BlocListener<ConfigBloc, ConfigState>(
       listener: (context, state) {
+        if (!context.mounted) return;
         if (state is ConfigLoaded && state.config.id != null) {
           setState(() {
             _configId = state.config.id.toString();

@@ -126,6 +126,7 @@ class _BasePageState extends State<BasePage> {
         ),
         BlocListener<ConfigBloc, ConfigState>(
           listener: (context, state) {
+            if (!context.mounted) return;
             if (state is ConfigLoaded && state.config.id != null) {
               final prefix = dotenv.get('AGENT_ID_PREFIX');
               PrintService().init(
