@@ -35,12 +35,14 @@ class Menu {
 }
 
 class MenuItem {
+  final String? category;
   final String? name;
   final double price;
   final String? thumbnailUrl;
   final String? description;
 
   MenuItem({
+    this.category,
     this.name,
     required this.price,
     this.thumbnailUrl,
@@ -61,6 +63,7 @@ class MenuItem {
     }
 
     return MenuItem(
+      category: json['category'],
       name: json['name'],
       price: parsePrice(json['price']),
       thumbnailUrl: json['thumbnail_url'],
@@ -70,6 +73,7 @@ class MenuItem {
 
   Map<String, dynamic> toJson() {
     return {
+      'category': category,
       'name': name,
       'price': price,
       'thumbnail_url': thumbnailUrl,

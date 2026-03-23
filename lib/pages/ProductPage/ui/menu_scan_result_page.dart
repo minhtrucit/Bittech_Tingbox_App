@@ -40,7 +40,8 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
       final current = _editableProducts[i];
       if (original.name != current.name ||
           original.price != current.price ||
-          original.description != current.description) {
+          original.description != current.description ||
+          original.category != current.category) {
         return true;
       }
     }
@@ -153,12 +154,35 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                 children: [
                   _buildSummaryHeader(),
                   Expanded(
-                    child: ListView.builder(
-                      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 110.h),
-                      itemCount: _editableProducts.length,
-                      itemBuilder: (context, index) {
-                        return _buildModernProductCard(index);
-                      },
+                    child: Builder(
+                      builder: (context) {
+                        final grouped = _getGroupedIndices();
+                        return ListView.builder(
+                          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 110.h),
+                          itemCount: grouped.length,
+                          itemBuilder: (context, catIndex) {
+                            final entry = grouped.entries.elementAt(catIndex);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                                  child: Text(
+                                    entry.key.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueGrey.shade800,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                                ...entry.value.map((idx) => _buildModernProductCard(idx)),
+                              ],
+                            );
+                          },
+                        );
+                      }
                     ),
                   ),
                 ],
@@ -176,6 +200,16 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
         ),
       ),
     );
+  }
+
+  Map<String, List<int>> _getGroupedIndices() {
+    Map<String, List<int>> map = {};
+    for (int i = 0; i < _editableProducts.length; i++) {
+        String cat = _editableProducts[i].category ?? 'Khác';
+        if (cat.isEmpty) cat = 'Khác';
+        map.putIfAbsent(cat, () => []).add(i);
+    }
+    return map;
   }
 
   Widget _buildSummaryHeader() {
@@ -292,12 +326,15 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildCategoryField(index, product),
+                  SizedBox(height: 16.h),
                   _buildEditableField(
                     label: "Tên sản phẩm",
                     initialValue: product.name ?? '',
                     onChanged: (val) {
                       setState(() {
                         _editableProducts[index] = MenuItem(
+                          category: product.category,
                           name: val,
                           price: product.price,
                           description: product.description,
@@ -319,6 +356,7 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                           onChanged: (val) {
                             setState(() {
                               _editableProducts[index] = MenuItem(
+                                category: product.category,
                                 name: product.name,
                                 price:
                                     CurrencyInputFormatter.parseValue(val) ?? 0,
@@ -342,6 +380,7 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                           onChanged: (val) {
                             setState(() {
                               _editableProducts[index] = MenuItem(
+                                category: product.category,
                                 name: product.name,
                                 price: product.price,
                                 description: val,
@@ -414,6 +453,159 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
         ),
         Container(height: 1, color: Colors.grey.shade100),
       ],
+    );
+  }
+
+  Widget _buildCategoryField(int index, MenuItem product) {
+    // Collect all available categories from current items
+    final categories = _editableProducts
+        .map((e) => e.category?.trim() ?? '')
+        .where((c) => c.isNotEmpty && c != 'Khác')
+        .toSet()
+        .toList();
+    
+    // Add 'Khác' to the list if not present
+    if (!categories.contains('Khác')) categories.add('Khác');
+    
+    String currentCat = product.category?.trim() ?? 'Khác';
+    if (currentCat.isEmpty) currentCat = 'Khác';
+    
+    // If the current category somehow isn't in the list, add it
+    if (!categories.contains(currentCat)) {
+      categories.add(currentCat);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.category_rounded, size: 14.sp, color: Colors.grey.shade400),
+            SizedBox(width: 4.w),
+            Text(
+              "DANH MỤC".toUpperCase(),
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+        DropdownButtonFormField<String>(
+          value: currentCat,
+          isExpanded: true,
+          icon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(vertical: 8.h),
+            border: InputBorder.none,
+          ),
+          items: [
+            ...categories.map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c,
+                      style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey.shade800)),
+                )),
+            DropdownMenuItem(
+              value: '__ADD_NEW__',
+              child: Row(
+                children: [
+                  Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue, size: 18.sp),
+                  SizedBox(width: 8.w),
+                  Text(
+                    "Thêm danh mục mới",
+                    style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          onChanged: (val) async {
+            // Restore previous value immediately to avoid UI glitch if they cancel
+            
+            if (val == '__ADD_NEW__') {
+              final newCat = await _showAddCategoryDialog();
+              if (newCat != null && newCat.isNotEmpty) {
+                setState(() {
+                  _editableProducts[index] = MenuItem(
+                    category: newCat,
+                    name: product.name,
+                    price: product.price,
+                    description: product.description,
+                    thumbnailUrl: product.thumbnailUrl,
+                  );
+                });
+              } else {
+                // If cancelled, just setstate to force rebuild with original value
+                setState(() {});
+              }
+            } else if (val != null) {
+              setState(() {
+                _editableProducts[index] = MenuItem(
+                  category: val,
+                  name: product.name,
+                  price: product.price,
+                  description: product.description,
+                  thumbnailUrl: product.thumbnailUrl,
+                );
+              });
+            }
+          },
+        ),
+        Container(height: 1, color: Colors.grey.shade100),
+      ],
+    );
+  }
+
+  Future<String?> _showAddCategoryDialog() {
+    final TextEditingController catCtrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+          title: Text("Tạo danh mục mới", 
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.blueGrey.shade800)),
+          content: TextField(
+            controller: catCtrl,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: "Nhập tên danh mục",
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14.sp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: AppColors.primaryBlue),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Hủy", style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, catCtrl.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+              ),
+              child: const Text("Thêm"),
+            ),
+          ],
+        );
+      },
     );
   }
 
