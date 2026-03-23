@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../models/user.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/auth_services.dart';
+import '../../../services/sse_services.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -44,7 +45,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await UserRepository.saveUser(user);
         debugPrint('[AuthBloc] _onLogin: user saved');
 
-        // 5️⃣ Emit success
+        // 5️⃣ Connect SSE early
+        SSEService.instance.reset();
+        SSEService.instance.connect();
+
+        // 6️⃣ Emit success
         emit(AuthSuccess(user));
         debugPrint('[AuthBloc] _onLogin: AuthSuccess emitted');
       } else {
@@ -69,14 +74,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final success = await authService.logout();
       await UserRepository.logout();
-      if (success) {
-        debugPrint('[AuthBloc] _onLogout: success: $success');
-        emit(AuthLogoutSuccess(success: true));
-      }
+      SSEService.instance.disconnect();
       debugPrint('[AuthBloc] _onLogout: success: $success');
-      emit(AuthLogoutSuccess(success: false));
+      emit(AuthLogoutSuccess(success: true));
     } catch (e) {
-      emit(AuthFailure('Logout failed: $e'));
+      debugPrint('[AuthBloc] _onLogout: error: $e');
+      // Still logout locally if server fails
+      await UserRepository.logout();
+      SSEService.instance.disconnect();
+      emit(AuthLogoutSuccess(success: true));
     }
   }
 }

@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-
 class User {
   final int id;
   final String email;
@@ -15,8 +13,9 @@ class User {
   final int roleId;
   final Role role;
   final String? token;
-  bool? isDevMode;
+  final bool? isDevMode;
   final String? qrCode;
+  final bool? isTable;
 
   User({
     required this.id,
@@ -33,10 +32,10 @@ class User {
     this.token,
     this.isDevMode,
     this.qrCode,
+    this.isTable,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    debugPrint("user.qrCode user profile:2 ${json['qrCode']}");
     return User(
       id: json['id'] ?? 0,
       email: json['email'] ?? '',
@@ -56,6 +55,7 @@ class User {
       token: json['expenseManagerAccessToken']?.toString(),
       isDevMode: json['isDev'] ?? false,
       qrCode: json['qrCode']?.toString(),
+      isTable: json['isTable'] ?? false,
     );
   }
 
@@ -75,11 +75,19 @@ class User {
       'isDev': isDevMode,
       if (token != null) 'token': token,
       if (qrCode != null) 'qrCode': qrCode,
+      'isTable': isTable,
     };
   }
 
   @override
   String toString() => jsonEncode(toJson());
+
+  bool get isAdmin => role.name == 'ADMIN' || roleId == 1;
+  bool get isFnbManager => role.name == 'FNB_MANAGER';
+  bool get isFnbStaff => role.name == 'FNB_STAFF';
+
+  bool get canManageInfrastructure => isAdmin || isFnbManager;
+  bool get canManageOrders => isAdmin || isFnbManager || isFnbStaff;
 }
 
 class Role {

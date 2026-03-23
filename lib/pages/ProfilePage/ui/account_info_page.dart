@@ -86,14 +86,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthLogoutSuccess) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const Auth()),
-            (route) => false,
-          );
-        }
-
         if (state is AuthLoading) {
           setState(() => _isLoadingOverlay = true);
         } else {
@@ -124,7 +116,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                     const SizedBox(height: 24),
                     _buildDetailsSection(),
                     const SizedBox(height: 40),
-                    _buildLogoutButton(context),
                   ],
                 ),
               ),
@@ -295,74 +286,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLogoutButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: AppTextButton(
-          onPressed: () {
-            _showLogoutConfirmation(context);
-          },
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFFFFE5E5),
-            foregroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          label: const Text(
-            "Đăng xuất",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.red,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLogoutConfirmation(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) {
-        return CupertinoActionSheet(
-          title: Text(
-            "Xác nhận đăng xuất",
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          message: const Text(
-            "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
-          ),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                context.read<AuthBloc>().add(LogoutEvent());
-              },
-              isDestructiveAction: true,
-              child: const Text(
-                "Đăng xuất",
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text("Hủy", style: TextStyle(color: AppColors.primaryBlue)),
-          ),
-        );
-      },
     );
   }
 }

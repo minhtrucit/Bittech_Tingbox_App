@@ -9,10 +9,14 @@ enum PaymentMethod { BANK_TRANSFER, CASH }
 class ConfirmOrderDialog extends StatefulWidget {
   final List<Product> items;
   final BuildContext parentContext;
+  final int? existingOrderId; // Added to support table checkout
+  final int? tableId; // Added to clear table status
 
   const ConfirmOrderDialog({
     required this.items,
     required this.parentContext,
+    this.existingOrderId,
+    this.tableId,
     super.key,
   });
 
@@ -31,35 +35,48 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
     }
   }
 
-  void onCreateOrder(BuildContext context, PaymentMethod paymentMethod) async {
-    debugPrint("📝 Creating order with payment method: $paymentMethod");
-    final user = await UserRepository.getUser();
-    final order = Order(
-      userId: user?.id ?? 1,
-      distributorId: 2,
-      customerName: "Khách lẻ",
-      customerPhone: "0901234567",
-      customerEmail: "customer@example.com",
-      shippingAddress: "123 Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
-      discount: 0,
-      paymentMethod: _convertToPaymentMethod(paymentMethod),
-      note: "Giao giờ hành chính, vui lòng gọi trước khi giao.",
-      items:
-          widget.items
-              .map(
-                (p) => OrderItem(
-                  productId: p.id,
-                  quantity: p.quantity,
-                  unitPrice: p.price,
-                ),
-              )
-              .toList(),
-    );
-    if (context.mounted) {
-      context.read<OrderBloc>().add(OrderCreateOrderEvent(order: order));
-    }
+  void onCreateOrder(
+    BuildContext orderContext,
+    PaymentMethod paymentMethod,
+  ) async {
+    debugPrint("📝 Processing order with payment method: $paymentMethod");
 
-    debugPrint("📝 Order submitted: ${order.toJson()}");
+    if (widget.existingOrderId != null) {
+      context.read<OrderBloc>().add(
+        OrderCheckoutTableOrderEvent(
+          orderId: widget.existingOrderId!,
+          paymentMethod: _convertToPaymentMethod(paymentMethod),
+          tableId: widget.tableId,
+        ),
+      );
+    } else {
+      final user = await UserRepository.getUser();
+      final order = Order(
+        userId: user?.id ?? 1,
+        distributorId: 2,
+        customerName: "Khách lẻ",
+        customerPhone: "0901234567",
+        customerEmail: "customer@example.com",
+        shippingAddress:
+            "123 Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
+        discount: 0,
+        paymentMethod: _convertToPaymentMethod(paymentMethod),
+        note: "Giao giờ hành chính, vui lòng gọi trước khi giao.",
+        items:
+            widget.items
+                .map(
+                  (p) => OrderItem(
+                    productId: p.id,
+                    quantity: p.quantity,
+                    unitPrice: p.price,
+                  ),
+                )
+                .toList(),
+      );
+      if (!orderContext.mounted) return;
+      orderContext.read<OrderBloc>().add(OrderCreateOrderEvent(order: order));
+      debugPrint("📝 New order submitted: ${order.toJson()}");
+    }
   }
 
   double get totalPrice =>
@@ -96,6 +113,15 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
           Navigator.pop(context);
           final paymentInfo = state.paymentInfo;
           if (_selectedPaymentMethod == PaymentMethod.BANK_TRANSFER) {
+            if (paymentInfo == null) {
+              NotificationUtils.showError(
+                context: context,
+                title: 'Lỗi',
+                description:
+                    'Không tìm thấy thông tin thanh toán. Vui lòng thanh toán tiền mặt hoặc thử lại sau.',
+              );
+              return;
+            }
             Future.delayed(Duration(seconds: 1), () {});
             Navigator.push(
               widget.parentContext,
@@ -103,7 +129,7 @@ class _ConfirmOrderDialogState extends State<ConfirmOrderDialog> {
                 builder:
                     (_) => QrPage(
                       orderId: state.orderId,
-                      paymentInfo: paymentInfo!,
+                      paymentInfo: paymentInfo,
                       orderCode: state.orderCode,
                       userId: state.userId,
                       paymentStatus: PaymentStatus.unpaid,

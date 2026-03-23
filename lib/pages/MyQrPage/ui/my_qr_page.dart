@@ -8,19 +8,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:ting_box/common/components/app_appbar.dart';
-import 'package:ting_box/common/components/app_scaffold.dart';
-import 'package:ting_box/common/components/title_appbar_text.dart';
-import 'package:ting_box/models/config_model.dart';
-
-import '../../../models/user.dart';
 import '../../../services/share_services.dart';
+import 'package:ting_box/ting_box.dart';
 
 class MyQrPage extends StatefulWidget {
   final User user;
-  final ConfigModel config;
+  final ConfigModel? config;
 
-  const MyQrPage({super.key, required this.user, required this.config});
+  const MyQrPage({super.key, required this.user, this.config});
 
   @override
   State<MyQrPage> createState() => _MyQrPageState();
@@ -82,9 +77,19 @@ class _MyQrPageState extends State<MyQrPage> {
   }
 
   void _showSnackBar(String message, [Color? color]) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    if (color == Colors.red) {
+      NotificationUtils.showError(
+        context: context,
+        title: 'Lỗi',
+        description: message,
+      );
+    } else {
+      NotificationUtils.showSuccess(
+        context: context,
+        title: 'Thông báo',
+        description: message,
+      );
+    }
   }
 
   @override
@@ -167,7 +172,7 @@ class _MyQrPageState extends State<MyQrPage> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Text(
-        widget.config.unitName ?? widget.user.userName,
+        widget.config?.unitName ?? widget.user.userName,
         textAlign: TextAlign.center,
         style: TextStyle(
           color: const Color(0xFF1A1A1A),
@@ -225,19 +230,24 @@ class _MyQrPageState extends State<MyQrPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12.r),
-              child:
-                  widget.config.bankAccounts.first.qrCode != null ||
-                          widget.user.qrCode != null
-                      ? Image.network(
-                        widget.config.bankAccounts.first.qrCode ??
-                            widget.user.qrCode ??
-                            "",
-                        width: 200.w,
-                        height: 200.w,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildErrorQr(),
-                      )
-                      : _buildErrorQr(),
+              child: (() {
+                final hasBankAccountQr = widget.config?.bankAccounts.isNotEmpty == true &&
+                    widget.config!.bankAccounts.first.qrCode != null;
+                final qrUrl = hasBankAccountQr
+                    ? widget.config!.bankAccounts.first.qrCode
+                    : widget.user.qrCode;
+
+                if (qrUrl != null && qrUrl.isNotEmpty) {
+                  return Image.network(
+                    qrUrl,
+                    width: 200.w,
+                    height: 200.w,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildErrorQr(),
+                  );
+                }
+                return _buildErrorQr();
+              })(),
             ),
           ),
         ],

@@ -20,7 +20,67 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<OrderSePayWebHookEvent>(_onSePayWebHook);
     on<OrderGenerateQRCodeEvent>(_onGenerateQRCode);
     on<OrderUpdateStatusEvent>(_onUpdateOrderStatus);
+    on<OrderCheckoutTableOrderEvent>(_onCheckoutTableOrder);
+    on<OrderAddItemsEvent>(_onOrderAddItems);
   }
+
+  Future<void> _onCheckoutTableOrder(
+    OrderCheckoutTableOrderEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderLoading());
+    try {
+      final response = await orderService.putOrder(
+        orderId: event.orderId,
+        data: {
+          'isTemp': false,
+          'paymentMethod': event.paymentMethod,
+          'paymentStatus': 'unpaid',
+        },
+      );
+
+      PaymentInfo? paymentData = response.paymentInfo;
+
+      if (paymentData == null &&
+          event.paymentMethod.toUpperCase() == 'BANK_TRANSFER') {
+        try {
+          debugPrint(
+            "📍 paymentInfo is null, attempting to generate QR for order: ${event.orderId}",
+          );
+          final qrResult = await orderService.generateOrderQRCode(
+            orderId: event.orderId.toString(),
+          );
+          if (qrResult['paymentInfo'] != null) {
+            paymentData = PaymentInfo.fromJson(qrResult['paymentInfo']);
+          }
+        } catch (e) {
+          debugPrint("❌ Failed to generate QR code: $e");
+        }
+      }
+      final paymentMethod = switch (response.paymentMethod
+          .toString()
+          .toLowerCase()) {
+        'bank_transfer' => PaymentMethod.BANK_TRANSFER,
+        'cash' => PaymentMethod.CASH,
+        _ => PaymentMethod.BANK_TRANSFER,
+      };
+
+      emit(
+        OrderCreateSuccess(
+          orderId: response.id!,
+          userId: response.userId,
+          orderCode: response.code!,
+          success: true,
+          paymentInfo: paymentData,
+          paymentMethod: paymentMethod,
+          createdAt: response.createdAt!,
+        ),
+      );
+    } catch (e) {
+      emit(OrderFailure(message: e.toString().replaceAll("Exception: ", "")));
+    }
+  }
+
   Future<void> _onCreateOrder(
     OrderCreateOrderEvent event,
     Emitter<OrderState> emit,
@@ -49,15 +109,28 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
       debugPrint("📩 API Responseqưe: $response");
 
-      // final order = response['data'
-      final paymentData = response['data']['paymentInfo'];
+      var paymentData = response['data']['paymentInfo'];
       final paymentMethod = switch (response['data']['paymentMethod']
           ?.toString()
           .toLowerCase()) {
         'bank_transfer' => PaymentMethod.BANK_TRANSFER,
         'cash' => PaymentMethod.CASH,
         _ => PaymentMethod.BANK_TRANSFER, // default
-      }; // Nếu thành công trả về 201 (trong service đã check), emit success
+      };
+
+      if (paymentData == null && paymentMethod == PaymentMethod.BANK_TRANSFER) {
+        try {
+          debugPrint(
+            "📍 paymentInfo is null in response, attempting to generate QR for order: ${response['data']['id']}",
+          );
+          final qrResult = await orderService.generateOrderQRCode(
+            orderId: response['data']['id'].toString(),
+          );
+          paymentData = qrResult['paymentInfo'];
+        } catch (e) {
+          debugPrint("❌ Failed to generate QR code in create order: $e");
+        }
+      }
 
       debugPrint("📝 Payment method from bloc: $paymentMethod");
       emit(
@@ -165,8 +238,18 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         limit: event.limit,
         paymentStatus: event.paymentStatus,
         searchQuery: event.searchQuery,
+        tableId: event.tableId,
       );
       final newOrders = response.orders;
+
+      // Sort orders by updatedAt or createdAt descending
+      newOrders.sort((a, b) {
+        final timeA = DateTime.tryParse(a.updatedAt ?? a.createdAt ?? '') ??
+            DateTime(0);
+        final timeB = DateTime.tryParse(b.updatedAt ?? b.createdAt ?? '') ??
+            DateTime(0);
+        return timeB.compareTo(timeA);
+      });
       final pagination = response.pagination;
 
       List<Order> allOrders = [];
@@ -339,6 +422,39 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       );
     } catch (e) {
       emit(OrderUpdateStatusFailure(message: e.toString()));
+    }
+  }
+
+  Future<void> _onOrderAddItems(
+    OrderAddItemsEvent event,
+    Emitter<OrderState> emit,
+  ) async {
+    emit(OrderAddItemsLoading());
+    try {
+      final itemsMap =
+          event.items
+              .map(
+                (item) => {
+                  'productId': item.productId,
+                  'quantity': item.quantity,
+                  'unitPrice': item.unitPrice,
+                },
+              )
+              .toList();
+
+      final message = await orderService.addItemsToOrder(
+        orderId: event.orderId,
+        items: itemsMap,
+      );
+
+      emit(
+        OrderAddItemsSuccess(
+          order: null, // API doesn't return data
+          message: message,
+        ),
+      );
+    } catch (e) {
+      emit(OrderAddItemsFailure(message: e.toString()));
     }
   }
 }

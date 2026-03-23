@@ -10,13 +10,17 @@ class UserRepository {
   static const String keyConfigId = 'config_id';
   static const String keyUserId = 'user_id';
   static const String keyQrCode = 'qr_code';
+  static const String keyLastPhone = 'last_phone';
+  static const String _keyLastUser = 'last_user';
 
   // Save user object (json) + token
   static Future<void> saveUser(User user) async {
-    debugPrint("user.qrCode: ${user.qrCode}");
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+      final userData = jsonEncode(user.toJson());
+      await prefs.setString(_keyUser, userData);
+      // Also save as last user (persists after logout)
+      await prefs.setString(_keyLastUser, userData);
       await prefs.setString(keyUserId, user.id.toString());
       if (user.token != null) {
         await prefs.setString(keyToken, user.token!);
@@ -26,6 +30,7 @@ class UserRepository {
       if (user.qrCode != null) {
         await prefs.setString(keyQrCode, user.qrCode!);
       }
+      await prefs.setString(keyLastPhone, user.phone);
     } catch (e, st) {
       // log error, but don't throw to UI (optionally rethrow)
       debugPrint('UserRepository.saveUser error: $e\n$st');
@@ -56,6 +61,19 @@ class UserRepository {
     }
   }
 
+  static Future<User?> getLastUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyLastUser);
+      if (raw == null) return null;
+      final Map<String, dynamic> json = jsonDecode(raw);
+      return User.fromJson(json);
+    } catch (e, st) {
+      debugPrint('UserRepository.getLastUser error: $e\n$st');
+      return null;
+    }
+  }
+
   static Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -66,10 +84,10 @@ class UserRepository {
       await prefs.remove(keyQrCode);
       await prefs.remove('sepay_url');
       debugPrint(
-        '[UserRepository] Logged out: All user data cleared from SharedPreferences',
+        '[UserRepository] Logged out: User session cleared, but last_user preserved.',
       );
     } catch (e, st) {
-      debugPrint('UserRepository.clear error: $e\n$st');
+      debugPrint('UserRepository.logout error: $e\n$st');
     }
   }
 
@@ -111,5 +129,10 @@ class UserRepository {
       debugPrint('UserRepository.getQrCode error: $e\n$st');
       return null;
     }
+  }
+
+  static Future<String?> getLastPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(keyLastPhone);
   }
 }

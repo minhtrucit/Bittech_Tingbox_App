@@ -1,18 +1,65 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
+import 'package:ting_box/models/menu.dart';
+import 'package:ting_box/services/ocr_service.dart';
 import 'package:ting_box/services/product_api_services.dart';
+import 'package:ting_box/services/sse_services.dart';
 import 'package:ting_box/ting_box.dart';
+import 'dart:async';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final ProductApiService productApiService;
+  final OcrService ocrService;
 
-  ProductBloc({required this.productApiService}) : super(ProductInitial()) {
+  ProductBloc({required this.productApiService, required this.ocrService})
+    : super(ProductInitial()) {
     on<LoadCategoriesEvent>(_onLoadCategories);
     on<CreateProductEvent>(_onCreateProduct);
     on<GetProductsEvent>(_onGetProducts);
     on<UpdateProductEvent>(_onUpdateProduct);
     on<UpdateProductEmbeddingEvent>(_onUpdateProductEmbedding);
     on<DeleteProductEvent>(_onDeleteProduct);
+    on<MenuUploadEvent>(_onMenuOcrDetect);
+    on<MenuOcrStatusUpdatedEvent>(_onMenuOcrStatusUpdated);
+    on<CreateBatchProductsEvent>(_onCreateBatchProducts);
+  }
+
+  StreamSubscription<SseEvent>? _sseSubscription;
+
+  Future<void> _onCreateBatchProducts(
+    CreateBatchProductsEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+    int successCount = 0;
+    List<String> errors = [];
+
+    for (final productData in event.products) {
+      try {
+        final body = {
+          "name": productData.name,
+          "price": productData.price,
+          "categoryId": productData.categoryId,
+          "description": productData.description,
+          "images": productData.images,
+          "distributorId": 1,
+          "barcode": productData.barcode,
+        };
+
+        await productApiService.createProduct(body: body, images: []);
+        successCount++;
+      } catch (e) {
+        errors.add("${productData.name}: $e");
+      }
+    }
+
+    if (errors.isEmpty) {
+      emit(ProductBatchCreateSuccess(count: successCount));
+    } else {
+      final message =
+          'Đã tạo $successCount sản phẩm. Lỗi ${errors.length} sản phẩm: ${errors.join(", ")}';
+      emit(ProductFailure(message));
+    }
   }
 
   Future<void> _onLoadCategories(
@@ -222,5 +269,66 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       debugPrint('StackTrace: $st');
       emit(ProductFailure('Failed to delete product'));
     }
+  }
+
+  Future<void> _onMenuOcrDetect(
+    MenuUploadEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(MenuScanProcessing());
+    try {
+      final response = await ocrService.detectOCR(event.imagePath);
+
+      debugPrint('status data upload ocr ${response['data']}');
+
+      // Lắng nghe sse, parser dữ liệu xử lý ra
+      _sseSubscription?.cancel();
+      _sseSubscription = SSEService.instance.eventStream.listen((sseEvent) {
+        final data = sseEvent.data;
+        if (data is Map<String, dynamic>) {
+          final status = (data['status'] as String?)?.toLowerCase();
+          debugPrint('[ProductBloc] Received status: $status');
+
+          if (status == 'ready' || status == 'success') {
+            debugPrint('[ProductBloc] OCR status: READY. Parsing data...');
+            try {
+              // Dữ liệu có thể nằm trong field 'result' hoặc 'data' tùy version API
+              final menuData = data['result'] ?? data['data'];
+              if (menuData != null) {
+                final documentId = data['document_id']?.toString();
+                final menu = Menu.fromJson(menuData, documentId: documentId);
+                add(MenuOcrStatusUpdatedEvent(menu: menu));
+              } else {
+                debugPrint(
+                  '[ProductBloc] Error: No result or data field found in SSE response',
+                );
+              }
+            } catch (e) {
+              debugPrint('[ProductBloc] Error parsing menu data: $e');
+            }
+          }
+        }
+      });
+    } catch (e, st) {
+      debugPrint('=== MENU OCR DETECT ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('StackTrace: $st');
+      emit(MenuScanFailure('Failed to detect menu OCR'));
+    }
+  }
+
+  Future<void> _onMenuOcrStatusUpdated(
+    MenuOcrStatusUpdatedEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    _sseSubscription?.cancel();
+    _sseSubscription = null;
+    emit(ProductMenuScanResultState(menu: event.menu));
+  }
+
+  @override
+  Future<void> close() {
+    _sseSubscription?.cancel();
+    return super.close();
   }
 }

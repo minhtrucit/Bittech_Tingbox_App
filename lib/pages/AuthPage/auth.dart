@@ -33,14 +33,44 @@ class _AuthState extends State<Auth> {
   }
 
   Future<void> _loadSavedUser() async {
+    // Current active session
     final user = await UserRepository.getUser();
     if (user != null) {
+      if (!mounted) return;
       setState(() {
         savedUser = user;
         isQuickLoginMode = true;
-        phoneController.text = user.phone; // Pre-fill phone
+        if (phoneController.text.isEmpty) {
+          phoneController.text = user.phone;
+        }
       });
-      debugPrint('[Auth] Loaded saved user: ${user.userName}');
+      debugPrint('[Auth] Loaded active session user: ${user.userName}');
+      return;
+    }
+
+    // No active session, check for last logged in user for quick login UI
+    final lastUser = await UserRepository.getLastUser();
+    if (lastUser != null) {
+      if (!mounted) return;
+      setState(() {
+        savedUser = lastUser;
+        isQuickLoginMode = true;
+        if (phoneController.text.isEmpty) {
+          phoneController.text = lastUser.phone;
+        }
+      });
+      debugPrint('[Auth] Loaded last remembered user: ${lastUser.userName}');
+    } else {
+      // If no User data at all, still try to remember the last phone used
+      final lastPhone = await UserRepository.getLastPhone();
+      if (lastPhone != null && lastPhone.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          if (phoneController.text.isEmpty) {
+            phoneController.text = lastPhone;
+          }
+        });
+      }
     }
   }
 
@@ -130,7 +160,7 @@ class _AuthState extends State<Auth> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         debugPrint('[AuthListener] state changed: $state');
-
+        if (!mounted) return;
         if (state is AuthLoading) {
           setState(() => _isLoadingOverlay = true);
           debugPrint('[AuthListener] AuthLoading: show overlay');
@@ -142,22 +172,27 @@ class _AuthState extends State<Auth> {
         if (state is AuthSuccess) {
           debugPrint('[AuthListener] AuthSuccess: Navigate to BasePage');
 
-          Future.delayed(const Duration(milliseconds: 200));
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const BasePage()),
-          );
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const BasePage()),
+            );
+          }
         }
-
+        if (state is AuthLogoutSuccess) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
         if (state is AuthFailure) {
           debugPrint('[AuthListener] AuthFailure: ${state.message}');
-          DialogUtils.showAppDialog(
-            context: context,
-            title: loginFailTitle,
-            content: state.message,
-            onFirstAction: () => Navigator.of(context).pop(),
-            firstActionText: 'OK',
-          );
+          if (mounted) {
+            DialogUtils.showAppDialog(
+              context: context,
+              title: loginFailTitle,
+              content: state.message,
+              onFirstAction: () => Navigator.of(context).pop(),
+              firstActionText: 'OK',
+            );
+          }
         }
       },
       child: Stack(

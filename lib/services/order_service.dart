@@ -70,13 +70,14 @@ class OrderService {
     int limit = 10,
     int? paymentStatus,
     String? searchQuery,
+    int? tableId,
   }) async {
     try {
       final queryParams = {
-        'userId': userId,
         if (page != null) 'page': page,
         'limit': limit,
         if (paymentStatus != null) 'paymentStatus': paymentStatus,
+        if (tableId != null) 'tableId': tableId,
         if (searchQuery != null && searchQuery.isNotEmpty)
           'search': searchQuery,
       };
@@ -133,6 +134,47 @@ class OrderService {
     } catch (e) {
       debugPrint("❌ ERROR: $e");
       throw Exception('Error: $e');
+    }
+  }
+
+  Future<Order> putOrder({
+    required int orderId,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final resp = await api.put('/orders/$orderId', data: data);
+
+      debugPrint("📌 Put Order response: ${resp.data}");
+
+      if (resp.statusCode == 200) {
+        return Order.fromJson(resp.data['data']);
+      }
+
+      throw Exception('Failed to update order: ${resp.data['message']}');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      throw Exception('Error: $e');
+    }
+  }
+
+  Future<String> addItemsToOrder({
+    required int orderId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      final resp =
+          await api.post('/orders/$orderId/items', data: {'items': items});
+
+      debugPrint("📌 Add Items to Order response: ${resp.data}");
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        return resp.data['message'] ?? 'Thêm món thành công';
+      }
+
+      throw Exception('Failed to add items: ${resp.data['message']}');
+    } catch (e) {
+      debugPrint("❌ ERROR: $e");
+      rethrow;
     }
   }
 

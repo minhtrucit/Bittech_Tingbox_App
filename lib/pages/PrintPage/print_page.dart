@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ting_box/common/components/app_appbar.dart';
-import 'package:ting_box/common/components/app_scaffold.dart';
-import 'package:ting_box/common/components/title_appbar_text.dart';
 import '../../services/print_service.dart';
-import '../../common/app_colors.dart';
+import 'package:ting_box/ting_box.dart';
 import '../ConfigPage/bloc/config_bloc.dart';
 import '../ConfigPage/bloc/config_state.dart';
 
@@ -92,34 +89,25 @@ class _PrintPageState extends State<PrintPage> {
     bool isError = false,
     bool isSuccess = false,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              isError
-                  ? Icons.error_outline
-                  : (isSuccess
-                      ? Icons.check_circle_outline
-                      : Icons.info_outline),
-              color: Colors.white,
-            ),
-            SizedBox(width: 12.w),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor:
-            isError
-                ? Colors.redAccent
-                : (isSuccess ? Colors.green : AppColors.primaryBlue),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        margin: EdgeInsets.all(16.w),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    if (isError) {
+      NotificationUtils.showError(
+        context: context,
+        title: 'Lỗi',
+        description: message,
+      );
+    } else if (isSuccess) {
+      NotificationUtils.showSuccess(
+        context: context,
+        title: 'Thành công',
+        description: message,
+      );
+    } else {
+      NotificationUtils.showInfo(
+        context: context,
+        title: 'Thông báo',
+        description: message,
+      );
+    }
   }
 
   Future<void> _scanPrinters() async {

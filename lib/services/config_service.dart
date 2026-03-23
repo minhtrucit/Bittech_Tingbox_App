@@ -78,7 +78,7 @@ class ConfigService {
 
   Future<ConfigModel?> getConfig(String userId) async {
     try {
-      final response = await api.get('configs/user/$userId');
+      final response = await api.get('config-users/user/$userId/configs');
 
       if (response.statusCode == 200) {
         final data =

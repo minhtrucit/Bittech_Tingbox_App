@@ -16,11 +16,26 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late Product currentProduct;
   bool isLoading = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
     currentProduct = widget.product;
+    _loadUser();
+  }
+
+  void _loadUser() async {
+    final user = await UserRepository.getUser();
+    if (mounted) {
+      setState(() {
+        _isAdmin = (user?.roleId == 1 ||
+                user?.roleId == 2 ||
+                user?.roleId == 5 ||
+                user == null) &&
+            user?.roleId != 6;
+      });
+    }
   }
 
   @override
@@ -87,7 +102,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ],
               ),
             ),
-            bottomNavigationBar: _buildBottomActions(context),
+            bottomNavigationBar: _isAdmin ? _buildBottomActions(context) : null,
           ),
           if (isLoading) const LoadingOverlay(),
         ],

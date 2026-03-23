@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:ting_box/pages/HomePage/widgets/quick_action_buttons.dart';
 import 'package:ting_box/pages/HomePage/widgets/report_filter_bar.dart';
 import 'package:ting_box/pages/HomePage/widgets/revenue_pie_chart.dart';
-import 'package:ting_box/pages/HomePage/widgets/revenue_pie_chart_skeleton.dart';
 import 'package:ting_box/pages/HomePage/widgets/revenue_summary_card.dart';
 import 'package:ting_box/pages/HomePage/widgets/transaction_list.dart';
 
@@ -25,15 +24,36 @@ class _HomePageState extends State<HomePage> {
   String? _selectedFilter = 'Hôm nay';
   DateTimeRange? _selectedDateRange;
   String _configId = '';
+  bool _isTable = false;
+  SubscriptionPlan _currentPlan = SubscriptionPlan.fnb;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _loadConfigId();
+    _loadInitialData();
   }
 
-  Future<void> _loadConfigId() async {
+  Future<void> _loadInitialData() async {
     _configId = await UserRepository.getConfigId() ?? '';
+    final user = await UserRepository.getUser();
+    if (!mounted) return;
+    if (mounted) {
+      setState(() {
+        _isAdmin = user?.roleId == 1 || user?.roleId == 2 || user?.roleId == 5 || user == null;
+        _isTable = true; // Forced for FnB testing
+        final roleId = user?.roleId ?? 0;
+        if (roleId == 1) {
+          _currentPlan = SubscriptionPlan.admin;
+        } else if (roleId == 2) {
+          _currentPlan = SubscriptionPlan.premium;
+        } else if (roleId == 5 || roleId == 6) {
+          _currentPlan = SubscriptionPlan.fnb;
+        } else {
+          _currentPlan = SubscriptionPlan.basic;
+        }
+      });
+    }
   }
 
   String _formatDateApi(DateTime date) {
@@ -178,6 +198,7 @@ class _HomePageState extends State<HomePage> {
         if (state is ConfigLoaded && state.config.id != null) {
           setState(() {
             _configId = state.config.id.toString();
+            _currentPlan = state.config.subscriptionPlan;
           });
         }
       },
@@ -225,26 +246,26 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  SizedBox(height: 20.h),
-
-                  BlocBuilder<StatisticsBloc, StatisticsState>(
-                    builder: (context, state) {
-                      if (state is StatisticsLoading) {
-                        return const RevenueSummarySkeleton();
-                      } else if (state is StatisticsLoaded) {
+                  if (_isAdmin) ...[
+                    SizedBox(height: 20.h),
+                    BlocBuilder<StatisticsBloc, StatisticsState>(
+                      builder: (context, state) {
                         return RevenueSummaryCard(
-                          revenue: state.statistic.revenue,
+                          revenue:
+                              state is StatisticsLoaded
+                                  ? state.statistic.revenue
+                                  : null,
                         );
-                      } else if (state is StatisticsError) {
-                        return Text('Lỗi khi tải thống kê');
-                      }
-                      return const RevenueSummaryCard();
-                    },
-                  ),
+                      },
+                    ),
+                  ],
 
                   SizedBox(height: 20.h),
                   QuickActionButtons(
                     configId: int.tryParse(_configId) ?? 0,
+                    isTable: _isTable,
+                    plan: _currentPlan,
+                    isAdmin: _isAdmin,
                     onRefresh: () {
                       if (_selectedDateRange != null) {
                         _fetchStatistics(
@@ -256,88 +277,91 @@ class _HomePageState extends State<HomePage> {
                       }
                     },
                   ),
-                  SizedBox(height: 24.h),
-                  Text(
-                    'Nguồn Thu',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  BlocBuilder<StatisticsBloc, StatisticsState>(
-                    builder: (context, state) {
-                      if (state is StatisticsLoading) {
-                        return const RevenuePieChartSkeleton();
-                      }
-                      return RevenuePieChart(
-                        incomeSources:
-                            state is StatisticsLoaded
-                                ? state.statistic.incomeSources
-                                : null,
-                      );
-                    },
-                  ),
-                  SizedBox(height: 24.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Giao Dịch Gần Đây',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      AppTextButton(
-                        onPressed: () {
-                          final state = context.read<StatisticsBloc>().state;
-                          List<StatisticTransaction> transactions = [];
-                          if (state is StatisticsLoaded) {
-                            transactions = state.statistic.transactions;
-                          }
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => TransactionsPage(
-                                    transactions: transactions,
-                                  ),
-                            ),
-                          ).then((_) {
-                            if (_selectedDateRange != null) {
-                              _fetchStatistics(
-                                startDate: _selectedDateRange!.start,
-                                endDate: _selectedDateRange!.end,
-                              );
-                            } else {
-                              _handleFilterChanged(
-                                _selectedFilter ?? 'Hôm nay',
-                              );
-                            }
-                          });
-                        },
-                        label: const Text('Xem tất cả'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primaryBlue,
-                        ),
+                  if (_isAdmin) ...[
+                    SizedBox(height: 24.h),
+                    Text(
+                      'Nguồn Thu',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  BlocBuilder<StatisticsBloc, StatisticsState>(
-                    builder: (context, state) {
-                      return TransactionList(
-                        transactions:
-                            state is StatisticsLoaded
-                                ? state.statistic.transactions
-                                : null,
-                      );
-                    },
-                  ),
+                    ),
+                    SizedBox(height: 16.h),
+                    BlocBuilder<StatisticsBloc, StatisticsState>(
+                      builder: (context, state) {
+                        return RevenuePieChart(
+                          incomeSources:
+                              state is StatisticsLoaded
+                                  ? state.statistic.incomeSources
+                                  : null,
+                        );
+                      },
+                    ),
+                  ],
+
+                  if (_isAdmin) ...[
+                    SizedBox(height: 24.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Giao Dịch Gần Đây',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        AppTextButton(
+                          onPressed: () {
+                            final state = context.read<StatisticsBloc>().state;
+                            List<StatisticTransaction> transactions = [];
+                            if (state is StatisticsLoaded) {
+                              transactions = state.statistic.transactions;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => TransactionsPage(
+                                      transactions: transactions,
+                                    ),
+                              ),
+                            ).then((_) {
+                              if (_selectedDateRange != null) {
+                                _fetchStatistics(
+                                  startDate: _selectedDateRange!.start,
+                                  endDate: _selectedDateRange!.end,
+                                );
+                              } else {
+                                _handleFilterChanged(
+                                  _selectedFilter ?? 'Hôm nay',
+                                );
+                              }
+                            });
+                          },
+                          label: const Text('Xem tất cả'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
+                    BlocBuilder<StatisticsBloc, StatisticsState>(
+                      builder: (context, state) {
+                        return TransactionList(
+                          transactions:
+                              state is StatisticsLoaded
+                                  ? state.statistic.transactions
+                                  : null,
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

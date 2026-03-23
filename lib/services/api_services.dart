@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../repositories/user_repository.dart';
 
 class ApiService {
-  static ApiService? _instance;
+  static final Map<String, ApiService> _instances = {};
   final Dio _dio;
 
   String? _accessToken;
@@ -33,8 +33,10 @@ class ApiService {
   }
 
   static ApiService getInstance({required String baseUrl}) {
-    _instance ??= ApiService._internal(baseUrl: baseUrl);
-    return _instance!;
+    if (!_instances.containsKey(baseUrl)) {
+      _instances[baseUrl] = ApiService._internal(baseUrl: baseUrl);
+    }
+    return _instances[baseUrl]!;
   }
 
   // ----------------------
@@ -182,6 +184,30 @@ class ApiService {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) => _dio.put(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
+
+  Future<Response> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.patch(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
+
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.delete(
     path,
     data: data,
     queryParameters: queryParameters,

@@ -197,13 +197,11 @@ class _QrPageState extends State<QrPage> {
 
             if (!hasPrinter) {
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
+                NotificationUtils.showInfo(
+                  context: context,
+                  title: 'Thông báo',
+                  description:
                       '⚠️ Chế độ in tự động đang bật nhưng chưa chọn máy in. Vui lòng vào cài đặt máy in.',
-                    ),
-                    backgroundColor: Colors.orange,
-                  ),
                 );
               }
               return;
@@ -212,14 +210,19 @@ class _QrPageState extends State<QrPage> {
             debugPrint('🖨️ [QrPage] Triggering automatic print...');
             PrintService().autoPrintOrder(order, config).then((success) {
               if (success != null && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success ? 'Đã tự động gửi lệnh in' : 'Lỗi khi tự động in',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  NotificationUtils.showSuccess(
+                    context: context,
+                    title: 'Thành công',
+                    description: 'Đã tự động gửi lệnh in',
+                  );
+                } else {
+                  NotificationUtils.showError(
+                    context: context,
+                    title: 'Lỗi',
+                    description: 'Lỗi khi tự động in',
+                  );
+                }
               }
             });
           });
@@ -268,11 +271,10 @@ class _QrPageState extends State<QrPage> {
       );
 
       if (widget.paymentStatus != PaymentStatus.paid && !_isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã ghi nhận đơn hàng và thu tiền sau'),
-            backgroundColor: Colors.orange,
-          ),
+        NotificationUtils.showInfo(
+          context: context,
+          title: 'Thông báo',
+          description: 'Đã ghi nhận đơn hàng và thu tiền sau',
         );
       }
     }
@@ -439,11 +441,10 @@ class _QrPageState extends State<QrPage> {
 
   void _handleDemoPayment() {
     if (widget.paymentStatus != PaymentStatus.unpaid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đơn hàng đã được thanh toán rồi'),
-          backgroundColor: Colors.orange,
-        ),
+      NotificationUtils.showInfo(
+        context: context,
+        title: 'Thông báo',
+        description: 'Đơn hàng đã được thanh toán rồi',
       );
       return;
     }

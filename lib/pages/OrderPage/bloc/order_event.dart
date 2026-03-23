@@ -21,6 +21,7 @@ class OrderGetAllOrdersbyUserIdEvent extends OrderEvent {
   final int? paymentStatus;
   final int userId;
   final String? searchQuery;
+  final int? tableId;
 
   OrderGetAllOrdersbyUserIdEvent({
     this.page,
@@ -28,6 +29,7 @@ class OrderGetAllOrdersbyUserIdEvent extends OrderEvent {
     this.paymentStatus,
     required this.userId,
     this.searchQuery,
+    this.tableId,
   });
 }
 
@@ -55,4 +57,17 @@ class OrderUpdateStatusEvent extends OrderEvent {
   final int orderId;
   final String status;
   OrderUpdateStatusEvent({required this.orderId, required this.status});
+}
+
+class OrderCheckoutTableOrderEvent extends OrderEvent {
+  final int orderId;
+  final String paymentMethod;
+  final int? tableId; // Added
+  OrderCheckoutTableOrderEvent({required this.orderId, required this.paymentMethod, this.tableId});
+}
+
+class OrderAddItemsEvent extends OrderEvent {
+  final int orderId;
+  final List<OrderItem> items;
+  OrderAddItemsEvent({required this.orderId, required this.items});
 }

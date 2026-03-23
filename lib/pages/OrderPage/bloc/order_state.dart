@@ -97,3 +97,16 @@ final class OrderUpdateStatusFailure extends OrderState {
   final String message;
   OrderUpdateStatusFailure({required this.message});
 }
+
+final class OrderAddItemsLoading extends OrderState {}
+
+final class OrderAddItemsSuccess extends OrderState {
+  final Order? order;
+  final String message;
+  OrderAddItemsSuccess({this.order, required this.message});
+}
+
+final class OrderAddItemsFailure extends OrderState {
+  final String message;
+  OrderAddItemsFailure({required this.message});
+}

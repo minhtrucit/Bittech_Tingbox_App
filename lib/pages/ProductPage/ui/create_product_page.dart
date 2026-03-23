@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../ting_box.dart';
-import '../../../utils/currency_input_formatter.dart';
 import '../../Camera/take_picture_page.dart';
 
 class CreateProductPage extends StatefulWidget {
@@ -219,85 +218,6 @@ class _CreateProductPageState extends State<CreateProductPage> {
     return AppAppBar(title: TitleAppbarText(title: "Thêm mới sản phẩm"));
   }
 
-  // ---------------------------------------------------------------------------
-  // ✔ Section: Category
-  // ---------------------------------------------------------------------------
-  Widget _buildCategorySection(BuildContext parentContext) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTitle("Danh mục sản phẩm"),
-        const SizedBox(height: 6),
-        _buildCategoryDropdown(),
-        const SizedBox(height: 8),
-
-        AppTextButton(
-          onPressed: () {
-            showModalBottomSheet(
-              context: parentContext,
-              builder: (context) {
-                return buildCreateCategoryBottomSheet(context);
-              },
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: 10.h),
-            backgroundColor: const Color(0xFFDCE9F6),
-            foregroundColor: Colors.blue.shade300,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: AppColors.primaryBlue),
-            ),
-          ),
-          label: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 2.w,
-            children: [
-              Icon(Icons.add, color: AppColors.primaryBlue),
-              Text(
-                "Thêm danh mục mới",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryDropdown() {
-    return BlocBuilder<ProductBloc, ProductState>(
-      builder: (context, state) {
-        if (state is ProductLoadCategoriesSuccess) {
-          categories = state.categories;
-        }
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: _boxDecoration(),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              dropdownColor: Colors.white,
-              hint: const Text("Chọn 1 danh mục"),
-              value: selectedCategory,
-              items:
-                  categories
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-              onChanged: (value) {
-                setState(() => selectedCategory = value);
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget buildCreateCategoryBottomSheet(BuildContext context) {
     return Padding(

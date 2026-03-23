@@ -4,14 +4,16 @@ import 'package:ting_box/models/user.dart';
 
 enum PrintMode { none, auto, manual }
 
-enum SubscriptionPlan { basic, premium }
+enum SubscriptionPlan { basic, premium, fnb, admin }
+
+
 
 class ConfigModel {
   final int? id;
   final String? unitName;
   final String? sepayApiKey;
   final PrintMode printMode;
-  SubscriptionPlan? subscriptionPlan;
+  final SubscriptionPlan subscriptionPlan;
   final String? logo;
   final String? phone;
   final String? address;
@@ -25,7 +27,7 @@ class ConfigModel {
     this.unitName,
     this.sepayApiKey,
     required this.printMode,
-    this.subscriptionPlan,
+    required this.subscriptionPlan,
     this.logo,
     this.phone,
     this.address,
@@ -84,7 +86,7 @@ class ConfigModel {
       'address': address,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'subscriptionPlan': subscriptionPlan?.name.toUpperCase() ?? 'BASIC',
+      'subscriptionPlan': subscriptionPlan.name.toUpperCase(),
       // Don't send bankAccounts and configUsers - they are handled separately
     };
   }

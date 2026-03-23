@@ -42,20 +42,29 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final viewInsetsBottom = mediaQuery.viewInsets.bottom;
+    final systemGestureBottom = mediaQuery.systemGestureInsets.bottom;
+
     return AppScaffold(
       hasSafeArea: false,
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Padding(
         padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.of(context).systemGestureInsets.bottom > 32
-                  ? MediaQuery.of(context).systemGestureInsets.bottom
-                  : 0,
+          bottom: systemGestureBottom > 32 ? systemGestureBottom : 0,
         ),
         child: Column(
           children: [
-            Expanded(child: Stack(children: [_buildLogo(), _buildLoginCard()])),
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildLogo(screenWidth),
+                  _buildLoginCard(screenWidth, viewInsetsBottom),
+                ],
+              ),
+            ),
             _buildHotline(),
           ],
         ),
@@ -63,9 +72,9 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(double screenWidth) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width,
+      width: screenWidth,
       height: 295.h,
       child: Stack(
         alignment: Alignment.center,
@@ -76,11 +85,10 @@ class _AuthPageState extends State<AuthPage> {
             right: 0,
             child: SvgPicture.asset(
               'assets/icons/bg-login.svg',
-              width: MediaQuery.of(context).size.width,
+              width: screenWidth,
               fit: BoxFit.fitWidth,
             ),
           ),
-
           Center(
             child: Image.asset(
               'assets/images/tingbox_login/tingbox_logo_login.png',
@@ -94,16 +102,14 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildLoginCard(double screenWidth, double viewInsetsBottom) {
     return Positioned(
-      top: 250.h - MediaQuery.of(context).viewInsets.bottom * 0.60,
+      top: 250.h - viewInsetsBottom * 0.60,
       child: Container(
-        width: MediaQuery.of(context).size.width,
+        width: screenWidth,
         padding: EdgeInsets.symmetric(horizontal: 8.w),
-
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
@@ -185,6 +191,7 @@ class _AuthPageState extends State<AuthPage> {
                 )
               else
                 _buildTextField(
+                  key: const ValueKey('phone_field'),
                   controller: widget.phoneController,
                   label: 'Tên đăng nhập',
                   hint: '',
@@ -193,6 +200,7 @@ class _AuthPageState extends State<AuthPage> {
                 ),
               SizedBox(height: 16.h),
               _buildTextField(
+                key: const ValueKey('password_field'),
                 controller: widget.passwordController,
                 label: 'Mật khẩu',
                 hint: '',
@@ -224,6 +232,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Widget _buildTextField({
+    Key? key,
     required TextEditingController controller,
     required String label,
     required String hint,
@@ -232,6 +241,7 @@ class _AuthPageState extends State<AuthPage> {
     String? errorText,
   }) {
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -244,6 +254,7 @@ class _AuthPageState extends State<AuthPage> {
         ),
         SizedBox(height: 8.h),
         TextField(
+          key: key != null ? ValueKey('field_${(key as ValueKey).value}') : null,
           controller: controller,
           obscureText: isPassword && !isShowPassword,
           onChanged: onChanged,

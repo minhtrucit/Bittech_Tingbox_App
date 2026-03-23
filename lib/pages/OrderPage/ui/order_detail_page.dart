@@ -20,34 +20,65 @@ class OrderDetailPage extends StatefulWidget {
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
   late Order _currentOrder;
+  PaymentInfo? _paymentInfo;
+  late WebSocketManager webSocketManager = WebSocketManager();
+  bool isDevMode = false;
 
   @override
   void initState() {
     super.initState();
     _currentOrder = widget.order;
+    _paymentInfo = _currentOrder.paymentInfo;
+
+    webSocketManager.on("payment.success", (data) {
+      try {
+        final jsonData = data as Map<String, dynamic>;
+        debugPrint('event data from websocket json: $jsonData');
+        if (mounted) {
+          context.read<OrderBloc>().add(OrderPaymentSuccessEvent(jsonData));
+        }
+      } catch (e) {
+        debugPrint('event data from websocket error $e');
+      }
+    });
+    _getUserInfo();
+
+    if (_paymentInfo == null &&
+        _currentOrder.paymentStatus != PaymentStatus.paid &&
+        _currentOrder.paymentMethod.toUpperCase() != 'CASH') {
+      _fetchQrCode();
+    }
   }
 
-  void _showQrSheet(PaymentInfo paymentInfo) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder:
-          (context) => _QrSheetContent(
-            paymentInfo: paymentInfo,
-            orderCode: _currentOrder.code ?? '',
-            orderId: _currentOrder.id ?? 0,
-            paymentStatus: _currentOrder.paymentStatus ?? 'unpaid',
-            userId: _currentOrder.userId,
-            createdAt: _currentOrder.createdAt,
-          ),
-    );
+  Future<void> _getUserInfo() async {
+    final user = await UserRepository.getUser();
+    if (user != null && mounted) {
+      setState(() {
+        isDevMode = user.isDevMode ?? false;
+      });
+    }
+  }
+
+  Future<void> _fetchQrCode() async {
+    try {
+      final orderService = context.read<OrderBloc>().orderService;
+      final result = await orderService.generateOrderQRCode(
+        orderId: _currentOrder.id.toString(),
+      );
+      if (mounted) {
+        setState(() {
+          _paymentInfo = PaymentInfo.fromJson(result['paymentInfo']);
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch QR in init: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    webSocketManager.off("payment.success");
+    super.dispose();
   }
 
   @override
@@ -56,11 +87,39 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       listener: (context, state) {
         if (state is OrderGenerateQRCodeSuccess) {
           if (state.paymentInfo != null) {
-            _showQrSheet(state.paymentInfo!);
+            setState(() {
+              _paymentInfo = state.paymentInfo;
+            });
           }
+        } else if (state is OrderPaymentSuccess) {
+          final order = state.order;
+          if (order != null) {
+            final configState = context.read<ConfigBloc>().state;
+            if (configState is ConfigLoaded) {
+              final config = configState.config;
+              if (config.printMode == PrintMode.auto) {
+                PrintService().getSavedSettings().then((settings) {
+                  if (settings['printerName'] != null) {
+                    PrintService().autoPrintOrder(order, config);
+                  }
+                });
+              }
+            }
+          }
+          _showSuccessDialog();
+        } else if (state is OrderSePayWebHookFailed) {
+          DialogUtils.showAppDialog(
+            context: context,
+            title: "Lỗi",
+            content: state.message,
+            firstActionText: "Đóng",
+            onFirstAction: () => Navigator.pop(context),
+          );
         } else if (state is OrderFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          NotificationUtils.showError(
+            context: context,
+            title: 'Lỗi',
+            description: state.message,
           );
         }
       },
@@ -77,7 +136,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 _buildProductsSection(),
                 SizedBox(height: 16.h),
                 _buildSummarySection(),
-                SizedBox(height: 100.h),
+                if (_paymentInfo != null &&
+                    _currentOrder.paymentStatus != PaymentStatus.paid) ...[
+                  SizedBox(height: 16.h),
+                  _buildInlineQrCodeSection(),
+                ],
               ],
             ),
           ),
@@ -174,6 +237,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           SizedBox(height: 12.h),
 
+          // Table Info (FnB only)
+          if (_currentOrder.tableId != null && _currentOrder.tableId != 0) ...[
+            _buildInfoRow(
+              'Bàn phục vụ',
+              _currentOrder.tableName ?? 'Bàn ${_currentOrder.tableId}',
+            ),
+            SizedBox(height: 12.h),
+          ],
+          if (_currentOrder.tableId == null || _currentOrder.tableId == 0) ...[
+            _buildInfoRow('Hình thức', 'Mang về'),
+            SizedBox(height: 12.h),
+          ],
+
           // Payment Method
           _buildInfoRow(
             'Phương thức thanh toán',
@@ -265,68 +341,187 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: item.isVoided ? Colors.red.withAlpha(5) : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8.r),
+        border:
+            item.isVoided ? Border.all(color: Colors.red.withAlpha(20)) : null,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Icon/Image
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8.r),
-              image:
-                  productImage != null
-                      ? DecorationImage(
-                        image: NetworkImage(productImage),
-                        fit: BoxFit.cover,
-                      )
-                      : null,
-            ),
-            child:
-                productImage == null
-                    ? Icon(Icons.coffee, color: Colors.grey.shade600, size: 24)
-                    : null,
-          ),
-          SizedBox(width: 12.w),
-
-          // Product Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  productName,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+          Row(
+            children: [
+              // Product Icon/Image
+              Stack(
+                children: [
+                  Container(
+                    width: 48.w,
+                    height: 48.w,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8.r),
+                      image:
+                          productImage != null
+                              ? DecorationImage(
+                                image: NetworkImage(productImage),
+                                fit: BoxFit.cover,
+                                colorFilter:
+                                    item.isVoided
+                                        ? const ColorFilter.mode(
+                                          Colors.grey,
+                                          BlendMode.saturation,
+                                        )
+                                        : null,
+                              )
+                              : null,
+                    ),
+                    child:
+                        productImage == null
+                            ? Icon(
+                              Icons.coffee,
+                              color: Colors.grey.shade600,
+                              size: 24,
+                            )
+                            : null,
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  '${item.quantity} x ${formatMoney(item.unitPrice)}đ',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  if (item.isVoided)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(100),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Colors.red,
+                          size: 24.sp,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(width: 12.w),
 
-          // Product Total
-          Text(
-            '${formatMoney(item.quantity * item.unitPrice)}đ',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+              // Product Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      productName,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: item.isVoided ? Colors.grey : Colors.black87,
+                        decoration:
+                            item.isVoided ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    if (item.status != null) ...[
+                      SizedBox(height: 2.h),
+                      _buildItemStatusBadge(item.status!),
+                    ],
+                    SizedBox(height: 4.h),
+                    Text(
+                      '${item.quantity} x ${formatMoney(item.unitPrice)}đ',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Product Total
+              Text(
+                '${formatMoney(item.quantity * item.unitPrice)}đ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: item.isVoided ? Colors.grey : Colors.black87,
+                ),
+              ),
+            ],
           ),
+          if (item.note != null && item.note!.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.amber.withAlpha(10),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.edit_note_rounded,
+                    size: 14.sp,
+                    color: Colors.amber[800],
+                  ),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Text(
+                      'Ghi chú: ${item.note}',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.amber[900],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (item.isVoided && item.voidReason != null) ...[
+            SizedBox(height: 4.h),
+            Text(
+              'Lý do hủy: ${item.voidReason}',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.red[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildItemStatusBadge(String status) {
+    String label = status;
+    Color color = Colors.grey;
+    switch (status.toLowerCase()) {
+      case 'pending':
+        label = 'Đang chờ';
+        color = Colors.orange;
+        break;
+      case 'confirmed':
+        label = 'Đã nhận';
+        color = Colors.blue;
+        break;
+      case 'served':
+        label = 'Đã ra món';
+        color = Colors.green;
+        break;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withAlpha(10),
+        borderRadius: BorderRadius.circular(4.r),
+        border: Border.all(color: color.withAlpha(30)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.sp,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -400,6 +595,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Widget? _buildBottomButton(BuildContext context, Order order) {
     final bool showPayment = order.paymentStatus != PaymentStatus.paid;
+    final bool isCash = order.paymentMethod.toUpperCase() == 'CASH';
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -425,12 +621,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         flex: 1,
                         child: _buildPrintActionButton(context, order),
                       ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            if (order.paymentMethod.toUpperCase() == 'CASH') {
+                      if (isCash) ...[
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -445,38 +641,28 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                                       ),
                                 ),
                               );
-                            } else {
-                              context.read<OrderBloc>().add(
-                                OrderGenerateQRCodeEvent(
-                                  orderId: order.id.toString(),
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryBlue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
                             ),
-                          ),
-                          icon: Icon(
-                            order.paymentMethod.toUpperCase() == 'CASH'
-                                ? Icons.payments_outlined
-                                : Icons.qr_code,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            order.paymentMethod.toUpperCase() == 'CASH'
-                                ? 'Thanh toán'
-                                : 'Tạo mã QR',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
+                            icon: const Icon(
+                              Icons.payments_outlined,
                               color: Colors.white,
+                            ),
+                            label: Text(
+                              'Thanh toán',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   )
                   : _buildPrintActionButton(context, order),
@@ -504,6 +690,193 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           color: AppColors.primaryBlue,
         ),
       ),
+    );
+  }
+
+  Widget _buildInlineQrCodeSection() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(height: 16.h),
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Image.network(
+              _paymentInfo!.qrCodeUrl,
+              width: 120.w,
+              height: 120.w,
+              fit: BoxFit.contain,
+              errorBuilder:
+                  (_, __, ___) =>
+                      Icon(Icons.qr_code, size: 120.w, color: Colors.grey),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            _paymentInfo!.bankCode,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            _paymentInfo!.accountNumber,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            _paymentInfo!.accountName,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+          ),
+          if (isDevMode) ...[
+            SizedBox(height: 16.h),
+            BlocBuilder<OrderBloc, OrderState>(
+              builder: (context, state) {
+                final isProcessing = state is OrderSePayWebHookLoading;
+                return SizedBox(
+                  width: double.infinity,
+                  height: 48.h,
+                  child: AppTextButton(
+                    onPressed:
+                        isProcessing
+                            ? null
+                            : () {
+                              context.read<OrderBloc>().add(
+                                OrderSePayWebHookEvent(
+                                  orderId: _currentOrder.id ?? 0,
+                                  orderCode: _currentOrder.code ?? '',
+                                  transferAmount: _paymentInfo!.amount.toInt(),
+                                  transactionDate:
+                                      _currentOrder.createdAt
+                                          ?.toReadableDateTime() ??
+                                      DateTime.now().toString(),
+                                  paymentInfo: _paymentInfo!,
+                                ),
+                              );
+                            },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue.withValues(
+                        alpha: 0.1,
+                      ),
+                      foregroundColor: AppColors.primaryBlue,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    label:
+                        isProcessing
+                            ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primaryBlue,
+                              ),
+                            )
+                            : Text(
+                              'Demo thanh toán',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryBlue,
+                              ),
+                            ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64.w,
+                    height: 64.w,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F5E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      color: const Color(0xFF4CAF50),
+                      size: 32.w,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    "Thanh toán thành công",
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Cập nhật danh sách đơn hàng
+                        context.read<OrderBloc>().add(
+                          OrderGetAllOrdersbyUserIdEvent(
+                            userId: _currentOrder.userId,
+                            page: 1,
+                          ),
+                        );
+                        Navigator.pop(context); // Close dialog
+                        Navigator.pop(context); // Close details page
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE3F2FD),
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Text(
+                        "Trở về trang bán hàng",
+                        style: TextStyle(
+                          color: const Color(0xFF2962FF),
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 }
@@ -743,15 +1116,11 @@ class _QrSheetContentState extends State<_QrSheetContent> {
                                       : () {
                                         if (widget.paymentStatus !=
                                             PaymentStatus.unpaid) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
+                                          NotificationUtils.showInfo(
+                                            context: context,
+                                            title: 'Thông báo',
+                                            description:
                                                 'Đơn hàng đã được thanh toán rồi',
-                                              ),
-                                              backgroundColor: Colors.orange,
-                                            ),
                                           );
                                           return;
                                         }

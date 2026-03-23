@@ -1,32 +1,9 @@
-// order_model.dart
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/payment_info.dart';
 import 'package:ting_box/models/product.dart';
 import 'package:ting_box/models/statistic.dart';
+import 'package:ting_box/utils/parsing_utils.dart';
 
-double parseDouble(dynamic value, String fieldName) {
-  try {
-    if (value is String) return double.parse(value);
-    if (value is num) return value.toDouble();
-    debugPrint('Warning: unexpected type for $fieldName -> $value');
-    return 0;
-  } catch (e) {
-    debugPrint('Error parsing $fieldName: $value -> $e');
-    return 0;
-  }
-}
-
-int parseInt(dynamic value, String fieldName) {
-  try {
-    if (value is String) return int.parse(value);
-    if (value is num) return value.toInt();
-    debugPrint('Warning: unexpected type for $fieldName -> $value');
-    return 0;
-  } catch (e) {
-    debugPrint('Error parsing $fieldName: $value -> $e');
-    return 0;
-  }
-}
 
 class Order {
   int? id;
@@ -44,15 +21,24 @@ class Order {
   final String paymentMethod;
   String? paymentStatus;
   final String? note;
+  final int? tableId;
+  final String? tableName; // Display name of table
+  final String? orderType; // 'retail' or 'dinning'
+  final bool? isTemp;
   final List<OrderItem> items;
   final PaymentInfo? paymentInfo;
   final double? totalAmount;
   final String? createdAt;
+  final String? updatedAt;
 
   Order({
     this.id,
     required this.userId,
     required this.distributorId,
+    this.tableId,
+    this.tableName,
+    this.orderType,
+    this.isTemp,
     this.code,
     required this.customerName,
     required this.customerPhone,
@@ -69,10 +55,12 @@ class Order {
     required this.items,
     this.paymentInfo,
     this.createdAt,
+    this.updatedAt,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
     int id = parseInt(json['id'], 'id');
+    int? tableId = json['tableId'] != null ? parseInt(json['tableId'], 'tableId') : null;
     int userId = parseInt(json['userId'], 'userId');
     double subtotal = parseDouble(json['subtotal'], 'subtotal');
     int distributorId = parseInt(json['distributorId'], 'distributorId');
@@ -85,14 +73,24 @@ class Order {
       'totalAmount',
     );
 
-    String customerName = json['customerName'] ?? '';
-    String customerPhone = json['customerPhone'] ?? '';
-    String customerEmail = json['customerEmail'] ?? '';
-    String shippingAddress = json['shippingAddress'] ?? '';
-    String paymentMethod = json['paymentMethod'] ?? '';
-    String? note = json['note'];
-    String? createdAt = json['createdAt'];
-    String? paymentStatus = json['paymentStatus'] ?? '';
+    String customerName = parseString(json['customerName']);
+    String customerPhone = parseString(json['customerPhone']);
+    String customerEmail = parseString(json['customerEmail']);
+    String shippingAddress = parseString(json['shippingAddress']);
+    String paymentMethod = parseString(json['paymentMethod']);
+    String? note = json['note']?.toString();
+    String? createdAt = json['createdAt']?.toString();
+    String? updatedAt = (json['updatedAt'] ?? json['updated_at'])?.toString();
+    String? paymentStatus = parseString(json['paymentStatus']);
+    String? tableName = (json['tableName'] ??
+            json['table_name'] ??
+            (json['table'] is Map ? json['table']['name'] : null))
+        ?.toString();
+    String? orderType = (json['orderType'] ?? json['order_type'])?.toString();
+    bool? isTemp = json['isTemp'];
+    if (json['isTemp'] is int) {
+      isTemp = json['isTemp'] == 1;
+    }
 
     List<OrderItem> items = [];
     try {
@@ -123,6 +121,10 @@ class Order {
       id: id,
       userId: userId,
       distributorId: distributorId,
+      tableId: tableId,
+      tableName: tableName,
+      orderType: orderType,
+      isTemp: isTemp,
       customerName: customerName,
       customerPhone: customerPhone,
       customerEmail: customerEmail,
@@ -138,6 +140,7 @@ class Order {
       items: items,
       paymentInfo: paymentInfo,
       createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -145,6 +148,7 @@ class Order {
     return {
       'userId': userId,
       'code': code,
+      'tableId': tableId,
       'distributorId': distributorId,
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -156,9 +160,13 @@ class Order {
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       'note': note,
+      'tableName': tableName,
+      'orderType': orderType,
+      'isTemp': isTemp,
       'items': items.map((e) => e.toJson()).toList(),
       'totalAmount': totalAmount,
       'createdAt': createdAt,
+      'updatedAt': updatedAt,
       'subtotal': subtotal,
       'id': id,
     };
@@ -169,19 +177,58 @@ class OrderItem {
   final int productId;
   final int quantity;
   final double unitPrice;
+  final String? note;
+  final bool isVoided;
+  final String? voidReason;
+  final String? voidAt;
+  final String? status;
   final Product? product; // Optional product details
 
   OrderItem({
     required this.productId,
     required this.quantity,
     required this.unitPrice,
+    this.note,
+    this.isVoided = false,
+    this.voidReason,
+    this.voidAt,
+    this.status,
     this.product,
   });
+
+  OrderItem copyWith({
+    int? productId,
+    int? quantity,
+    double? unitPrice,
+    String? note,
+    bool? isVoided,
+    String? voidReason,
+    String? voidAt,
+    String? status,
+    Product? product,
+  }) {
+    return OrderItem(
+      productId: productId ?? this.productId,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      note: note ?? this.note,
+      isVoided: isVoided ?? this.isVoided,
+      voidReason: voidReason ?? this.voidReason,
+      voidAt: voidAt ?? this.voidAt,
+      status: status ?? this.status,
+      product: product ?? this.product,
+    );
+  }
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     int productId = parseInt(json['productId'], 'productId');
     int quantity = parseInt(json['quantity'], 'quantity');
     double unitPrice = parseDouble(json['unitPrice'], 'unitPrice');
+    String? note = json['note']?.toString();
+    bool isVoided = json['isVoided'] ?? json['is_voided'] ?? false;
+    String? voidReason = (json['voidReason'] ?? json['void_reason'])?.toString();
+    String? voidAt = (json['voidAt'] ?? json['void_at'])?.toString();
+    String? status = json['status']?.toString();
 
     // Parse product if available in response
     Product? product;
@@ -197,6 +244,11 @@ class OrderItem {
       productId: productId,
       quantity: quantity,
       unitPrice: unitPrice,
+      note: note,
+      isVoided: isVoided,
+      voidReason: voidReason,
+      voidAt: voidAt,
+      status: status,
       product: product,
     );
   }
@@ -206,6 +258,11 @@ class OrderItem {
       'productId': productId,
       'quantity': quantity,
       'unitPrice': unitPrice,
+      'note': note,
+      'isVoided': isVoided,
+      'voidReason': voidReason,
+      'voidAt': voidAt,
+      'status': status,
       if (product != null) 'product': product!.toJson(),
     };
   }
