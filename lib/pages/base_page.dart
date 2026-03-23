@@ -10,7 +10,6 @@ import 'package:ting_box/ting_box.dart';
 import 'ConfigPage/bloc/config_bloc.dart';
 import 'ConfigPage/bloc/config_event.dart';
 import 'ConfigPage/bloc/config_state.dart';
-import 'ProductPage/ui/scan_menu_page.dart';
 import 'TableManagementPage/table_management_page.dart';
 
 class BasePage extends StatefulWidget {
@@ -72,7 +71,7 @@ class _BasePageState extends State<BasePage> {
     switch (_currentPlan) {
       case SubscriptionPlan.basic:
         return [const HomePage(), const UserProfilePage()];
-      case SubscriptionPlan.fnb: 
+      case SubscriptionPlan.fnb:
         if (_roleId == 6) {
           return [
             OrdersListPage(isVisible: _selectedIndex == 0),
@@ -92,7 +91,13 @@ class _BasePageState extends State<BasePage> {
         return [
           const HomePage(),
           OrdersListPage(isVisible: _selectedIndex == 1),
-          const ScanMenuPage(), // Center
+          ScanProductPage(
+             onClose: () {
+                setState(() {
+                   _selectedIndex = 0; // Về trang chủ
+                });
+             },
+          ), 
           const ProductsListPage(),
           const UserProfilePage(),
         ];
@@ -101,6 +106,8 @@ class _BasePageState extends State<BasePage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isScanProductPage = (_currentPlan == SubscriptionPlan.admin || _currentPlan == SubscriptionPlan.premium) && _selectedIndex == 2;
+
     return MultiBlocListener(
       listeners: [
         BlocListener<AuthBloc, AuthState>(
@@ -173,36 +180,38 @@ class _BasePageState extends State<BasePage> {
                         children: _pages,
                       ),
                     ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: const Border(
-                            top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                    if (!isScanProductPage)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: const Border(
+                              top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                            ),
+                          ),
+                          child: AppNavigationBar(
+                            currentIndex: _selectedIndex,
+                            onTap: (index) {
+                              // Skip center index if it's the placeholder
+                              int centerIndex =
+                                  (_currentPlan == SubscriptionPlan.fnb &&
+                                          _roleId == 6)
+                                      ? 1
+                                      : 2;
+                              if (index == centerIndex) return;
+                              setState(() => _selectedIndex = index);
+                            },
+                            plan: _currentPlan,
+                            roleId: _roleId,
                           ),
                         ),
-                        child: AppNavigationBar(
-                          currentIndex: _selectedIndex,
-                          onTap: (index) {
-                            // Skip center index if it's the placeholder
-                            int centerIndex =
-                                (_currentPlan == SubscriptionPlan.fnb &&
-                                        _roleId == 6)
-                                    ? 1
-                                    : 2;
-                            if (index == centerIndex) return;
-                            setState(() => _selectedIndex = index);
-                          },
-                          plan: _currentPlan,
-                          roleId: _roleId,
-                        ),
                       ),
-                    ),
                     // Floating Scan Button
-                    if (_currentPlan != SubscriptionPlan.basic || _roleId != 6)
+                    if (!isScanProductPage && (_currentPlan != SubscriptionPlan.basic ||
+                        (_currentPlan == SubscriptionPlan.fnb && _roleId != 6)))
                       Positioned(
                         bottom: 40.h,
                         left: 0,

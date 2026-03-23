@@ -86,8 +86,13 @@ class PrintService {
     }
 
     // Xây dựng URL kèm Query String để đảm bảo Server luôn nhận được trong Handshake
+    final Map<String, String> qParams = {'agentId': _currentAgentId};
+    if (_currentApiKey.isNotEmpty) {
+      qParams['apiKey'] = _currentApiKey;
+    }
+    
     final connectionUri = Uri.parse(_currentServerUrl).replace(
-      queryParameters: {'agentId': _currentAgentId, 'apiKey': _currentApiKey},
+      queryParameters: qParams,
     );
     final connectionUrl = connectionUri.toString();
 

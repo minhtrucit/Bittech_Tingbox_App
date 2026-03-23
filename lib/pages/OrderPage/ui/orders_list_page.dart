@@ -147,8 +147,9 @@ class _OrdersListPageState extends State<OrdersListPage>
               }
             } else {
               // Otherwise fetch tables for this zone
-              final tables =
-                  await context.read<TableService>().getTables(zone.id);
+              final tables = await context.read<TableService>().getTables(
+                zone.id,
+              );
               for (var table in tables) {
                 names[table.id] = table.name;
               }
@@ -740,60 +741,27 @@ class _OrdersListPageState extends State<OrdersListPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _buildOrderHeader(order)),
-                if (order.tableId != null) ...[
-                  SizedBox(width: 8.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withAlpha(10),
-                      borderRadius: BorderRadius.circular(6.r),
-                      border: Border.all(
-                        color: AppColors.primaryBlue.withAlpha(20),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.table_bar_rounded,
-                          size: 12.sp,
-                          color: AppColors.primaryBlue,
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          (order.tableId != null &&
-                                  _tableNames.containsKey(order.tableId))
-                              ? _tableNames[order.tableId]!
-                              : (order.tableName != null &&
-                                      order.tableName!.isNotEmpty)
-                                  ? order.tableName!
-                                  : (order.tableId != null && order.tableId != 0
-                                      ? 'Bàn ${order.tableId}'
-                                      : 'Mang về'),
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryBlue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                _buildOrderHeader(order),
+                _buildOrderBadge(order),
               ],
             ),
             SizedBox(height: 8.h),
             _buildOrderCustomer(order),
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [_buildOrderTime(order), _buildOrderStatus(order)],
+            SizedBox(height: 16.h),
+            Text(
+              '${formatMoney(order.totalAmount ?? 0)} đ',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
+            SizedBox(height: 16.h),
+            _buildOrderStatus(order),
+            SizedBox(height: 8.h),
+            _buildOrderTime(order),
           ],
         ),
       ),
@@ -803,26 +771,52 @@ class _OrdersListPageState extends State<OrdersListPage>
   Widget _buildOrderHeader(Order order) {
     final orderId = '#${order.code}-${order.id}';
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          orderId,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+    return Expanded(
+      child: Text(
+        orderId,
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
         ),
-        Text(
-          '${formatMoney(order.totalAmount ?? 0)}đ',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildOrderBadge(Order order) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue.withAlpha(10),
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(color: AppColors.primaryBlue.withAlpha(20)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.table_bar_rounded,
+            size: 12.sp,
+            color: AppColors.primaryBlue,
           ),
-        ),
-      ],
+          SizedBox(width: 4.w),
+          Text(
+            (order.tableId != null && _tableNames.containsKey(order.tableId))
+                ? _tableNames[order.tableId]!
+                : (order.tableName != null && order.tableName!.isNotEmpty)
+                ? order.tableName!
+                : (order.tableId != null && order.tableId != 0
+                    ? 'Bàn ${order.tableId}'
+                    : 'Mang về'),
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryBlue,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -830,53 +824,71 @@ class _OrdersListPageState extends State<OrdersListPage>
     return Text(
       order.customerName.isNotEmpty ? order.customerName : 'Khách vãng lai',
       style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _buildOrderTime(Order order) {
-    return Text(
-      _formatOrderTime(order.createdAt),
-      style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade500),
+    return Row(
+      children: [
+        Icon(Icons.access_time_rounded, size: 16.sp, color: Colors.grey),
+        SizedBox(width: 6.w),
+        Text(
+          _formatOrderTime(order.createdAt),
+          style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
+        ),
+      ],
     );
   }
 
   String _formatOrderTime(String? createdAt) {
     if (createdAt == null) return '';
 
-    return createdAt.toReadableDateTime();
+    // Trying to format as HH:mm • dd/MM/yyyy
+    try {
+      final dateTime = DateTime.parse(createdAt).toLocal();
+      final time =
+          '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      final date =
+          '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+      return '$time • $date';
+    } catch (e) {
+      return createdAt.toReadableDateTime();
+    }
   }
 
   Widget _buildOrderStatus(Order order) {
     final status = _getOrderStatus(order);
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: status.color.withAlpha(10),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8.w,
-            height: 8.w,
-            decoration: BoxDecoration(
-              color: status.color,
-              shape: BoxShape.circle,
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10.w,
+          height: 10.w,
+          decoration: BoxDecoration(
+            color: status.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: status.color.withAlpha(50),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
           ),
-          SizedBox(width: 6.w),
-          Text(
-            status.label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: status.color,
-              fontWeight: FontWeight.w500,
-            ),
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          status.label,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.grey.shade800,
+            fontWeight: FontWeight.w500,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

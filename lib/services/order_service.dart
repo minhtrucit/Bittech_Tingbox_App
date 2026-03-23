@@ -99,7 +99,7 @@ class OrderService {
 
   Future<Order> getOrdersbyOrderId({required int orderId}) async {
     try {
-      final resp = await api.get('/orders');
+      final resp = await api.get('/orders/$orderId');
 
       debugPrint("📌 API RAW DATA: ${resp.data}");
 

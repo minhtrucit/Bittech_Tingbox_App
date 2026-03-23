@@ -190,54 +190,51 @@ class _UserProfilePageState extends State<UserProfilePage> {
               isLink: true,
             ),
           ),
-          if (config != null &&
-              !(user.roleId == 4 &&
-                  config?.subscriptionPlan == SubscriptionPlan.basic)) ...[
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MyQrPage(user: user, config: config!),
-                  ),
-                );
-              },
-              child: _buildInfoTile(
-                icon: Icons.qr_code_scanner_outlined,
-                title: "QR của tôi",
-                subtitle: "Thông tin QR của bạn",
-                isLink: true,
-              ),
+
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MyQrPage(user: user, config: config),
+                ),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.qr_code_scanner_outlined,
+              title: "QR của tôi",
+              subtitle: "Thông tin QR của bạn",
+              isLink: true,
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
-                );
-              },
-              child: _buildInfoTile(
-                icon: Icons.settings,
-                title: "Cấu hình",
-                subtitle: "Thiết lập máy in, ngân hàng...",
-                isLink: true,
-              ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ConfigPage(config: config)),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.settings,
+              title: "Cấu hình",
+              subtitle: "Thiết lập máy in, ngân hàng...",
+              isLink: true,
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PrintPage()),
-                );
-              },
-              child: _buildInfoTile(
-                icon: Icons.print_outlined,
-                title: "Kết nối máy in",
-                subtitle: "Kết nối máy in và in thử",
-                isLink: true,
-              ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrintPage()),
+              );
+            },
+            child: _buildInfoTile(
+              icon: Icons.print_outlined,
+              title: "Kết nối máy in",
+              subtitle: "Kết nối máy in và in thử",
+              isLink: true,
             ),
-          ],
+          ),
         ],
       ),
     );

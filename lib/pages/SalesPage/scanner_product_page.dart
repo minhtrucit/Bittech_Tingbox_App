@@ -16,7 +16,8 @@ import 'package:ting_box/pages/SalesPage/bloc/cart_state.dart';
 import '../../ting_box.dart';
 
 class ScanProductPage extends StatefulWidget {
-  const ScanProductPage({super.key});
+  final VoidCallback? onClose;
+  const ScanProductPage({super.key, this.onClose});
 
   @override
   State<ScanProductPage> createState() => _ScanProductPageState();
@@ -445,7 +446,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
           );
 
           if (shouldExit == true && mounted) {
-            Navigator.pop(context);
+            if (widget.onClose != null) {
+               widget.onClose!();
+            } else {
+               Navigator.pop(context);
+            }
           }
         } else {
           setState(() {
@@ -453,7 +458,11 @@ class _ScanProductPageState extends State<ScanProductPage> {
           });
         }
       } else {
-        Navigator.pop(context);
+        if (widget.onClose != null) {
+           widget.onClose!();
+        } else {
+           Navigator.pop(context);
+        }
       }
     } else {
       if (scannedProducts.isNotEmpty) {
@@ -466,12 +475,20 @@ class _ScanProductPageState extends State<ScanProductPage> {
 
         if (shouldExit == true && mounted) {
           context.read<CartBloc>().add(ClearCartEvent());
-          setState(() => _canPop = true);
-          Navigator.pop(context);
+          if (widget.onClose != null) {
+             widget.onClose!();
+          } else {
+             setState(() => _canPop = true);
+             Navigator.pop(context);
+          }
         }
       } else {
-        setState(() => _canPop = true);
-        Navigator.pop(context);
+        if (widget.onClose != null) {
+           widget.onClose!();
+        } else {
+           setState(() => _canPop = true);
+           Navigator.pop(context);
+        }
       }
     }
   }
