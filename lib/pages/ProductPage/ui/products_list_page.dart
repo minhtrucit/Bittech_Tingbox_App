@@ -33,11 +33,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
     final user = await UserRepository.getUser();
     if (mounted) {
       setState(() {
-        _isAdmin = (user?.roleId == 1 ||
-                user?.roleId == 2 ||
-                user?.roleId == 5 ||
-                user == null) &&
-            user?.roleId != 6;
+        _isAdmin = user?.canManageProducts ?? false;
       });
     }
   }
@@ -129,7 +125,8 @@ class _ProductsListPageState extends State<ProductsListPage> {
             builder: (context, configState) {
               bool isFnB = false;
               if (configState is ConfigLoaded) {
-                isFnB = configState.config.subscriptionPlan == SubscriptionPlan.fnb;
+                isFnB =
+                    configState.config.subscriptionPlan == SubscriptionPlan.fnb;
               }
 
               final bool isManagementMode = isFnB && widget.table == null;
@@ -166,7 +163,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                           ),
                     ],
                   ),
-                  if (isManagementMode && _isAdmin) _buildAddButton(context),
+                  if (isManagementMode || _isAdmin) _buildAddButton(context),
                   if (!isManagementMode) _buildCartSummary(),
                 ],
               );
@@ -210,7 +207,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
       ),
     );
   }
-
 
   Widget _buildProductGrid(List<Product> products, bool isManagementMode) {
     return RefreshIndicator(
@@ -604,58 +600,58 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 );
               },
             ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Kiểm tra lại',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w600,
-                    ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Kiểm tra lại',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    final items = context.read<CartBloc>().state.items;
-                    // Construct OrderItems to return
-                    final orderItems =
-                        items
-                            .map(
-                              (p) => OrderItem(
-                                productId: p.id,
-                                quantity: p.quantity,
-                                unitPrice: p.price,
-                                product: p, // Pass full product info for display
-                              ),
-                            )
-                            .toList();
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final items = context.read<CartBloc>().state.items;
+                  // Construct OrderItems to return
+                  final orderItems =
+                      items
+                          .map(
+                            (p) => OrderItem(
+                              productId: p.id,
+                              quantity: p.quantity,
+                              unitPrice: p.price,
+                              product: p, // Pass full product info for display
+                            ),
+                          )
+                          .toList();
 
-                    // Capture navigators
-                    final navigator = Navigator.of(context);
-                    navigator.pop(); // Close dialog
-                    context.read<CartBloc>().add(ClearCartEvent());
+                  // Capture navigators
+                  final navigator = Navigator.of(context);
+                  navigator.pop(); // Close dialog
+                  context.read<CartBloc>().add(ClearCartEvent());
 
-                    // Return the items to table management
-                    navigator.pop(orderItems);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    elevation: 0,
+                  // Return the items to table management
+                  navigator.pop(orderItems);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
-                  child: const Text(
-                    'Gửi lệnh gọi món',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Gửi lệnh gọi món',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
     );
   }
 
@@ -677,7 +673,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                       top: Radius.circular(24.r),
                     ),
                   ),
-                   child: BlocListener<CartBloc, CartState>(
+                  child: BlocListener<CartBloc, CartState>(
                     listener: (context, state) {
                       if (state.items.isEmpty) {
                         Navigator.pop(context);
@@ -711,7 +707,9 @@ class _ProductsListPageState extends State<ProductsListPage> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  context.read<CartBloc>().add(ClearCartEvent());
+                                  context.read<CartBloc>().add(
+                                    ClearCartEvent(),
+                                  );
                                   // Navigator.pop(context); // Listener will handle this
                                 },
                                 child: const Text(

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ting_box/models/menu.dart';
@@ -34,21 +36,32 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     int successCount = 0;
     List<String> errors = [];
 
-    for (final productData in event.products) {
+    for (int i = 0; i < event.products.length; i++) {
+      final productData = event.products[i];
+      final File? image =
+          (event.productImages != null && i < event.productImages!.length)
+              ? event.productImages![i]
+              : null;
+
       try {
         final body = {
           "name": productData.name,
           "price": productData.price,
-          "categoryId": productData.categoryId,
-          "description": productData.description,
-          "images": productData.images,
+          "categoryId": productData.categoryId ?? 2,
+          "description": productData.description ?? '',
           "distributorId": 1,
           "barcode": productData.barcode,
         };
 
-        await productApiService.createProduct(body: body, images: []);
+        debugPrint("📤 Batch Create Product: ${productData.name}");
+        await productApiService.createProduct(
+          body: body,
+          images: image != null ? [image] : [],
+        );
         successCount++;
-      } catch (e) {
+      } catch (e, st) {
+        debugPrint("❌ Batch Create Product Error [${productData.name}]: $e");
+        debugPrint(st.toString());
         errors.add("${productData.name}: $e");
       }
     }

@@ -88,6 +88,9 @@ class User {
 
   bool get canManageInfrastructure => isAdmin || isFnbManager;
   bool get canManageOrders => isAdmin || isFnbManager || isFnbStaff;
+
+  bool get canManageProducts =>
+      roleId == 1 || roleId == 2 || roleId == 5;
 }
 
 class Role {

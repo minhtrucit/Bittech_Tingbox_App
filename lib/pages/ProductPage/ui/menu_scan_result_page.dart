@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ting_box/models/menu.dart';
 import '../bloc/ocr_correction_bloc.dart';
 import '../bloc/ocr_correction_event.dart';
@@ -20,6 +23,8 @@ class MenuScanResultPage extends StatefulWidget {
 class _MenuScanResultPageState extends State<MenuScanResultPage> {
   late List<MenuItem> _editableProducts;
   bool _isSaving = false;
+  final Map<int, String?> _localImages = {};
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -30,7 +35,72 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
   void _removeProduct(int index) {
     setState(() {
       _editableProducts.removeAt(index);
+      // Shift images in map
+      for (int i = index; i < _editableProducts.length + 1; i++) {
+        _localImages[i] = _localImages[i + 1];
+      }
+      _localImages.remove(_editableProducts.length + 1);
     });
+  }
+
+  Future<void> _pickImage(int index, ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image != null) {
+      setState(() {
+        _localImages[index] = image.path;
+      });
+    }
+  }
+
+  void _showImagePickerOptions(int index) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: const Text("Chụp ảnh mới"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(index, ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image_rounded),
+                title: const Text("Chọn từ thư viện"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(index, ImageSource.gallery);
+                },
+              ),
+              if (_localImages[index] != null)
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    "Xóa ảnh hiện tại",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _localImages[index] = null;
+                    });
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   bool _hasChanges() {
@@ -75,30 +145,39 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
         );
       }
 
-      final List<Product> productsToCreate =
-          _editableProducts
-              .map(
-                (p) => Product(
-                  id: 0,
-                  name: p.name ?? '',
-                  price: p.price,
-                  description: p.description ?? '',
-                  categoryId: 2,
-                  url: '',
-                ),
-              )
-              .toList();
+      final List<Product> productsToCreate = [];
+      final List<File?> productImages = [];
 
-      productBloc.add(CreateBatchProductsEvent(products: productsToCreate));
+      for (int i = 0; i < _editableProducts.length; i++) {
+        final p = _editableProducts[i];
+        productsToCreate.add(
+          Product(
+            id: 0,
+            name: p.name ?? '',
+            price: p.price,
+            description: p.description ?? '',
+            categoryId: 2,
+            url: '',
+          ),
+        );
+
+        final localPath = _localImages[i];
+        productImages.add(localPath != null ? File(localPath) : null);
+      }
+
+      productBloc.add(
+        CreateBatchProductsEvent(
+          products: productsToCreate,
+          productImages: productImages,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        DialogUtils.showAppDialog(
+        NotificationUtils.showError(
           context: context,
           title: 'Lỗi',
-          content: 'Lỗi khi chuẩn bị lưu sản phẩm: $e',
-          onFirstAction: () => Navigator.pop(context),
-          firstActionText: 'Đóng',
+          description: 'Lỗi khi chuẩn bị lưu sản phẩm: $e',
         );
       }
     }
@@ -112,24 +191,19 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
           listener: (context, state) {
             if (state is ProductBatchCreateSuccess) {
               setState(() => _isSaving = false);
-              DialogUtils.showAppDialog(
+              NotificationUtils.showSuccess(
                 context: context,
                 title: 'Thành công',
-                content: 'Đã thêm ${state.count} sản phẩm vào danh mục.',
-                onFirstAction: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  context.read<ProductBloc>().add(GetProductsEvent());
-                },
-                firstActionText: 'Đóng',
+                description: 'Đã thêm ${state.count} sản phẩm vào danh mục.',
               );
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              context.read<ProductBloc>().add(GetProductsEvent());
             } else if (state is ProductFailure && _isSaving) {
               setState(() => _isSaving = false);
-              DialogUtils.showAppDialog(
+              NotificationUtils.showError(
                 context: context,
                 title: 'Lỗi tạo sản phẩm',
-                content: 'Lỗi khi tạo sản phẩm: vui lòng thử lại',
-                onFirstAction: () => Navigator.pop(context),
-                firstActionText: 'Đóng',
+                description: state.message,
               );
             }
           },
@@ -166,7 +240,10 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: 12.h,
+                                    horizontal: 8.w,
+                                  ),
                                   child: Text(
                                     entry.key.toUpperCase(),
                                     style: TextStyle(
@@ -177,12 +254,14 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                                     ),
                                   ),
                                 ),
-                                ...entry.value.map((idx) => _buildModernProductCard(idx)),
+                                ...entry.value.map(
+                                  (idx) => _buildModernProductCard(idx),
+                                ),
                               ],
                             );
                           },
                         );
-                      }
+                      },
                     ),
                   ),
                 ],
@@ -205,9 +284,9 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
   Map<String, List<int>> _getGroupedIndices() {
     Map<String, List<int>> map = {};
     for (int i = 0; i < _editableProducts.length; i++) {
-        String cat = _editableProducts[i].category ?? 'Khác';
-        if (cat.isEmpty) cat = 'Khác';
-        map.putIfAbsent(cat, () => []).add(i);
+      String cat = _editableProducts[i].category ?? 'Khác';
+      if (cat.isEmpty) cat = 'Khác';
+      map.putIfAbsent(cat, () => []).add(i);
     }
     return map;
   }
@@ -326,6 +405,8 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildImageSelector(index),
+                  SizedBox(height: 16.h),
                   _buildCategoryField(index, product),
                   SizedBox(height: 16.h),
                   _buildEditableField(
@@ -458,18 +539,19 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
 
   Widget _buildCategoryField(int index, MenuItem product) {
     // Collect all available categories from current items
-    final categories = _editableProducts
-        .map((e) => e.category?.trim() ?? '')
-        .where((c) => c.isNotEmpty && c != 'Khác')
-        .toSet()
-        .toList();
-    
+    final categories =
+        _editableProducts
+            .map((e) => e.category?.trim() ?? '')
+            .where((c) => c.isNotEmpty && c != 'Khác')
+            .toSet()
+            .toList();
+
     // Add 'Khác' to the list if not present
     if (!categories.contains('Khác')) categories.add('Khác');
-    
+
     String currentCat = product.category?.trim() ?? 'Khác';
     if (currentCat.isEmpty) currentCat = 'Khác';
-    
+
     // If the current category somehow isn't in the list, add it
     if (!categories.contains(currentCat)) {
       categories.add(currentCat);
@@ -480,7 +562,11 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.category_rounded, size: 14.sp, color: Colors.grey.shade400),
+            Icon(
+              Icons.category_rounded,
+              size: 14.sp,
+              color: Colors.grey.shade400,
+            ),
             SizedBox(width: 4.w),
             Text(
               "DANH MỤC".toUpperCase(),
@@ -495,33 +581,46 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
         DropdownButtonFormField<String>(
           value: currentCat,
           isExpanded: true,
-          icon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
+          icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: Colors.grey.shade600,
+          ),
           decoration: InputDecoration(
             isDense: true,
             contentPadding: EdgeInsets.symmetric(vertical: 8.h),
             border: InputBorder.none,
           ),
           items: [
-            ...categories.map((c) => DropdownMenuItem(
-                  value: c,
-                  child: Text(c,
-                      style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey.shade800)),
-                )),
+            ...categories.map(
+              (c) => DropdownMenuItem(
+                value: c,
+                child: Text(
+                  c,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey.shade800,
+                  ),
+                ),
+              ),
+            ),
             DropdownMenuItem(
               value: '__ADD_NEW__',
               child: Row(
                 children: [
-                  Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue, size: 18.sp),
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: AppColors.primaryBlue,
+                    size: 18.sp,
+                  ),
                   SizedBox(width: 8.w),
                   Text(
                     "Thêm danh mục mới",
                     style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue),
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
                   ),
                 ],
               ),
@@ -529,7 +628,7 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
           ],
           onChanged: (val) async {
             // Restore previous value immediately to avoid UI glitch if they cancel
-            
+
             if (val == '__ADD_NEW__') {
               final newCat = await _showAddCategoryDialog();
               if (newCat != null && newCat.isNotEmpty) {
@@ -570,15 +669,26 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-          title: Text("Tạo danh mục mới", 
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.blueGrey.shade800)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Text(
+            "Tạo danh mục mới",
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey.shade800,
+            ),
+          ),
           content: TextField(
             controller: catCtrl,
             autofocus: true,
             decoration: InputDecoration(
               hintText: "Nhập tên danh mục",
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14.sp),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14.sp,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(color: Colors.grey.shade300),
@@ -592,14 +702,22 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Hủy", style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+              child: Text(
+                "Hủy",
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, catCtrl.text.trim()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
               ),
               child: const Text("Thêm"),
             ),
@@ -671,6 +789,102 @@ class _MenuScanResultPageState extends State<MenuScanResultPage> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSelector(int index) {
+    final String? localPath = _localImages[index];
+
+    return GestureDetector(
+      onTap: () => _showImagePickerOptions(index),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.image_outlined,
+                size: 14.sp,
+                color: Colors.grey.shade400,
+              ),
+              SizedBox(width: 4.w),
+              Text(
+                "ẢNH SẢN PHẨM",
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Container(
+            width: double.infinity,
+            height: 120.h,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color:
+                    localPath != null
+                        ? AppColors.primaryBlue.withValues(alpha: 0.3)
+                        : Colors.grey.shade200,
+                width: 1.5,
+              ),
+            ),
+            child:
+                localPath != null
+                    ? Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16.r),
+                          child: Image.file(
+                            File(localPath),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Positioned(
+                          right: 8.w,
+                          top: 8.h,
+                          child: Container(
+                            padding: EdgeInsets.all(4.w),
+                            decoration: const BoxDecoration(
+                              color: Colors.black45,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.edit_rounded,
+                              size: 14.sp,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                    : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_outlined,
+                          size: 32.sp,
+                          color: Colors.grey.shade400,
+                        ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          "Chụp hoặc chọn ảnh",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
           ),
         ],
       ),

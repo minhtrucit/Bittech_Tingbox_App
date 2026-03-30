@@ -70,9 +70,16 @@ class ProductApiService {
     required List<File> images,
   }) async {
     try {
-      // Prepare FormData
+      // Prepare FormData map without null values
+      final Map<String, dynamic> dataMap = {};
+      body.forEach((key, value) {
+        if (value != null) {
+          dataMap[key] = value;
+        }
+      });
+
       final formData = FormData.fromMap({
-        ...body,
+        ...dataMap,
         "images": [
           for (final f in images)
             await MultipartFile.fromFile(
@@ -89,17 +96,25 @@ class ProductApiService {
 
       debugPrint("📩 API Response: ${resp.data}");
 
-      final ok = resp.statusCode == 201;
+      final ok = resp.statusCode == 200 || resp.statusCode == 201;
 
       if (!ok) {
-        throw Exception(resp.data['message'] ?? "Lỗi API không xác định");
+        final message = (resp.data is Map) ? resp.data['message'] : null;
+        throw Exception(message ?? "Lỗi API không xác định");
       }
 
+      if (resp.data == null) {
+        return {};
+      }
       return resp.data as Map<String, dynamic>;
     } catch (e, st) {
       debugPrint("❌ createProduct error: $e");
       debugPrint("STACK: $st");
 
+      if (e is DioException && e.response != null) {
+        final errorMsg = e.response?.data['message'] ?? e.message;
+        throw Exception(errorMsg);
+      }
       throw Exception("Không thể tạo sản phẩm. Lỗi: $e");
     }
   }

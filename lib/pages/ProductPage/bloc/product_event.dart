@@ -51,5 +51,6 @@ final class MenuOcrStatusUpdatedEvent extends ProductEvent {
 
 final class CreateBatchProductsEvent extends ProductEvent {
   final List<Product> products;
-  CreateBatchProductsEvent({required this.products});
+  final List<File?>? productImages;
+  CreateBatchProductsEvent({required this.products, this.productImages});
 }

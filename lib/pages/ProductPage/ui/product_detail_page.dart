@@ -29,11 +29,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final user = await UserRepository.getUser();
     if (mounted) {
       setState(() {
-        _isAdmin = (user?.roleId == 1 ||
-                user?.roleId == 2 ||
-                user?.roleId == 5 ||
-                user == null) &&
-            user?.roleId != 6;
+        _isAdmin = user?.canManageProducts ?? false;
       });
     }
   }

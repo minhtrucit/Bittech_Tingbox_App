@@ -41,11 +41,7 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     if (mounted) {
       setState(() {
-        _isAdmin =
-            user?.roleId == 1 ||
-            user?.roleId == 2 ||
-            user?.roleId == 5 ||
-            user?.roleId == 4;
+        _isAdmin = user?.canManageProducts ?? false;
 
         _roleId = user?.roleId ?? 0;
         if (_roleId == 1) {
