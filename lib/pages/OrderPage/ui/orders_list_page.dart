@@ -893,9 +893,7 @@ class _OrdersListPageState extends State<OrdersListPage>
   }
 
   OrderStatusInfo _getOrderStatus(Order order) {
-    debugPrint(
-      'PaymentId: ${order.userId} - Payment status: ${order.paymentStatus}',
-    );
+
     final paymentStatus = order.paymentStatus?.toLowerCase();
 
     if (paymentStatus == PaymentStatus.paid) {
